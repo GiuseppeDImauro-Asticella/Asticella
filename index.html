@@ -40,6 +40,7 @@
   --blk0:#7D97FF;--blk1:#C08BFF;--blk2:#3CC3CE;--blk3:#F29A55;--blk4:#F27AAE;--blk5:#9CCB5A;--blk6:#9AA3B3;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;overscroll-behavior-y:none}
 #ptr{white-space:nowrap;position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translate(-50%,-70px);z-index:95;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:99px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px;pointer-events:none;transition:transform .18s}
 #ptr.ready{color:var(--accent)}
@@ -855,6 +856,10 @@ function planListHtml(exs){
     return `<li class="api ${link ? "link" : ""}" style="--bc:${col}"><div class="lc"><span class="lab">${esc(L[i] || "•")}</span></div>
       <div><div class="nm">${esc(x.name)}${g.size > 1 && g.k === 0 ? `<span class="sst">superserie</span>` : ""}</div><div class="sc">${esc(schemeText(x))}</div></div></li>`; }).join("")}</ul>`;
 }
+/* profili "senza accesso" (squadre o atleti che non usano l'app): hanno un codice al posto dell'email,
+   con dominio .local, dove non arriva nessuna email di conferma → nessuno può entrare con quel profilo */
+const isNoAccess = a => !!a && (a.noAccess || /\.local$/.test(a.email || ""));
+const noAccessId = name => (String(name).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "profilo") + "-" + Math.random().toString(36).slice(2, 6) + "@senza-accesso.local";
 function resultLine(r, cols){ return cols.filter(c => COLS[c].log && r[c]).map(c => fmtVal(c, r[c])).join(" · "); }
 
 /* =====================================================================
@@ -1155,26 +1160,33 @@ function viewAthletes(m){
   const url = location.href.split("#")[0].split("?")[0];
   m.innerHTML = `<div class="pagehead"><div><h1>Atleti</h1><div class="sub">${activeAthletes().length} attivi</div></div><button class="btn pri" data-act="ath-new">+ Nuovo atleta</button></div>
   <div class="two"><div class="panel scroll-x"><table class="list"><thead><tr><th>Nome</th><th>Email di accesso</th><th>Gruppo</th><th></th></tr></thead><tbody>
-    ${list.map(a => `<tr style="${a.archived?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.archived?' <span class="tag">archiviato</span>':""}</td><td class="muted">${esc(a.email)}</td><td>${a.group?`<span class="tag">${esc(a.group)}</span>`:""}</td>
+    ${list.map(a => `<tr style="${a.archived?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.archived?' <span class="tag">archiviato</span>':""}${isNoAccess(a)?' <span class="tag" title="Non entra nell\'app: i dati li inserisci tu">senza accesso</span>':""}</td><td class="muted">${isNoAccess(a) ? "—" : esc(a.email)}</td><td>${a.group?`<span class="tag">${esc(a.group)}</span>`:""}</td>
       <td style="text-align:right;white-space:nowrap"><button class="btn sm" data-act="open-cal" data-e="${esc(a.email)}">Calendario</button> <button class="btn sm ghost" data-act="ath-edit" data-e="${esc(a.email)}">Modifica</button></td></tr>`).join("") || `<tr><td colspan="4" class="muted">Nessun atleta ancora.</td></tr>`}
   </tbody></table></div>
   <div class="panel">${e ? `<form class="form" id="ath-form">
       <h3>${e.isNew ? "Nuovo atleta" : "Modifica atleta"}</h3>
       <div class="field"><label class="lbl" for="a-name">Nome e cognome</label><input class="in" id="a-name" value="${esc(e.name||"")}" required></div>
-      <div class="field"><label class="lbl" for="a-email">Email con cui entrerà</label><input class="in" id="a-email" type="email" value="${esc(e.email||"")}" ${e.isNew?"":"readonly"} required>
+      ${e.isNew ? `<label class="row" style="align-items:flex-start"><input type="checkbox" id="a-noacc" data-change="a-noacc" style="margin-top:3px"><span>Senza accesso<br><span class="faint" style="font-size:12px">Per una squadra o per un atleta che non usa l'app: i dati li inserisci tu.</span></span></label>` : ""}
+      <div class="field" id="a-email-f" ${!e.isNew && isNoAccess(e) ? "hidden" : ""}><label class="lbl" for="a-email">Email con cui entrerà</label><input class="in" id="a-email" type="email" value="${esc(e.email||"")}" ${e.isNew?"":"readonly"}>
         <span class="faint" style="font-size:12px">Deve essere la stessa email del suo account Google (o quella con cui crea l'account).</span></div>
+      ${!e.isNew && isNoAccess(e) ? `<div class="note">Senza accesso: nessuno entra nell'app con questo profilo. Inserisci tu i dati dall'allenamento ("Inserisci i dati eseguiti").</div>` : ""}
       <div class="field"><label class="lbl" for="a-group">Gruppo</label><input class="in" id="a-group" list="grp-list" value="${esc(e.group||"")}" placeholder="es. Salto in alto, Basket U17">
         <datalist id="grp-list">${groups().map(g=>`<option value="${esc(g)}"></option>`).join("")}</datalist></div>
       ${e.isNew ? "" : `<label class="row"><input type="checkbox" id="a-arch" ${e.archived?"checked":""}> Archiviato (non compare più e non può entrare)</label>`}
       <div class="row"><button class="btn pri">Salva</button><button type="button" class="btn ghost" data-act="ath-cancel">Annulla</button></div>
     </form>` : `<div class="form"><h3>Come invitare un atleta</h3>
       <div class="note">1. Aggiungilo qui con la sua email.<br>2. Mandagli il link dell'app:<br><code id="app-url">${esc(url)}</code><br>3. Entra con Google (o crea un account con la stessa email) e vede subito il suo programma.</div>
+      <div class="faint" style="font-size:12px">Per una squadra o un atleta che non usa l'app, crea il profilo con «Senza accesso»: non serve l'email.</div>
       <button class="btn" data-act="copy-url">Copia link dell'app</button></div>`}
   </div></div>`;
   const f = $("#ath-form");
   if (f) f.onsubmit = async ev => { ev.preventDefault();
+    const noAcc = !!$("#a-noacc")?.checked;
     const a = {name: $("#a-name").value.trim(), email: $("#a-email").value.trim().toLowerCase(), group: $("#a-group").value.trim(), archived: !!$("#a-arch")?.checked};
-    if (!a.name || !a.email) return;
+    if (!a.name) return toast("Scrivi il nome");
+    if (e.isNew && noAcc) { a.email = noAccessId(a.name); a.noAccess = true; }
+    if (!a.email) return toast("Scrivi l'email con cui entrerà (oppure spunta «Senza accesso»)");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a.email)) return toast("Email non valida");
     if (e.isNew && athByEmail(a.email)) return toast("Esiste già un atleta con questa email");
     if (e.isNew) a.createdAt = TODAY();
     await DB.saveAthlete(a);
@@ -1936,6 +1948,7 @@ document.addEventListener("change", async e => {
   if (k === "demo-role") return setDemoRole(t.value);
   if (k === "ed-from") { const tp = S.templates.find(x => x.id === t.value); if (!tp || !S.editor) return; const c = freshCopy(tp, "");
     const w = S.editor.w; w.title = tp.title; w.notes = tp.notes || ""; w.exercises = c.exercises; markDirty(); drawEditor(); toast(`Caricato «${tp.title}»`); return; }
+  if (k === "a-noacc") { $("#a-email-f").hidden = t.checked; return; }
   if (k === "x-opt") { const inp = $(`#x-${t.dataset.k}-new`); inp.hidden = t.value !== "__new"; if (!inp.hidden) inp.focus(); return; }
   if (k === "an-date") { let f = $("#an-from").value || anQ.from, to = $("#an-to").value || anQ.to; if (f > to) [f, to] = [to, f];
     if (daysBetween(f, to) > 7*104) { toast("Periodo massimo: 2 anni"); f = addDays(to, -7*104); } anQ.from = f; anQ.to = to; return renderView(); }

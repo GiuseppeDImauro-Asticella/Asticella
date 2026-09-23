@@ -576,6 +576,40 @@ function FirebaseDB(F, db){
   };
 }
 
+/* ---------- esercizi di base (usati nella demo e dal pulsante "Aggiungi esercizi di base") ---------- */
+const BASE_EXERCISES = [
+    ["Back squat","Forza","Squat",["reps","kg","rpe","rest"]],
+    ["Front squat","Forza","Squat",["reps","kg","rpe","rest"]],
+    ["Trap bar deadlift","Forza","Hinge",["reps","kg","rpe","rest"]],
+    ["Stacco rumeno","Forza","Hinge",["reps","kg","rir"]],
+    ["Hip thrust","Forza","Hinge",["reps","kg","rir"]],
+    ["Panca piana","Forza","Spinta orizzontale",["reps","kg","rpe","rest"]],
+    ["Trazioni","Forza","Tirata verticale",["reps","kg"]],
+    ["Affondi camminati","Forza","Monopodalico",["reps","kg","side"]],
+    ["Nordic curl","Forza","Hinge",["reps"]],
+    ["Power clean","Potenza","Olimpico",["reps","kg","pct","vel","rest"]],
+    ["Jump squat","Potenza","Squat",["reps","kg","vel"]],
+    ["CMJ","Pliometria","Salto",["reps","height"]],
+    ["Box jump","Pliometria","Salto",["reps","height"]],
+    ["Hurdle hops","Pliometria","Salto",["reps","height"]],
+    ["Rincorsa corta (5 passi)","Tecnica salto","Salto in alto",["steps","height"]],
+    ["Salto con rincorsa completa","Tecnica salto","Salto in alto",["steps","height"]],
+    ["Sprint 20 m","Velocità","Sprint",["dist","time","rest"]],
+    ["Sprint 10 m","Velocità","Sprint",["dist","time","rest"]],
+    ["Plank","Core","Anti-estensione",["time"]],
+    ["Pallof press","Core","Anti-rotazione",["reps","kg","side"]],
+    ["Squat bulgaro","Forza","Monopodalico",["reps","kg","side","rir"]],
+    ["Step-up","Forza","Monopodalico",["reps","kg","side"]],
+    ["Military press","Forza","Spinta verticale",["reps","kg","rpe"]],
+    ["Rematore con manubrio","Forza","Tirata orizzontale",["reps","kg","side"]],
+    ["Calf raise","Forza","Monopodalico",["reps","kg"]],
+    ["Copenhagen plank","Prevenzione","Anti-flessione laterale",["time","side"]],
+    ["Drop jump","Pliometria","Salto",["reps","height"]],
+    ["Salto in lungo da fermo","Pliometria","Salto",["reps","dist"]],
+    ["Balzi alternati","Pliometria","Salto",["reps","dist"]],
+    ["Side plank","Core","Anti-flessione laterale",["time","side"]],
+];
+
 /* ---------- dati demo ---------- */
 /* aggiunge ai dati demo esistenti esempi di mesocicli e tipi di serie */
 function demoV6(st){
@@ -617,28 +651,7 @@ function demoHistory(st){
   });
 }
 function seedDemo(){
-  const ex = [
-    ["Back squat","Forza","Squat",["reps","kg","rpe","rest"]],
-    ["Front squat","Forza","Squat",["reps","kg","rpe","rest"]],
-    ["Trap bar deadlift","Forza","Hinge",["reps","kg","rpe","rest"]],
-    ["Stacco rumeno","Forza","Hinge",["reps","kg","rir"]],
-    ["Hip thrust","Forza","Hinge",["reps","kg","rir"]],
-    ["Panca piana","Forza","Spinta orizzontale",["reps","kg","rpe","rest"]],
-    ["Trazioni","Forza","Tirata verticale",["reps","kg"]],
-    ["Affondi camminati","Forza","Monopodalico",["reps","kg","side"]],
-    ["Nordic curl","Forza","Hinge",["reps"]],
-    ["Power clean","Potenza","Olimpico",["reps","kg","pct","vel","rest"]],
-    ["Jump squat","Potenza","Squat",["reps","kg","vel"]],
-    ["CMJ","Pliometria","Salto",["reps","height"]],
-    ["Box jump","Pliometria","Salto",["reps","height"]],
-    ["Hurdle hops","Pliometria","Salto",["reps","height"]],
-    ["Rincorsa corta (5 passi)","Tecnica salto","Salto in alto",["steps","height"]],
-    ["Salto con rincorsa completa","Tecnica salto","Salto in alto",["steps","height"]],
-    ["Sprint 20 m","Velocità","Sprint",["dist","time","rest"]],
-    ["Sprint 10 m","Velocità","Sprint",["dist","time","rest"]],
-    ["Plank","Core","Anti-estensione",["time"]],
-    ["Pallof press","Core","Anti-rotazione",["reps","kg","side"]],
-  ].map(([name,category,pattern,cols]) => ({id: uid()+name.length, name, category, pattern, cols, video:"", notes:""}));
+  const ex = BASE_EXERCISES.map(([name,category,pattern,cols]) => ({id: uid()+name.length, name, category, pattern, cols, video:"", notes:""}));
   const athletes = [
     {name:"Giulia Bianchi", email:"giulia.bianchi@example.com", group:"Salto in alto"},
     {name:"Luca Ferri", email:"luca.ferri@example.com", group:"Salto in alto"},
@@ -1151,7 +1164,7 @@ function viewExercises(m){
   const list = S.exercises.filter(x => !q || (x.name+" "+x.category+" "+x.pattern).toLowerCase().includes(q));
   const cats = [...new Set(list.map(x => x.category || "Altro"))].sort();
   const e = S.exEdit;
-  m.innerHTML = `<div class="pagehead"><div><h1>Esercizi</h1><div class="sub">La tua libreria: nome, categoria e parametri già pronti quando lo inserisci in un allenamento.</div></div><button class="btn pri" data-act="ex-new">+ Nuovo esercizio</button></div>
+  m.innerHTML = `<div class="pagehead"><div><h1>Esercizi</h1><div class="sub">La tua libreria: nome, categoria e parametri già pronti quando lo inserisci in un allenamento.</div></div><div class="toolbar">${S.exercises.length ? "" : `<button class="btn" data-act="ex-base">Aggiungi esercizi di base</button>`}<button class="btn pri" data-act="ex-new">+ Nuovo esercizio</button></div></div>
   <div class="two"><div class="panel"><div style="padding:12px;border-bottom:1px solid var(--line)"><input class="in" id="ex-q" placeholder="Cerca esercizio…" value="${esc(S.exQuery)}" data-input="ex-q"></div>
     <div class="scroll-x"><table class="list"><tbody>${cats.map(c => `<tr><th colspan="3" style="background:var(--surface2)">${esc(c)}</th></tr>` + list.filter(x => (x.category||"Altro")===c).map(x => `<tr>
       <td><b>${esc(x.name)}</b><div class="faint" style="font-size:12px">${esc(x.pattern||"")}</div></td>
@@ -1820,6 +1833,13 @@ const ACT = {
   "ath-cancel"(){ S.athEdit = null; renderView(); },
   async "copy-url"(){ const u = $("#app-url").textContent; try { await navigator.clipboard.writeText(u); toast("Link copiato"); } catch(e){ const r = document.createRange(); r.selectNodeContents($("#app-url")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Selezionato: premi Ctrl+C"); } },
   /* esercizi */
+  async "ex-base"(){
+    const have = new Set(S.exercises.map(x => x.name.trim().toLowerCase()));
+    const todo = BASE_EXERCISES.filter(([n]) => !have.has(n.toLowerCase()));
+    if (!todo.length) return toast("Hai già tutti gli esercizi di base");
+    if (!(await confirmBox(`Aggiungo ${todo.length} esercizi di base (squat, stacchi, pliometria, sprint, salto…). Quelli che hai già non vengono toccati.`, "Aggiungi", false))) return;
+    for (const [name, category, pattern, cols] of todo) { const x = {id: uid(), name, category, pattern, cols, video:"", notes:""}; await DB.saveExercise(x); S.exercises.push(x); }
+    S.exercises.sort((a,b) => a.name.localeCompare(b.name)); fillDatalist(); toast(`${todo.length} esercizi aggiunti`); renderView(); },
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); setTimeout(()=>$("#x-name")?.focus(), 20); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },

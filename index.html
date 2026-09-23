@@ -567,17 +567,25 @@ function FirebaseDB(F, db){
   const W = (e) => F.collection(db, "athletes", e, "workouts");
   const docs = snap => snap.docs.map(d => ({...d.data(), id: d.id}));
   const cleanObj = o => JSON.parse(JSON.stringify(o));
+  // Se il server non risponde entro 7 secondi (rete lenta in palestra, telefono appena riattivato)
+  // si usano i dati già salvati sul telefono invece di restare bloccati.
+  const fast = async (serverCall, cacheCall) => {
+    let t; const slow = new Promise((_, rej) => { t = setTimeout(() => rej({code: "slow"}), 7000); });
+    try { return await Promise.race([serverCall(), slow]); }
+    catch(e) { if (e?.code !== "slow") throw e; S.slow = true; return await cacheCall(); }
+    finally { clearTimeout(t); }
+  };
   return {
     async listAthletes(){ return docs(await F.getDocs(F.collection(db, "athletes"))); },
-    async getAthlete(e){ const s = await F.getDoc(F.doc(db, "athletes", e)); return s.exists() ? s.data() : null; },
+    async getAthlete(e){ const r = F.doc(db, "athletes", e); const s = await fast(() => F.getDoc(r), () => F.getDocFromCache(r)); return s.exists() ? s.data() : null; },
     async saveAthlete(a){ await F.setDoc(F.doc(db, "athletes", a.email), cleanObj(a), {merge:true}); return a; },
-    async listExercises(){ return docs(await F.getDocs(F.collection(db, "exercises"))); },
+    async listExercises(){ const q = F.collection(db, "exercises"); return docs(await fast(() => F.getDocs(q), () => F.getDocsFromCache(q))); },
     async saveExercise(x){ await F.setDoc(F.doc(db, "exercises", x.id), cleanObj(x)); return x; },
     async deleteExercise(id){ await F.deleteDoc(F.doc(db, "exercises", id)); },
     async listTemplates(){ return docs(await F.getDocs(F.collection(db, "templates"))); },
     async saveTemplate(t){ await F.setDoc(F.doc(db, "templates", t.id), cleanObj(t)); return t; },
     async deleteTemplate(id){ await F.deleteDoc(F.doc(db, "templates", id)); },
-    async listWorkouts(e, from, to){ return docs(await F.getDocs(F.query(W(e), F.where("date", ">=", from), F.where("date", "<=", to)))); },
+    async listWorkouts(e, from, to){ const q = F.query(W(e), F.where("date", ">=", from), F.where("date", "<=", to)); return docs(await fast(() => F.getDocs(q), () => F.getDocsFromCache(q))); },
     async createWorkout(e, w){ await F.setDoc(F.doc(W(e), w.id), cleanObj(w)); return w; },
     async saveWorkout(e, w){ const p = {}; COACH_FIELDS.forEach(k => { if (w[k] !== undefined) p[k] = w[k]; });
       await F.setDoc(F.doc(W(e), w.id), cleanObj(p), {merge:true}); },
@@ -762,10 +770,13 @@ async function ensureWeeks(email, ws, n, force=false){
   for (let i=0;i<n;i++){ const w = addDays(ws, i*7); if (force || !set.has(w)) need.push(w); }
   if (!need.length) return;
   const from = need[0], to = addDays(need[need.length-1], 6);
+  const slowBefore = S.slow; S.slow = false;
   const list = await DB.listWorkouts(email, from, to);
+  const wasSlow = S.slow; S.slow = slowBefore || wasSlow;
+  if (wasSlow && !list.length) return;          // rete lenta e niente in memoria: tengo quello che si vede già e riprovo la prossima volta
   Object.values(cache).forEach(w => { if (w.date >= from && w.date <= to) delete cache[w.id]; });
   list.forEach(w => cache[w.id] = w);
-  need.forEach(w => set.add(w));
+  if (!wasSlow) need.forEach(w => set.add(w));
 }
 const wOn = (email, date) => Object.values(S.cache[email] || {}).filter(w => w.date === date).sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"") || (a.title||"").localeCompare(b.title||""));
 const wIn = (email, from, to) => Object.values(S.cache[email] || {}).filter(w => w.date >= from && w.date <= to);
@@ -893,9 +904,11 @@ async function onUser(u){
     const a = await DB.getAthlete(email);
     if (!a || a.archived) return renderNotRegistered(email);
     S.user = {email, name: a.name, role:"athlete", group: a.group, mesos: a.mesos || []};
-    try { S.exercises = await DB.listExercises(); } catch(e){}
+    renderMsg("Caricamento programma…");
+    const [ex] = await Promise.all([DB.listExercises().catch(() => null), ensureWeeks(email, addDays(S.ath.ws, -56), 11)]);
+    if (ex) S.exercises = ex;
     fillDatalist();
-    await openAthleteHome();
+    renderAthlete();
   } catch(e) { console.error(e); renderNotRegistered(email); }
 }
 
@@ -1713,7 +1726,7 @@ function athExHtml(w, x, label, res){
     ${prev ? `<div class="prev">Ultima volta (${fmtD(prev.date)}): ${esc(prev.res.map(s => resultLine(s, prev.cols)).filter(Boolean).join("  ·  ") || "fatto")}</div>` : ""}
   </div>`;
 }
-function athleteWorkout(){ return S.cache[S.user.email]?.[S.ath.open]; }
+function athleteWorkout(){ return S.user ? S.cache[S.user.email]?.[S.ath.open] : null; }
 function scheduleSave(){
   const w = athleteWorkout(); if (!w) return;
   if (!w.status || w.status === "todo") w.status = "progress";
@@ -1722,7 +1735,7 @@ function scheduleSave(){
   saveT = setTimeout(() => flushSave(), 800);
 }
 async function flushSave(extra={}){
-  clearTimeout(saveT);
+  clearTimeout(saveT); saveT = null;
   const w = athleteWorkout(); if (!w) return;
   Object.assign(w, extra);
   const saved = clone({exercises: w.exercises, results: w.results||{}}); pruneExtra(saved);   // nel database non finiscono serie extra vuote
@@ -1946,7 +1959,7 @@ document.addEventListener("drop", async e => { const c = e.target.closest?.("[da
 /* ---------- aggiornamento dati: tira giù, pulsante, ritorno nell'app ---------- */
 let refreshing = false, lastRefresh = Date.now();
 async function refreshData(silent=false){
-  if (refreshing || !S.user) return; refreshing = true;
+  if (refreshing || !S.user) return; refreshing = true; S.slow = false;
   const ptr = $("#ptr"); ptr.classList.add("spin"); ptr.querySelector("span").textContent = "Aggiornamento…"; ptr.style.transform = "translate(-50%,0)";
   try {
     if (saveT) await flushSave();
@@ -1956,15 +1969,14 @@ async function refreshData(silent=false){
       if (S.editor && !S.editor.dirty && !S.editor.tpl && !S.editor.isNew) { await ensureWeeks(S.editor.email, monday(S.editor.w.date), 1); const fresh = S.cache[S.editor.email]?.[S.editor.w.id]; if (fresh) { S.editor.w = clone(fresh); drawEditor(); } }
       await renderView();
     } else {
-      const a = await DB.getAthlete(S.user.email);
+      const [a, ex] = await Promise.all([DB.getAthlete(S.user.email), DB.listExercises().catch(() => null),
+        ensureWeeks(S.user.email, addDays(S.ath.ws, -56), 11)]);     // in parallelo: con rete lenta si aspetta una volta sola
       if (a) { S.user.name = a.name; S.user.mesos = a.mesos || []; }
-      try { S.exercises = await DB.listExercises(); } catch(e){}
-      S.cache[S.user.email] = {};
-      await ensureWeeks(S.user.email, addDays(S.ath.ws, -56), 11);
+      if (ex) S.exercises = ex;
       const y = scrollY; renderAthlete(); scrollTo(0, y);
     }
     lastRefresh = Date.now();
-    if (!silent) toast("Aggiornato");
+    if (S.slow) toast("Connessione lenta: vedi i dati salvati sul telefono. Riprova tra poco."); else if (!silent) toast("Aggiornato");
   } catch(e) { console.error(e); if (!silent) toast("Aggiornamento non riuscito: controlla la connessione"); }
   finally { refreshing = false; ptr.classList.remove("spin", "ready"); ptr.style.transform = ""; ptr.querySelector("span").textContent = "Tira giù per aggiornare"; }
 }
@@ -1978,7 +1990,9 @@ document.addEventListener("touchmove", e => {
   const p = $("#ptr"); p.style.transform = `translate(-50%,${Math.min(dy/2, 60) - 70}px)`;
   ptrReady = dy > 110; p.classList.toggle("ready", ptrReady); p.querySelector("span").textContent = ptrReady ? "Rilascia per aggiornare" : "Tira giù per aggiornare";
 }, {passive: true});
-document.addEventListener("touchend", () => { if (ptrY == null) return; ptrY = null; if (ptrReady) refreshData(); else $("#ptr").style.transform = ""; ptrReady = false; });
+document.addEventListener("touchend", () => { if (ptrY == null) return; ptrY = null;
+  if (ptrReady && Date.now() - lastRefresh > 2500) refreshData(); else if (ptrReady) toast("Già aggiornato");
+  $("#ptr").style.transform = refreshing ? "translate(-50%,0)" : ""; ptrReady = false; });
 // quando si torna nell'app (o nella scheda) dopo almeno 30 secondi, i dati si aggiornano da soli
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible" || !S.user || busy()) return;

@@ -338,7 +338,16 @@ button.done-box:hover .fix{color:var(--ink)}
 .aex .info{font-size:13px;color:var(--muted);white-space:pre-wrap}
 .aex .prev{font-size:12px;color:var(--faint)}
 .aex a{color:var(--accent);font-size:13px;font-weight:600}
-.lt{width:100%;border-collapse:collapse}
+.lt{width:100%;border-collapse:separate;border-spacing:0}
+/* tanti parametri: la tabella scorre di lato dentro il riquadro, numero serie e spunta restano fermi */
+.ltwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.lt.many{width:max-content;min-width:100%}
+.lt.many input,.lt.many .ro{width:64px}
+.lt td.n,.lt th:first-child{position:sticky;left:0;z-index:2;background:var(--surface)}
+.lt td.ckc,.lt th:last-child{position:sticky;right:0;z-index:2;background:var(--surface)}
+.lt.many td.ckc,.lt.many th:last-child{box-shadow:-8px 0 8px -6px rgba(0,0,0,.18);padding-left:6px}
+.lt.many td.n,.lt.many th:first-child{box-shadow:8px 0 8px -6px rgba(0,0,0,.18)}
+.scrollhint{font-size:11px;color:var(--faint);text-align:right;margin-top:-2px}
 .lt th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding:4px 2px;text-align:center}
 .lt td{padding:3px 2px;text-align:center}
 .lt td.n{color:var(--faint);font-weight:700;width:22px}
@@ -1830,11 +1839,11 @@ function athExHtml(w, x, label, res){
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${lib?.notes ? `<div class="info faint">${esc(lib.notes)}</div>` : ""}
     ${lib?.video ? `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>` : ""}
-    ${x.cols.length ? `<table class="lt"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
         return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${x.cols.map(c => cell(c, j, s, rr)).join("")}
-          <td><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}
-    </tbody></table>${infoCols.length ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
+          <td class="ckc"><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}
+    </tbody></table></div>${infoCols.length ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
     ${prev ? `<div class="prev">Ultima volta (${fmtD(prev.date)}): ${esc(prev.res.map(s => resultLine(s, prev.cols)).filter(Boolean).join("  ·  ") || "fatto")}</div>` : ""}
   </div>`;
 }

@@ -187,6 +187,7 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .wcard.st-done{border-left:3px solid var(--ok)}
 .wcard.st-progress{border-left:3px solid var(--warn)}
 .wcard.st-missed,.wcard.st-skipped{border-left:3px solid var(--bad)}
+.wcard .moved{margin-top:3px;font-size:11px;color:var(--muted);font-style:italic}
 .wcard .meta{margin-top:5px;font-size:11px;color:var(--ok);font-weight:600}
 
 /* lists */
@@ -212,6 +213,12 @@ table.list{width:100%;border-collapse:collapse}
 .tpl li .s{grid-column:2;color:var(--muted);font-size:12px}
 .tpl-foot{display:flex;gap:6px;padding:8px 12px 12px;border-top:1px solid var(--line);margin-top:6px}
 .colpick{display:flex;flex-wrap:wrap;gap:6px}
+.plist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;max-height:340px;overflow-y:auto}
+.prow{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:13px}
+.prow:last-child{border-bottom:0}
+.prow > span:first-child{flex:1}
+.prow > span.faint{font-size:11px}
+.prow.off{opacity:.55}
 .colpick button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted)}
 .colpick button.on{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
 
@@ -347,6 +354,15 @@ tr.ok .ck svg{stroke:#fff}
 .addset{align-self:flex-start;border:0;background:none;color:var(--accent);font-weight:600;padding:4px 0}
 .bottombar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 70%,transparent);display:flex;justify-content:center}
 .bottombar .btn{width:100%;max-width:528px;justify-content:center;padding:14px;font-size:16px;border-radius:12px}
+.wopts{display:flex;flex-direction:column;gap:8px}
+.wopt{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px;text-align:left;width:100%}
+.wopt i{width:20px;height:20px;border-radius:50%;border:2px solid var(--faint);flex:none;position:relative}
+.wopt span{display:flex;flex-direction:column}
+.wopt b{font-size:15px}
+.wopt small{font-size:12px;color:var(--muted)}
+.wopt.on{border-color:var(--accent);background:var(--accent-soft)}
+.wopt.on i{border-color:var(--accent)}
+.wopt.on i::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--accent)}
 .rpe{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .rpe button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .rpe button b{font-family:var(--display);font-size:22px;line-height:1}
@@ -459,7 +475,7 @@ const DEMO = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.includes("INCOLLA
 const COACH = COACH_EMAIL.trim().toLowerCase();
 
 /* ---------- parametri disponibili per gli esercizi ---------- */
-const COLS = {
+const BASE_COLS = {
   reps:  {l:"Reps",       u:"",    log:1},
   kg:    {l:"Kg",         u:"kg",  log:1},
   pct:   {l:"%1RM",       u:"%",   log:0},
@@ -470,11 +486,21 @@ const COLS = {
   dist:  {l:"Distanza",   u:"m",   log:1},
   height:{l:"Altezza",    u:"cm",  log:1},
   steps: {l:"Passi",      u:"",    log:1},
-  tut:   {l:"Tempo esec.",u:"",    log:0},
+  tut:   {l:"Tempo esec.",u:"",    log:0, h:"cadenza della ripetizione, es. 3-1-1-0 = 3 s in discesa, 1 s di pausa, 1 s in salita, 0 di pausa"},
   side:  {l:"Lato",       u:"",    log:1},
   rest:  {l:"Recupero",   u:"",    log:0},
 };
-const COL_KEYS = Object.keys(COLS);
+/* COLS = parametri di base + quelli creati dal coach (chiave "c_…", salvati in settings/app).
+   Un parametro sconosciuto (es. impostazioni non ancora caricate) non fa mai bloccare l'app. */
+const COLS_REAL = {...BASE_COLS};
+const COLS = new Proxy(COLS_REAL, {get: (t, k) => t[k] ?? (typeof k === "string" && k.startsWith("c_") ? {l: "Parametro", u: "", log: 1, txt: 1} : undefined)});
+let COL_KEYS = Object.keys(COLS_REAL);
+const pickable = () => COL_KEYS.filter(k => !COLS_REAL[k].archived);
+function applyParams(list){
+  Object.keys(COLS_REAL).forEach(k => { if (!(k in BASE_COLS)) delete COLS_REAL[k]; });
+  (list || []).forEach(p => { COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, archived: !!p.archived, custom: 1}; });
+  COL_KEYS = Object.keys(COLS_REAL);
+}
 const RPE_LABELS = {1:"Molto facile",2:"Facile",3:"Moderato",4:"Un po' duro",5:"Duro",6:"",7:"Molto duro",8:"",9:"",10:"Massimale"};
 
 /* ---------- utilità ---------- */
@@ -530,8 +556,8 @@ const ICON = {
 /* =====================================================================
    DATI — due "motori": DEMO (browser) e FIREBASE (online)
    ===================================================================== */
-const COACH_FIELDS = ["id","date","title","notes","exercises","createdAt","updatedAt"];
-const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt"];
+const COACH_FIELDS = ["id","date","title","notes","exercises","createdAt","updatedAt","doneDate"];
+const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt","doneDate"];
 
 function LocalDB(){
   const KEY = "asticella-demo-v2";
@@ -553,6 +579,8 @@ function LocalDB(){
     async saveExercise(x){ st.exercises[x.id] = clone(x); save(); return wait(x); },
     async deleteExercise(id){ delete st.exercises[id]; save(); return wait(true); },
     async listTemplates(){ return wait(Object.values(st.templates || {})); },
+    async getSettings(){ return wait(st.settings || {}); },
+    async saveSettings(x){ st.settings = {...(st.settings||{}), ...clone(x)}; save(); return wait(true); },
     async saveTemplate(t){ (st.templates ??= {})[t.id] = clone(t); save(); return wait(t); },
     async deleteTemplate(id){ delete st.templates[id]; save(); return wait(true); },
     async listWorkouts(e, from, to){ return wait(Object.values(st.workouts[e] || {}).filter(w => w.date >= from && w.date <= to)); },
@@ -584,6 +612,9 @@ function FirebaseDB(F, db){
     async saveExercise(x){ await F.setDoc(F.doc(db, "exercises", x.id), cleanObj(x)); return x; },
     async deleteExercise(id){ await F.deleteDoc(F.doc(db, "exercises", id)); },
     async listTemplates(){ return docs(await F.getDocs(F.collection(db, "templates"))); },
+    async getSettings(){ const r = F.doc(db, "settings", "app");
+      try { const s = await fast(() => F.getDoc(r), () => F.getDocFromCache(r)); return s.exists() ? s.data() : {}; } catch(e) { console.warn(e); return {}; } },
+    async saveSettings(x){ await F.setDoc(F.doc(db, "settings", "app"), cleanObj(x), {merge:true}); },
     async saveTemplate(t){ await F.setDoc(F.doc(db, "templates", t.id), cleanObj(t)); return t; },
     async deleteTemplate(id){ await F.deleteDoc(F.doc(db, "templates", id)); },
     async listWorkouts(e, from, to){ const q = F.query(W(e), F.where("date", ">=", from), F.where("date", "<=", to)); return docs(await fast(() => F.getDocs(q), () => F.getDocsFromCache(q))); },
@@ -754,7 +785,7 @@ let DB, FB = null;
 const S = {
   user: null,            // {email, name, role}
   view: "overview",
-  athletes: [], exercises: [], templates: [], tplQuery: "",
+  athletes: [], exercises: [], templates: [], tplQuery: "", params: [],
   ws: monday(TODAY()),   // settimana di riferimento (lunedì)
   calAthlete: null, calWeeks: (() => { try { return +localStorage.getItem("asticella-weeks") || 4; } catch(e) { return 4; } })(),
   group: "Tutti",
@@ -779,8 +810,9 @@ async function ensureWeeks(email, ws, n, force=false){
   list.forEach(w => cache[w.id] = w);
   if (!wasSlow) need.forEach(w => set.add(w));
 }
-const wOn = (email, date) => Object.values(S.cache[email] || {}).filter(w => w.date === date).sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"") || (a.title||"").localeCompare(b.title||""));
-const wIn = (email, from, to) => Object.values(S.cache[email] || {}).filter(w => w.date >= from && w.date <= to);
+const effDate = w => w.doneDate || w.date;     // giorno in cui è stato svolto davvero (se diverso da quello previsto)
+const wOn = (email, date) => Object.values(S.cache[email] || {}).filter(w => effDate(w) === date).sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"") || (a.title||"").localeCompare(b.title||""));
+const wIn = (email, from, to) => Object.values(S.cache[email] || {}).filter(w => effDate(w) >= from && effDate(w) <= to);
 const activeAthletes = () => S.athletes.filter(a => !a.archived).sort((a,b)=>a.name.localeCompare(b.name));
 const groups = () => [...new Set(S.athletes.map(a => a.group).filter(Boolean))].sort();
 const athByEmail = e => S.athletes.find(a => a.email === e);
@@ -910,15 +942,18 @@ async function onUser(u){
     if (!a || a.archived) return renderNotRegistered(email);
     S.user = {email, name: a.name, role:"athlete", group: a.group, mesos: a.mesos || []};
     renderMsg("Caricamento programma…");
-    const [ex] = await Promise.all([DB.listExercises().catch(() => null), ensureWeeks(email, addDays(S.ath.ws, -56), 11)]);
+    const [ex, st] = await Promise.all([DB.listExercises().catch(() => null), DB.getSettings().catch(() => ({})), ensureWeeks(email, addDays(S.ath.ws, -56), 11)]);
     if (ex) S.exercises = ex;
+    applyParams(st?.params);
     fillDatalist();
     renderAthlete();
   } catch(e) { console.error(e); renderNotRegistered(email); }
 }
 
 async function loadCoachData(){
-  [S.athletes, S.exercises, S.templates] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates()]);
+  let st;
+  [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);
+  S.params = st.params || []; applyParams(S.params);
   S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name));
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = activeAthletes()[0]?.email || null;
@@ -1087,7 +1122,8 @@ function cardHtml(email, w){
   return `<div class="wcard st-${st}" draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <div class="t"><span class="dot st-${st}"></span>${esc(w.title||"Senza titolo")}</div>
     ${miniListHtml(w.exercises)}
-    ${st==="done" ? `<div class="meta">✓ ${w.sessionRpe?`RPE ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin}′`:""}</div>` : ""}</div>`;
+    ${st==="done" ? `<div class="meta">✓ ${w.sessionRpe?`RPE ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin}′`:""}</div>` : ""}
+    ${w.doneDate && w.doneDate !== w.date ? `<div class="moved">↷ previsto ${esc(DAYS[dayIdx(w.date)].toLowerCase())} ${parse(w.date).getDate()}</div>` : ""}</div>`;
 }
 
 /* ---------- ALLENAMENTI (salvati, non ancora assegnati) ---------- */
@@ -1212,11 +1248,11 @@ function viewExercises(m){
     <div class="field"><label class="lbl" for="x-name">Nome</label><input class="in" id="x-name" value="${esc(e.name||"")}" required></div>
     <div class="row"><div class="field grow"><label class="lbl" for="x-cat">Categoria</label>${optSelect("cat", e.category)}</div>
       <div class="field grow"><label class="lbl" for="x-pat">Pattern motorio</label>${optSelect("pat", e.pattern)}</div></div>
-    <div class="field"><span class="lbl">Parametri predefiniti</span><div class="colpick">${COL_KEYS.map(k => `<button type="button" class="${(e.cols||[]).includes(k)?"on":""}" data-act="ex-col" data-c="${k}">${COLS[k].l}</button>`).join("")}</div></div>
+    <div class="field"><span class="lbl">Parametri predefiniti</span><div class="colpick">${pickable().map(k => `<button type="button" class="${(e.cols||[]).includes(k)?"on":""}" data-act="ex-col" data-c="${k}">${esc(COLS[k].l)}</button>`).join("")}</div></div>
     <div class="field"><label class="lbl" for="x-video">Link video (YouTube, Instagram…)</label><input class="in" id="x-video" type="url" value="${esc(e.video||"")}" placeholder="https://"></div>
     <div class="field"><label class="lbl" for="x-notes">Indicazioni tecniche</label><textarea class="in" id="x-notes">${esc(e.notes||"")}</textarea></div>
     <div class="row"><button class="btn pri">Salva</button><button type="button" class="btn ghost" data-act="ex-cancel">Annulla</button><span class="grow"></span>${e.isNew?"":`<button type="button" class="btn danger ghost" data-act="ex-del">Elimina</button>`}</div>
-  </form>` : `<div class="form"><h3>Suggerimento</h3><div class="note">I parametri che scegli qui (es. Reps · Kg · RPE) diventano le colonne della tabella quando inserisci l'esercizio in un allenamento. Puoi sempre cambiarle nel singolo allenamento.</div></div>`}</div></div>`;
+  </form>` : paramsPanel()}</div></div>`;
   const f = $("#ex-form");
   if (f) f.onsubmit = async ev => { ev.preventDefault();
     const x = {id: e.id || uid(), name: $("#x-name").value.trim(), category: readOpt("cat"), pattern: readOpt("pat"), cols: e.cols||[], video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
@@ -1369,6 +1405,43 @@ function drawBarChart(el, ser, key, a){
     g.addEventListener("pointerleave", () => tip.hidden = true); g.addEventListener("blur", () => tip.hidden = true); });
 }
 
+/* ---------- parametri: elenco e creazione ---------- */
+function paramsPanel(){
+  const base = Object.keys(BASE_COLS), custom = S.params || [];
+  return `<div class="form"><h3>Parametri</h3>
+    <div class="note">I parametri che scegli per un esercizio (es. Reps · Kg · RPE) diventano le colonne della tabella. «L'atleta lo compila» = lo registra lui a ogni serie; gli altri sono solo indicazioni tue.</div>
+    <div class="plist">${base.map(k => `<div class="prow"><span>${esc(BASE_COLS[k].l)}${BASE_COLS[k].u && BASE_COLS[k].u !== "%" ? ` <span class="faint">${BASE_COLS[k].u}</span>` : ""}${BASE_COLS[k].h ? `<br><span class="faint" style="font-size:11px">${esc(BASE_COLS[k].h)}</span>` : ""}</span><span class="faint">${BASE_COLS[k].log ? "l'atleta lo compila" : "solo indicazione"}</span></div>`).join("")}
+      ${custom.map(p => `<div class="prow ${p.archived ? "off" : ""}"><span><b>${esc(p.label)}</b>${p.unit ? ` <span class="faint">${esc(p.unit)}</span>` : ""}${p.archived ? ' <span class="tag">nascosto</span>' : ""}</span><span class="faint">${p.log ? "l'atleta lo compila" : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${p.key}">Modifica</button></div>`).join("")}</div>
+    <button class="btn" data-act="param-new">+ Nuovo parametro</button></div>`;
+}
+function paramDialog(p, onDone){
+  const isNew = !p; p = p || {label:"", unit:"", log:1, txt:0};
+  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="pm-form"><header><h2>${isNew ? "Nuovo parametro" : "Modifica parametro"}</h2></header><div class="body">
+    <div class="row"><div class="field grow"><label class="lbl" for="pm-l">Nome</label><input class="in" id="pm-l" value="${esc(p.label)}" placeholder="es. Potenza, Contatto a terra, Angolo" required></div>
+      <div class="field" style="width:110px"><label class="lbl" for="pm-u">Unità</label><input class="in" id="pm-u" value="${esc(p.unit||"")}" placeholder="es. W, ms"></div></div>
+    <div class="field"><span class="lbl">Chi lo compila</span>
+      <label class="row"><input type="radio" name="pm-log" value="1" ${p.log ? "checked" : ""}> L'atleta registra il valore a ogni serie</label>
+      <label class="row"><input type="radio" name="pm-log" value="0" ${p.log ? "" : "checked"}> Solo tu, come indicazione (l'atleta lo legge)</label></div>
+    <div class="field"><span class="lbl">Tipo di valore</span>
+      <label class="row"><input type="radio" name="pm-t" value="0" ${p.txt ? "" : "checked"}> Numero (tastierino numerico sul telefono)</label>
+      <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt ? "checked" : ""}> Testo libero</label></div>
+    ${isNew ? "" : `<label class="row"><input type="checkbox" id="pm-arch" ${p.archived ? "checked" : ""}> Nascondilo dagli elenchi (gli allenamenti che lo usano restano uguali)</label>`}
+    </div><footer><span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
+  $("#pm-no").onclick = () => $("#confirm").innerHTML = "";
+  $("#pm-form").onsubmit = async ev => { ev.preventDefault();
+    const label = $("#pm-l").value.trim().replace(/\s+/g, " "); if (!label) return;
+    const clash = Object.entries(COLS_REAL).find(([k, d]) => d.l.toLowerCase() === label.toLowerCase() && k !== p.key);
+    if (clash) return toast(`Esiste già un parametro «${clash[1].l}»`);
+    const np = {key: p.key || ("c_" + (label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12) || "p") + uid().slice(-4)),
+      label, unit: $("#pm-u").value.trim(), log: document.querySelector("input[name=pm-log]:checked").value === "1",
+      txt: document.querySelector("input[name=pm-t]:checked").value === "1", archived: !!$("#pm-arch")?.checked};
+    const list = (S.params || []).filter(x => x.key !== np.key); list.push(np);
+    await DB.saveSettings({params: list}); S.params = list; applyParams(list);
+    $("#confirm").innerHTML = ""; toast(isNew ? `Parametro «${label}» creato` : "Parametro salvato");
+    if (onDone) onDone(np.key); else renderView(); };
+  setTimeout(() => $("#pm-l")?.focus(), 30);
+}
+
 /* ---------- categorie e pattern: scelti da elenco ---------- */
 const DEF_OPTS = {
   cat: ["Forza","Potenza","Pliometria","Velocità","Tecnica salto","Core","Mobilità","Riscaldamento","Prevenzione","Condizionamento"],
@@ -1398,13 +1471,13 @@ async function collectRows(){
   const ath = activeAthletes().filter(a => dataQ.who === "all" || a.email === dataQ.who);
   const ws = monday(dataQ.from), n = Math.ceil((daysBetween(ws, dataQ.to)+1)/7);
   await Promise.all(ath.map(a => ensureWeeks(a.email, ws, n)));
-  const head = ["Data","Settimana","Atleta","Gruppo","Allenamento","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Esercizio","Categoria","Pattern","Serie","Tipo serie",
+  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Esercizio","Categoria","Pattern","Serie","Tipo serie",
     ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta"];
   const rows = [];
-  ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>x.date.localeCompare(y.date)).forEach(w => {
+  ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>effDate(x).localeCompare(effDate(y))).forEach(w => {
     const st = statusOf(w);
     const L = exLabels(w.exercises);
-    const mz = mesoAt(a, w.date) || {};
+    const mz = mesoAt(a, effDate(w)) || {};
     (w.exercises||[]).forEach((x, xi) => {
       const lib = libByName(x.name) || {};
       const res = (w.results||{})[x.id] || [];
@@ -1412,7 +1485,7 @@ async function collectRows(){
       for (let i=0;i<n;i++){
         const s = x.sets[i] || {}, r = res[i] || {};
         if (i >= x.sets.length && emptyRes(res[i])) continue;
-        rows.push([w.date, weekNo(w.date), a.name, a.group||"", w.title, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
+        rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
           mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], x.name, lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
           ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.athleteNote||""]);
       }
@@ -1450,11 +1523,19 @@ function newExercise(name=""){
 function unlinkAround(a, i){ const x = a[i]; if (!x) return; if (x.ss) { x.ss = false; } if (a[i+1]?.ss) { a[i+1].ss = false; a[i+1].block = a[i+1].block || x.block; } }
 function nextBlock(exs, skip=-1){ const used = ssGroups(exs).map(g => g[0]).filter(i => i !== skip).map(i => (exs[i].block||"").charAt(0).toUpperCase()).filter(Boolean).sort(); const last = used[used.length-1]; return last ? String.fromCharCode(last.charCodeAt(0)+1) : "A"; }
 function openEditor(email, w, isNew=false, tpl=false){
+  $("#modal").innerHTML = "";          // un editor nuovo parte dall'inizio
   S.editor = {email, w: clone(w), isNew, dirty: isNew, tpl};
   drawEditor();
 }
 function drawEditor(){
   const E = S.editor; if (!E) { $("#modal").innerHTML = ""; return; }
+  // ridisegnando l'editor la pagina tornava in cima: salvo la posizione e la ripristino subito dopo
+  const body = $("#modal .body"), keep = body ? body.scrollTop : null;
+  drawEditorInner();
+  const nb = $("#modal .body"); if (nb && keep != null) nb.scrollTop = keep;
+}
+function drawEditorInner(){
+  const E = S.editor;
   if (E.tpl) return drawTplEditor();
   const w = E.w, a = athByEmail(E.email);
   const st = statusOf(w);
@@ -1467,7 +1548,7 @@ function drawEditor(){
         <div class="field"><label class="lbl" for="ed-date">Data</label><input class="in" id="ed-date" type="date" data-bind="date" value="${w.date}"></div></div>
       ${E.isNew && S.templates.length ? `<div class="field"><label class="lbl" for="ed-from">Parti da un allenamento salvato</label><select class="in" id="ed-from" data-change="ed-from"><option value="">— scegli (facoltativo) —</option>${S.templates.map(t => `<option value="${t.id}">${esc(t.title)}</option>`).join("")}</select></div>` : ""}
       <div class="field"><label class="lbl" for="ed-notes">Note per l'atleta</label><textarea class="in" id="ed-notes" data-bind="notes" placeholder="Riscaldamento, obiettivo della seduta…">${esc(w.notes||"")}</textarea></div>
-      ${hasRes ? `<button type="button" class="done-box edit ${w.status==="skipped"?"badb":w.status==="progress"?"warnb":""}" data-act="fix-sess" title="Clicca per correggere"><b>${STATUS_TXT[w.status]}${w.sessionRpe?` · RPE sessione ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin} min`:""}${w.sessionRpe&&w.durationMin?` · carico ${w.sessionRpe*w.durationMin}`:""}</b>${w.athleteNote?`<span>«${esc(w.athleteNote)}»</span>`:""}<span class="fix">✎ Correggi</span></button>`
+      ${hasRes ? `<button type="button" class="done-box edit ${w.status==="skipped"?"badb":w.status==="progress"?"warnb":""}" data-act="fix-sess" title="Clicca per correggere"><b>${STATUS_TXT[w.status]}${w.sessionRpe?` · RPE sessione ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin} min`:""}${w.sessionRpe&&w.durationMin?` · carico ${w.sessionRpe*w.durationMin}`:""}</b>${w.athleteNote?`<span>«${esc(w.athleteNote)}»</span>`:""}${w.doneDate && w.doneDate !== w.date ? `<span>Svolto ${esc(fmtLong(w.doneDate))} (previsto ${esc(fmtLong(w.date))})</span>` : ""}<span class="fix">✎ Correggi</span></button>`
         : w.date <= TODAY() ? `<div><button type="button" class="btn sm" data-act="fix-sess">✎ Segna com'è andata al posto dell'atleta</button></div>` : ""}
       ${(() => { const L = exLabels(w.exercises); return ssGroups(w.exercises).map(g => {
         const body = g.map(i => (i > 0 ? ssLinkHtml(w.exercises, i, L) : "") + exEditorHtml(w.exercises[i], i, res[w.exercises[i].id], L)).join("");
@@ -1505,7 +1586,7 @@ function ssLinkHtml(exs, i, L){
 }
 function exEditorHtml(x, i, res, L){
   const cols = x.cols || [];
-  const avail = COL_KEYS.filter(c => !cols.includes(c));
+  const avail = pickable().filter(c => !cols.includes(c));
   const lib = libByName(x.name);
   return `<section class="ex">
     <div class="ex-head">
@@ -1517,7 +1598,7 @@ function exEditorHtml(x, i, res, L){
     </div>
     ${lib ? "" : x.name ? `<div class="faint" style="font-size:12px">Non è nella libreria: <button class="btn sm ghost" data-act="ex-tolib" data-i="${i}">Aggiungilo</button></div>` : ""}
     <div class="cols">${cols.map((c,k) => `<span class="c"><button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="-1" aria-label="Sposta ${COLS[c].l} a sinistra" ${k===0?"disabled":""}>‹</button>${COLS[c].l}<button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="1" aria-label="Sposta ${COLS[c].l} a destra" ${k===cols.length-1?"disabled":""}>›</button><button data-act="col-rm" data-i="${i}" data-c="${c}" aria-label="Togli ${COLS[c].l}">×</button></span>`).join("")}
-      ${avail.length ? `<select aria-label="Aggiungi parametro" data-change="col-add" data-i="${i}"><option value="">+ parametro</option>${avail.map(c=>`<option value="${c}">${COLS[c].l}</option>`).join("")}</select>` : ""}</div>
+      ${avail.length ? `<select aria-label="Aggiungi parametro" data-change="col-add" data-i="${i}"><option value="">+ parametro</option>${avail.map(c=>`<option value="${c}">${esc(COLS[c].l)}</option>`).join("")}<option value="__new">+ Nuovo parametro…</option></select>` : ""}</div>
     <div class="scroll-x"><table class="sets"><thead><tr><th></th><th title="Tipo di serie: clicca per cambiare (Ramping, Work, Back-off, Down)">Tipo</th>${cols.map(c=>`<th>${COLS[c].l}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${x.sets.map((s,j) => `<tr><td class="n">${j+1}</td><td><button type="button" class="tbtn ${s.type?"has":""}" data-act="set-type" data-i="${i}" data-j="${j}" title="${s.type ? SET_TYPES[s.type].l+" · clicca per cambiare" : "Nessun tipo · clicca per scegliere"}" aria-label="Tipo serie ${j+1}">${s.type ? typeBadge(s.type) : "—"}</button></td>${cols.map(c=> c === "side"
           ? `<td><select aria-label="Lato serie ${j+1}" data-bind="exercises.${i}.sets.${j}.side">${[...new Set([...SIDES, s.side||""])].map(v => `<option value="${esc(v)}" ${(s.side||"")===v?"selected":""}>${v ? esc(v) : "—"}</option>`).join("")}</select></td>`
@@ -1583,6 +1664,8 @@ function fixSession(){
     <div class="field"><label class="lbl" for="fs-st">Stato</label><select class="in" id="fs-st">${opts.map(([v,l]) => `<option value="${v}" ${(w.status||"todo")===v?"selected":""}>${l}</option>`).join("")}</select></div>
     <div class="row"><div class="field grow"><label class="lbl" for="fs-rpe">RPE sessione (1–10)</label><input class="in" id="fs-rpe" inputmode="numeric" value="${w.sessionRpe||""}"></div>
       <div class="field grow"><label class="lbl" for="fs-dur">Durata (min)</label><input class="in" id="fs-dur" inputmode="numeric" value="${w.durationMin||""}"></div></div>
+    <div class="field"><label class="lbl" for="fs-date">Svolto il</label><input class="in" type="date" id="fs-date" value="${effDate(w)}" style="max-width:200px">
+      <span class="faint" style="font-size:12px">Previsto: ${esc(fmtLong(w.date))}. Cambialo se l'atleta l'ha fatto un altro giorno.</span></div>
     <div class="field"><label class="lbl" for="fs-note">Nota dell'atleta</label><textarea class="in" id="fs-note">${esc(w.athleteNote||"")}</textarea></div>
     </div><footer><span class="grow"></span><button type="button" class="btn" id="fs-no">Annulla</button><button class="btn pri">Salva correzioni</button></footer></form></div>`;
   $("#fs-no").onclick = () => $("#confirm").innerHTML = "";
@@ -1590,7 +1673,7 @@ function fixSession(){
     const rpe = parseInt($("#fs-rpe").value, 10), dur = parseInt($("#fs-dur").value, 10);
     if ($("#fs-rpe").value && !(rpe >= 1 && rpe <= 10)) return toast("L'RPE va da 1 a 10");
     await saveCoachFix({status: $("#fs-st").value, sessionRpe: rpe || null, durationMin: dur || null, athleteNote: $("#fs-note").value.trim(),
-      completedAt: w.completedAt || new Date().toISOString()}); };
+      completedAt: w.completedAt || new Date().toISOString(), doneDate: ($("#fs-date").value && $("#fs-date").value !== w.date) ? $("#fs-date").value : null}); };
 }
 function markDirty(){ if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; } }
 async function closeEditor(force=false){
@@ -1680,6 +1763,7 @@ function renderAthlete(){
       <span class="dn">${DAYS[i]}</span><span class="dd">${parse(d).getDate()}</span><span class="dots">${ws.map(w=>`<i class="dot st-${statusOf(w)}"></i>`).join("")}</span></button>`; }).join("")}</div>
     <div class="alist">${list.length ? list.map(w => { const st = statusOf(w); return `<button class="acard" data-act="a-open" data-id="${w.id}">
         <div class="t"><span class="grow">${esc(w.title)}</span><span class="status-pill st-${st}">${STATUS_TXT[st]}</span></div>
+        ${w.doneDate && w.doneDate !== w.date ? `<div class="faint" style="font-size:12px">Svolto in anticipo/ritardo · era previsto ${esc(fmtLong(w.date))}</div>` : ""}
         ${planListHtml(w.exercises)}</button>`; }).join("")
       : `<div class="empty"><b>Riposo</b><br>Nessun allenamento in programma.${next?`<br><br>Prossimo: <button class="btn sm" data-act="a-day" data-d="${next.date}">${esc(fmtLong(next.date))} · ${esc(next.title)}</button>`:""}</div>`}</div>
   </div>`;
@@ -1720,7 +1804,7 @@ function athExHtml(w, x, label, res){
   const cell = (c, j, s, rr) => {
     if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
       return `<td><span class="side-in" title="${s.side ? "Programmato: "+esc(s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} serie ${j+1}">${k}</button>`).join("")}</span></td>`; }
-    return `<td><input inputmode="decimal" aria-label="${COLS[c].l} serie ${j+1}" data-r="${x.id}|${j}|${c}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c]||"–")}"></td>`;
+    return `<td><input inputmode="${COLS[c].txt ? "text" : "decimal"}" aria-label="${esc(COLS[c].l)} serie ${j+1}" data-r="${x.id}|${j}|${c}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c]||"–")}"></td>`;
   };
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
   return `<div class="sub">
@@ -1752,7 +1836,7 @@ async function flushSave(extra={}){
   Object.assign(w, extra);
   const saved = clone({exercises: w.exercises, results: w.results||{}}); pruneExtra(saved);   // nel database non finiscono serie extra vuote
   const patch = {results: saved.results, status: w.status||"progress", updatedByAthleteAt: new Date().toISOString()};
-  ["sessionRpe","durationMin","athleteNote","completedAt"].forEach(k => { if (k in extra) patch[k] = extra[k]; });
+  ["sessionRpe","durationMin","athleteNote","completedAt","doneDate"].forEach(k => { if (k in extra) patch[k] = extra[k]; });
   try { await DB.saveResults(S.user.email, w.id, patch); saveState = "Salvato ✓"; }
   catch(e) { console.error(e); saveState = "Salvato sul telefono, invio appena c'è rete"; }
   const s = $("#saved"); if (s) s.textContent = saveState;
@@ -1764,18 +1848,35 @@ function finishSheet(skip=false){
     <header><h2>${skip?"Allenamento non svolto":"Com'è andata?"}</h2><button type="button" class="btn ghost icon" data-act="modal-close" aria-label="Chiudi">✕</button></header>
     <div class="body">${skip ? "" : `
       <div class="field"><span class="lbl">Fatica della seduta (RPE 1–10)</span><div class="rpe">${Array.from({length:10},(_,i)=>i+1).map(v=>`<button type="button" class="${rpe===v?"on":""}" data-rpe="${v}"><b>${v}</b><small>${RPE_LABELS[v]||"&nbsp;"}</small></button>`).join("")}</div></div>
-      <div class="field"><label class="lbl" for="f-dur">Durata (minuti)</label><input class="in" id="f-dur" inputmode="numeric" value="${w.durationMin||""}" placeholder="es. 75" style="font-size:17px"></div>`}
+      <div class="field"><label class="lbl" for="f-dur">Durata (minuti)</label><input class="in" id="f-dur" inputmode="numeric" value="${w.durationMin||""}" placeholder="es. 75" style="font-size:17px"></div>
+      ${w.date !== TODAY() || (w.doneDate && w.doneDate !== w.date) ? (() => { const def = w.doneDate || (w.date > TODAY() ? TODAY() : w.date);
+        const other = def !== TODAY() && def !== w.date;
+        const opt = (key, title, sub, on) => `<button type="button" class="wopt ${on ? "on" : ""}" data-w="${key}" role="radio" aria-checked="${on}"><i></i><span><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span></button>`;
+        return `<div class="field"><span class="lbl">Quando l'hai svolto?</span><div class="wopts" id="f-when" role="radiogroup" aria-label="Quando l'hai svolto">
+          ${opt("today", "Oggi", esc(fmtLong(TODAY())), def === TODAY())}
+          ${w.date <= TODAY() && w.date !== TODAY() ? opt("plan", "Il giorno previsto", esc(fmtLong(w.date)), def === w.date) : ""}
+          ${opt("other", "Un altro giorno", "", other)}</div>
+          <input class="in" type="date" id="f-date" value="${def}" max="${TODAY()}" ${other ? "" : "hidden"} style="margin-top:8px;max-width:220px" aria-label="Data in cui l'hai svolto">
+          ${w.date > TODAY() ? `<span class="faint" style="font-size:12px;margin-top:4px">Era previsto ${esc(fmtLong(w.date))}: se lo fai oggi, si sposta a oggi.</span>` : ""}</div>`; })() : ""}`}
       <div class="field"><label class="lbl" for="f-note">${skip?"Motivo (facoltativo)":"Nota per il coach (facoltativa)"}</label><textarea class="in" id="f-note" placeholder="${skip?"es. malato, esame, partita…":"Sensazioni, dolori, cosa è andato bene…"}">${esc(w.athleteNote||"")}</textarea></div>
     </div><footer><button class="btn pri grow" style="justify-content:center;padding:12px">${skip?"Segna come non svolto":"Salva e completa"}</button></footer></form></div>`;
   const f = $("#fin");
   f.querySelectorAll("[data-rpe]").forEach(b => b.onclick = () => { rpe = +b.dataset.rpe; f.querySelectorAll("[data-rpe]").forEach(x => x.classList.toggle("on", +x.dataset.rpe === rpe)); });
+  f.querySelectorAll("#f-when [data-w]").forEach(b => b.onclick = () => {
+    const k = b.dataset.w, d = $("#f-date");
+    f.querySelectorAll("#f-when [data-w]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
+    d.hidden = k !== "other";
+    if (k === "today") d.value = TODAY(); else if (k === "plan") d.value = w.date; else d.focus(); });
   f.onsubmit = async ev => { ev.preventDefault();
     const note = $("#f-note").value.trim();
     if (skip) { w.status = "skipped"; await flushSave({athleteNote: note, completedAt: new Date().toISOString()}); }
     else {
       if (!rpe) return toast("Scegli un valore di RPE");
       const dur = parseInt($("#f-dur").value, 10) || null;
-      w.status = "done"; await flushSave({sessionRpe: rpe, durationMin: dur, athleteNote: note, completedAt: new Date().toISOString()});
+      const when = $("#f-date")?.value; const doneDate = when && when !== w.date ? when : null;
+      w.status = "done"; w.doneDate = doneDate;
+      await flushSave({sessionRpe: rpe, durationMin: dur, athleteNote: note, completedAt: new Date().toISOString(), doneDate});
+      if (doneDate) { S.ath.day = doneDate; S.ath.ws = monday(doneDate); }
     }
     $("#modal").innerHTML = ""; toast(skip ? "Segnato come non svolto" : "Allenamento completato"); S.ath.open = null; renderAthlete(); };
 }
@@ -1886,6 +1987,8 @@ const ACT = {
     if (!(await confirmBox(`Aggiungo ${todo.length} esercizi di base (squat, stacchi, pliometria, sprint, salto…). Quelli che hai già non vengono toccati.`, "Aggiungi", false))) return;
     for (const [name, category, pattern, cols] of todo) { const x = {id: uid(), name, category, pattern, cols, video:"", notes:""}; await DB.saveExercise(x); S.exercises.push(x); }
     S.exercises.sort((a,b) => a.name.localeCompare(b.name)); fillDatalist(); toast(`${todo.length} esercizi aggiunti`); renderView(); },
+  "param-new"(){ paramDialog(null); },
+  "param-edit"(t){ const p = (S.params||[]).find(x => x.key === t.dataset.k); if (p) paramDialog(clone(p)); },
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); setTimeout(()=>$("#x-name")?.focus(), 20); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },
@@ -1939,7 +2042,7 @@ document.addEventListener("input", e => {
   const t = e.target;
   if (t.dataset.bind && S.editor) { let v = t.value; if (/^exercises\.\d+\.block$/.test(t.dataset.bind) && S.editor.w.exercises[+t.dataset.bind.split(".")[1]+1]?.ss) v = v.replace(/\d+$/, ""); setPath(S.editor.w, t.dataset.bind, v); markDirty(); return; }
   if (t.dataset.r) { const [xid, j, c] = t.dataset.r.split("|"); const w = athleteWorkout(); w.results ??= {}; const r = (w.results[xid] ??= []);
-    while (r.length <= +j) r.push({}); r[+j][c] = t.value.replace(",", "."); scheduleSave(); return; }
+    while (r.length <= +j) r.push({}); r[+j][c] = COLS[c].txt ? t.value : t.value.replace(",", "."); scheduleSave(); return; }
   if (t.dataset.input === "tpl-q") { S.tplQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#tpl-q"); q.focus(); q.setSelectionRange(pos,pos); return; }
   if (t.dataset.input === "ex-q") { S.exQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#ex-q"); q.focus(); q.setSelectionRange(pos,pos); }
 });
@@ -1956,6 +2059,7 @@ document.addEventListener("change", async e => {
   if (k === "cal-ath") { S.calAthlete = t.value; return renderView(); }
   if (k === "d-q") { dataQ.from = $("#d-from").value || dataQ.from; dataQ.to = $("#d-to").value || dataQ.to; dataQ.who = $("#d-who").value; return renderView(); }
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;
+    if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }
     x.cols = [...x.cols, c]; x.sets.forEach(s => s[c] = s[c] || ""); markDirty(); return drawEditor(); }
   if (k === "ex-name") { const x = S.editor.w.exercises[+t.dataset.i]; const lib = libByName(t.value);
     const blank = x.sets.every(s => Object.values(s).every(v => !v));
@@ -1967,8 +2071,8 @@ document.addEventListener("dragstart", e => { const c = e.target.closest?.("[dat
 document.addEventListener("dragover", e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault(); document.querySelectorAll(".cell.drop").forEach(x => x !== c && x.classList.remove("drop")); c.classList.add("drop"); });
 document.addEventListener("dragleave", e => { const c = e.target.closest?.("[data-drop]"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("drop"); });
 document.addEventListener("drop", async e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault(); c.classList.remove("drop");
-  const id = e.dataTransfer.getData("text/plain"); const em = S.calAthlete; const w = S.cache[em]?.[id]; if (!w || w.date === c.dataset.drop) return;
-  w.date = c.dataset.drop; w.updatedAt = new Date().toISOString(); drawCalendar(); await DB.saveWorkout(em, w); toast(`Spostato a ${fmtLong(w.date)}`); });
+  const id = e.dataTransfer.getData("text/plain"); const em = S.calAthlete; const w = S.cache[em]?.[id]; if (!w || effDate(w) === c.dataset.drop) return;
+  w.date = c.dataset.drop; w.doneDate = null; w.updatedAt = new Date().toISOString(); drawCalendar(); await DB.saveWorkout(em, w); toast(`Spostato a ${fmtLong(w.date)}`); });
 /* ---------- aggiornamento dati: tira giù, pulsante, ritorno nell'app ---------- */
 let refreshing = false, lastRefresh = Date.now();
 async function refreshData(silent=false){
@@ -1982,8 +2086,9 @@ async function refreshData(silent=false){
       if (S.editor && !S.editor.dirty && !S.editor.tpl && !S.editor.isNew) { await ensureWeeks(S.editor.email, monday(S.editor.w.date), 1); const fresh = S.cache[S.editor.email]?.[S.editor.w.id]; if (fresh) { S.editor.w = clone(fresh); drawEditor(); } }
       await renderView();
     } else {
-      const [a, ex] = await Promise.all([DB.getAthlete(S.user.email), DB.listExercises().catch(() => null),
+      const [a, ex, st] = await Promise.all([DB.getAthlete(S.user.email), DB.listExercises().catch(() => null), DB.getSettings().catch(() => null),
         ensureWeeks(S.user.email, addDays(S.ath.ws, -56), 11)]);     // in parallelo: con rete lenta si aspetta una volta sola
+      if (st) applyParams(st.params);
       if (a) { S.user.name = a.name; S.user.mesos = a.mesos || []; }
       if (ex) S.exercises = ex;
       const y = scrollY; renderAthlete(); scrollTo(0, y);

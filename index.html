@@ -342,6 +342,9 @@ button.done-box:hover .fix{color:var(--ink)}
 .lt th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding:4px 2px;text-align:center}
 .lt td{padding:3px 2px;text-align:center}
 .lt td.n{color:var(--faint);font-weight:700;width:22px}
+.lt .ro{height:42px;min-width:44px;display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--line);border-radius:9px;color:var(--muted);font-weight:600;font-size:15px;padding:0 4px;white-space:nowrap}
+.lt th.roh{color:var(--faint);font-weight:500}
+.ro.mini{display:inline-flex;height:18px;min-width:22px;font-size:11px;border:1.5px dashed var(--line);border-radius:5px;padding:0 3px;color:var(--muted);margin-right:2px}
 .rmx{width:26px;height:26px;border-radius:50%;border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);background:var(--bad-soft);color:var(--bad);font-size:12px;font-weight:700;padding:0;line-height:1}
 .lt input{width:100%;min-width:44px;height:42px;text-align:center;border:1px solid var(--line);border-radius:9px;background:var(--surface2);font-size:17px;font-weight:600}
 .lt input::placeholder{color:var(--faint);font-weight:500}
@@ -498,7 +501,7 @@ let COL_KEYS = Object.keys(COLS_REAL);
 const pickable = () => COL_KEYS.filter(k => !COLS_REAL[k].archived);
 function applyParams(list){
   Object.keys(COLS_REAL).forEach(k => { if (!(k in BASE_COLS)) delete COLS_REAL[k]; });
-  (list || []).forEach(p => { COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, archived: !!p.archived, custom: 1}; });
+  (list || []).forEach(p => { COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, archived: !!(p.archived || p.deleted), deleted: !!p.deleted, custom: 1}; });
   COL_KEYS = Object.keys(COLS_REAL);
 }
 const RPE_LABELS = {1:"Molto facile",2:"Facile",3:"Moderato",4:"Un po' duro",5:"Duro",6:"",7:"Molto duro",8:"",9:"",10:"Massimale"};
@@ -1407,7 +1410,7 @@ function drawBarChart(el, ser, key, a){
 
 /* ---------- parametri: elenco e creazione ---------- */
 function paramsPanel(){
-  const base = Object.keys(BASE_COLS), custom = S.params || [];
+  const base = Object.keys(BASE_COLS), custom = (S.params || []).filter(p => !p.deleted);
   return `<div class="form"><h3>Parametri</h3>
     <div class="note">I parametri che scegli per un esercizio (es. Reps · Kg · RPE) diventano le colonne della tabella. «L'atleta lo compila» = lo registra lui a ogni serie; gli altri sono solo indicazioni tue.</div>
     <div class="plist">${base.map(k => `<div class="prow"><span>${esc(BASE_COLS[k].l)}${BASE_COLS[k].u && BASE_COLS[k].u !== "%" ? ` <span class="faint">${BASE_COLS[k].u}</span>` : ""}${BASE_COLS[k].h ? `<br><span class="faint" style="font-size:11px">${esc(BASE_COLS[k].h)}</span>` : ""}</span><span class="faint">${BASE_COLS[k].log ? "l'atleta lo compila" : "solo indicazione"}</span></div>`).join("")}
@@ -1426,11 +1429,15 @@ function paramDialog(p, onDone){
       <label class="row"><input type="radio" name="pm-t" value="0" ${p.txt ? "" : "checked"}> Numero (tastierino numerico sul telefono)</label>
       <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt ? "checked" : ""}> Testo libero</label></div>
     ${isNew ? "" : `<label class="row"><input type="checkbox" id="pm-arch" ${p.archived ? "checked" : ""}> Nascondilo dagli elenchi (gli allenamenti che lo usano restano uguali)</label>`}
-    </div><footer><span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
+    </div><footer>${isNew ? "" : `<button type="button" class="btn ghost danger" id="pm-del">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
   $("#pm-no").onclick = () => $("#confirm").innerHTML = "";
+  const del = $("#pm-del");
+  if (del) del.onclick = async () => { $("#confirm").innerHTML = "";
+    if (!(await confirmBox(`Eliminare il parametro «${p.label}»? Sparisce dagli elenchi, dalla libreria esercizi e dagli Allenamenti salvati. Negli allenamenti già assegnati i valori inseriti restano leggibili.`, "Elimina"))) return;
+    await deleteParam(p.key); };
   $("#pm-form").onsubmit = async ev => { ev.preventDefault();
     const label = $("#pm-l").value.trim().replace(/\s+/g, " "); if (!label) return;
-    const clash = Object.entries(COLS_REAL).find(([k, d]) => d.l.toLowerCase() === label.toLowerCase() && k !== p.key);
+    const clash = Object.entries(COLS_REAL).find(([k, d]) => !d.deleted && d.l.toLowerCase() === label.toLowerCase() && k !== p.key);
     if (clash) return toast(`Esiste già un parametro «${clash[1].l}»`);
     const np = {key: p.key || ("c_" + (label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12) || "p") + uid().slice(-4)),
       label, unit: $("#pm-u").value.trim(), log: document.querySelector("input[name=pm-log]:checked").value === "1",
@@ -1440,6 +1447,16 @@ function paramDialog(p, onDone){
     $("#confirm").innerHTML = ""; toast(isNew ? `Parametro «${label}» creato` : "Parametro salvato");
     if (onDone) onDone(np.key); else renderView(); };
   setTimeout(() => $("#pm-l")?.focus(), 30);
+}
+
+async function deleteParam(key){
+  // resta salvato come "eliminato" (non compare più da nessuna parte) così gli allenamenti vecchi mostrano ancora il suo nome
+  const list = (S.params || []).map(x => x.key === key ? {...x, deleted: true, archived: true} : x);
+  await DB.saveSettings({params: list}); S.params = list; applyParams(list);
+  const strip = x => { if (!(x.cols || []).includes(key)) return false; x.cols = x.cols.filter(c => c !== key); (x.sets || []).forEach(s => delete s[key]); return true; };
+  for (const e of S.exercises) if (strip(e)) await DB.saveExercise(e);
+  for (const t of S.templates) { let ch = false; (t.exercises || []).forEach(x => { if (strip(x)) ch = true; }); if (ch) await DB.saveTemplate(t); }
+  toast("Parametro eliminato"); renderView();
 }
 
 /* ---------- categorie e pattern: scelti da elenco ---------- */
@@ -1800,8 +1817,8 @@ function athExHtml(w, x, label, res){
   const n = Math.max(x.sets.length, r.length);
   const lib = libByName(x.name);
   const prev = previousFor(x.name, w.date);
-  const info = infoCols.map(c => { const vs = [...new Set(x.sets.map(s => s[c]).filter(Boolean))]; return vs.length ? `${COLS[c].l}: ${vs.join(" / ")}` : ""; }).filter(Boolean).join(" · ");
   const cell = (c, j, s, rr) => {
+    if (!COLS[c].log) return `<td><div class="ro" title="Indicazione del coach: non va compilata">${esc(s[c] || "–")}</div></td>`;
     if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
       return `<td><span class="side-in" title="${s.side ? "Programmato: "+esc(s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} serie ${j+1}">${k}</button>`).join("")}</span></td>`; }
     return `<td><input inputmode="${COLS[c].txt ? "text" : "decimal"}" aria-label="${esc(COLS[c].l)} serie ${j+1}" data-r="${x.id}|${j}|${c}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c]||"–")}"></td>`;
@@ -1809,16 +1826,15 @@ function athExHtml(w, x, label, res){
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
   return `<div class="sub">
     <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(x.name)}</span></div>
-    ${info ? `<div class="info">${esc(info)}</div>` : ""}
     ${sideHint ? `<div class="info">Lato programmato: ${esc(sideHint)} · segna quello che hai fatto</div>` : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${lib?.notes ? `<div class="info faint">${esc(lib.notes)}</div>` : ""}
     ${lib?.video ? `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>` : ""}
-    ${logCols.length ? `<table class="lt"><thead><tr><th></th>${logCols.map(c => `<th>${COLS[c].l}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${x.cols.length ? `<table class="lt"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
-        return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${logCols.map(c => cell(c, j, s, rr)).join("")}
+        return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${x.cols.map(c => cell(c, j, s, rr)).join("")}
           <td><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}
-    </tbody></table>${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
+    </tbody></table>${infoCols.length ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
     ${prev ? `<div class="prev">Ultima volta (${fmtD(prev.date)}): ${esc(prev.res.map(s => resultLine(s, prev.cols)).filter(Boolean).join("  ·  ") || "fatto")}</div>` : ""}
   </div>`;
 }

@@ -1874,15 +1874,15 @@ function finishSheet(skip=false){
     <div class="body">${skip ? "" : `
       <div class="field"><span class="lbl">Fatica della seduta (RPE 1–10)</span><div class="rpe">${Array.from({length:10},(_,i)=>i+1).map(v=>`<button type="button" class="${rpe===v?"on":""}" data-rpe="${v}"><b>${v}</b><small>${RPE_LABELS[v]||"&nbsp;"}</small></button>`).join("")}</div></div>
       <div class="field"><label class="lbl" for="f-dur">Durata (minuti)</label><input class="in" id="f-dur" inputmode="numeric" value="${w.durationMin||""}" placeholder="es. 75" style="font-size:17px"></div>
-      ${w.date !== TODAY() || (w.doneDate && w.doneDate !== w.date) ? (() => { const def = w.doneDate || (w.date > TODAY() ? TODAY() : w.date);
+      ${(() => { const def = w.doneDate || (w.date > TODAY() ? TODAY() : w.date);
         const other = def !== TODAY() && def !== w.date;
         const opt = (key, title, sub, on) => `<button type="button" class="wopt ${on ? "on" : ""}" data-w="${key}" role="radio" aria-checked="${on}"><i></i><span><b>${title}</b>${sub ? `<small>${sub}</small>` : ""}</span></button>`;
         return `<div class="field"><span class="lbl">Quando l'hai svolto?</span><div class="wopts" id="f-when" role="radiogroup" aria-label="Quando l'hai svolto">
-          ${opt("today", "Oggi", esc(fmtLong(TODAY())), def === TODAY())}
+          ${opt("today", "Oggi", esc(fmtLong(TODAY())) + (w.date === TODAY() ? " · il giorno previsto" : ""), def === TODAY())}
           ${w.date <= TODAY() && w.date !== TODAY() ? opt("plan", "Il giorno previsto", esc(fmtLong(w.date)), def === w.date) : ""}
           ${opt("other", "Un altro giorno", "", other)}</div>
           <input class="in" type="date" id="f-date" value="${def}" max="${TODAY()}" ${other ? "" : "hidden"} style="margin-top:8px;max-width:220px" aria-label="Data in cui l'hai svolto">
-          ${w.date > TODAY() ? `<span class="faint" style="font-size:12px;margin-top:4px">Era previsto ${esc(fmtLong(w.date))}: se lo fai oggi, si sposta a oggi.</span>` : ""}</div>`; })() : ""}`}
+          ${w.date > TODAY() ? `<span class="faint" style="font-size:12px;margin-top:4px">Era previsto ${esc(fmtLong(w.date))}: se lo fai oggi, si sposta a oggi.</span>` : ""}</div>`; })()}`}
       <div class="field"><label class="lbl" for="f-note">${skip?"Motivo (facoltativo)":"Nota per il coach (facoltativa)"}</label><textarea class="in" id="f-note" placeholder="${skip?"es. malato, esame, partita…":"Sensazioni, dolori, cosa è andato bene…"}">${esc(w.athleteNote||"")}</textarea></div>
     </div><footer><button class="btn pri grow" style="justify-content:center;padding:12px">${skip?"Segna come non svolto":"Salva e completa"}</button></footer></form></div>`;
   const f = $("#fin");
@@ -1891,7 +1891,8 @@ function finishSheet(skip=false){
     const k = b.dataset.w, d = $("#f-date");
     f.querySelectorAll("#f-when [data-w]").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); });
     d.hidden = k !== "other";
-    if (k === "today") d.value = TODAY(); else if (k === "plan") d.value = w.date; else d.focus(); });
+    if (k === "today") d.value = TODAY(); else if (k === "plan") d.value = w.date;
+    else { if (d.value === TODAY() || d.value === w.date) d.value = addDays(TODAY(), -1); d.focus(); } });
   f.onsubmit = async ev => { ev.preventDefault();
     const note = $("#f-note").value.trim();
     if (skip) { w.status = "skipped"; await flushSave({athleteNote: note, completedAt: new Date().toISOString()}); }

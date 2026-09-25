@@ -338,6 +338,24 @@ button.done-box:hover .fix{color:var(--ink)}
 .aex .info{font-size:13px;color:var(--muted);white-space:pre-wrap}
 .aex .prev{font-size:12px;color:var(--faint)}
 .aex a{color:var(--accent);font-size:13px;font-weight:600}
+/* cambio esercizio */
+.aex .h .swbtn{border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;flex:none;align-self:center}
+.aex .h .swbtn:hover{color:var(--ink);border-color:var(--faint)}
+.swinfo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--warn-soft);border-radius:8px;padding:6px 10px;font-size:12px}
+.swinfo span{flex:1;min-width:160px}
+.rchips{display:flex;flex-wrap:wrap;gap:6px}
+.rchips button{border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 12px;font-size:13px;font-weight:600}
+.rchips button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.wcard li .swn{font-style:italic} .wcard li .swn s{color:var(--faint)}
+.aplan .sc.swl{color:var(--warn,#b7791f);font-style:italic}
+.altrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
+.altrow .lbl{margin:0}
+.altc{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:2px 4px 2px 10px;font-size:12px;font-weight:600}
+.altc.inh{border-style:dashed;background:transparent;color:var(--muted)}
+.altc button{border:0;background:none;color:var(--faint);font-size:14px;line-height:1;padding:0 4px}
+.altc button:hover{color:var(--bad)}
+.in.altin{width:170px;padding:4px 8px;font-size:12px}
+.swbox span{color:var(--muted)}
 .lt{width:100%;border-collapse:separate;border-spacing:0}
 /* tanti parametri: la tabella scorre di lato dentro il riquadro, numero serie e spunta restano fermi */
 .ltwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
@@ -569,7 +587,7 @@ const ICON = {
    DATI — due "motori": DEMO (browser) e FIREBASE (online)
    ===================================================================== */
 const COACH_FIELDS = ["id","date","title","notes","exercises","createdAt","updatedAt","doneDate"];
-const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt","doneDate"];
+const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt","doneDate","swaps"];
 
 function LocalDB(){
   const KEY = "asticella-demo-v2";
@@ -579,11 +597,12 @@ function LocalDB(){
   if (!st.templates) st.templates = seedDemo().templates;
   if (!st.v6) { demoV6(st); st.v6 = true; }
   if (!st.v9) { demoHistory(st); st.v9 = true; }
+  if (!st.v22) { demoSwaps(st); st.v22 = true; }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){} };
   save();
   const wait = v => new Promise(r => setTimeout(() => r(clone(v)), 60));
   return {
-    reset(){ st = seedDemo(); demoV6(st); st.v6 = true; demoHistory(st); st.v9 = true; save(); },
+    reset(){ st = seedDemo(); demoV6(st); st.v6 = true; demoHistory(st); st.v9 = true; demoSwaps(st); st.v22 = true; save(); },
     async listAthletes(){ return wait(Object.values(st.athletes)); },
     async getAthlete(e){ return wait(st.athletes[e] || null); },
     async saveAthlete(a){ st.athletes[a.email] = {...(st.athletes[a.email]||{}), ...clone(a)}; st.workouts[a.email] ??= {}; save(); return wait(a); },
@@ -685,6 +704,14 @@ function demoV6(st){
   Object.values(st.templates||{}).forEach(t => (t.exercises||[]).forEach(typeIt));
 }
 /* demo: storico di ~10 settimane per avere qualcosa da analizzare */
+/* esempio del cambio esercizio: alternative in libreria + un cambio già fatto da un'atleta */
+function demoSwaps(st){
+  const alts = {"Back squat":["Front squat","Squat bulgaro"], "Trap bar deadlift":["Stacco rumeno","Hip thrust"], "Panca piana":["Military press"]};
+  Object.values(st.exercises||{}).forEach(x => { if (alts[x.name] && !x.alts) x.alts = alts[x.name]; });
+  const ws = Object.values(st.workouts["giulia.bianchi@example.com"] || {}).filter(w => w.status === "done" && w.date < TODAY()).sort((a,b) => b.date.localeCompare(a.date));
+  const w = ws.find(w => (w.exercises||[]).some(x => x.name === "Back squat"));
+  if (w) { const x = w.exercises.find(x => x.name === "Back squat"); w.swaps = {[x.id]: {name:"Front squat", reason:"busy", note:"rack occupati dalla squadra di rugby", at: w.completedAt || new Date().toISOString()}}; }
+}
 function demoHistory(st){
   const ws0 = monday(TODAY()), prevWs = addDays(ws0, -7);
   Object.values(st.athletes).forEach((a, ai) => {
@@ -829,6 +856,24 @@ const activeAthletes = () => S.athletes.filter(a => !a.archived).sort((a,b)=>a.n
 const groups = () => [...new Set(S.athletes.map(a => a.group).filter(Boolean))].sort();
 const athByEmail = e => S.athletes.find(a => a.email === e);
 const libByName = n => S.exercises.find(x => x.name.trim().toLowerCase() === String(n||"").trim().toLowerCase());
+/* ---------- cambio esercizio da parte dell'atleta ----------
+   w.swaps = {idEsercizio: {name, reason, note, at}} → il programma del coach resta intatto, si registra solo cosa è stato fatto davvero */
+const SWAP_REASONS = {busy:"Attrezzo occupato", missing:"Attrezzo mancante", pain:"Fastidio / dolore", other:"Altro"};
+const exName = (w, x) => w?.swaps?.[x.id]?.name || x.name;
+const swapOf = (w, x) => w?.swaps?.[x.id] || null;
+const swapWhy = sw => sw ? [SWAP_REASONS[sw.reason] || "", sw.note || ""].filter(Boolean).join(": ") : "";
+const sameName = (a, b) => String(a||"").trim().toLowerCase() === String(b||"").trim().toLowerCase();
+/* alternative: quelle scritte nell'allenamento (se il coach le ha cambiate lì), altrimenti quelle della libreria */
+const altsOf = x => Array.isArray(x.alts) ? x.alts : (libByName(x.name)?.alts || []);
+function swapOptions(x){
+  const own = altsOf(x).filter(n => n && !sameName(n, x.name));
+  /* prima le alternative del coach, poi (come riserva) gli esercizi con lo stesso pattern motorio */
+  const lib = libByName(x.name);
+  const same = !lib?.pattern ? [] : S.exercises.filter(e => e.id !== lib.id && e.pattern === lib.pattern && !own.some(n => sameName(n, e.name)))
+    .sort((a,b) => (b.category === lib.category) - (a.category === lib.category) || a.name.localeCompare(b.name, "it")).slice(0, 8).map(e => e.name);
+  const list = [...own, ...same];
+  return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: lib?.pattern || "", nCoach: own.length, list};
+}
 
 function statusOf(w){
   const s = w.status || "todo";
@@ -886,19 +931,19 @@ function schemeText(x){
   if (cols.includes("rest")) { const v = vals("rest"); if (v.replace(/[–/]/g,"")) out.push(`rec. ${v}`); }
   return out.join(" · ");
 }
-function miniListHtml(exs){
+function miniListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0]}));
   return `<ol>${exs.map((x,i) => { const g = inGroup[i]; const link = g.size > 1 && g.k < g.size - 1;
-    return `<li class="${link ? "link" : ""}" style="--bc:${blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? 'title="Superserie"' : ""}><span class="b">${esc(L[i])}</span><span>${esc(x.name||"—")}</span><span class="s">${esc(summarize(x))}</span></li>`; }).join("")}</ol>`;
+    return `<li class="${link ? "link" : ""}" style="--bc:${blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? 'title="Superserie"' : ""}><span class="b">${esc(L[i])}</span>${(sw => sw ? `<span class="swn" title="Cambiato dall'atleta: previsto ${esc(x.name)}${swapWhy(sw) ? " · "+esc(swapWhy(sw)) : ""}"><s>${esc(x.name)}</s> ↔ ${esc(sw.name)}</span>` : `<span>${esc(x.name||"—")}</span>`)(swapOf(w, x))}<span class="s">${esc(summarize(x))}</span></li>`; }).join("")}</ol>`;
 }
-function planListHtml(exs){
+function planListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0]}));
   return `<ul class="aplan">${exs.map((x,i) => { const g = inGroup[i]; const col = blockColor(exs[g.lead].block || L[i]);
     const link = g.size > 1 && g.k < g.size - 1;
     return `<li class="api ${link ? "link" : ""}" style="--bc:${col}"><div class="lc"><span class="lab">${esc(L[i] || "•")}</span></div>
-      <div><div class="nm">${esc(x.name)}${g.size > 1 && g.k === 0 ? `<span class="sst">superserie</span>` : ""}</div><div class="sc">${esc(schemeText(x))}</div></div></li>`; }).join("")}</ul>`;
+      <div><div class="nm">${esc(exName(w, x))}${g.size > 1 && g.k === 0 ? `<span class="sst">superserie</span>` : ""}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${esc(schemeText(x))}</div></div></li>`; }).join("")}</ul>`;
 }
 /* profili "senza accesso" (squadre o atleti che non usano l'app): hanno un codice al posto dell'email,
    con dominio .local, dove non arriva nessuna email di conferma → nessuno può entrare con quel profilo */
@@ -1133,7 +1178,7 @@ function cardHtml(email, w){
   const st = statusOf(w);
   return `<div class="wcard st-${st}" draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <div class="t"><span class="dot st-${st}"></span>${esc(w.title||"Senza titolo")}</div>
-    ${miniListHtml(w.exercises)}
+    ${miniListHtml(w.exercises, w)}
     ${st==="done" ? `<div class="meta">✓ ${w.sessionRpe?`RPE ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin}′`:""}</div>` : ""}
     ${w.doneDate && w.doneDate !== w.date ? `<div class="moved">↷ previsto ${esc(DAYS[dayIdx(w.date)].toLowerCase())} ${parse(w.date).getDate()}</div>` : ""}</div>`;
 }
@@ -1261,13 +1306,17 @@ function viewExercises(m){
     <div class="row"><div class="field grow"><label class="lbl" for="x-cat">Categoria</label>${optSelect("cat", e.category)}</div>
       <div class="field grow"><label class="lbl" for="x-pat">Pattern motorio</label>${optSelect("pat", e.pattern)}</div></div>
     <div class="field"><span class="lbl">Parametri predefiniti</span><div class="colpick">${pickable().map(k => `<button type="button" class="${(e.cols||[]).includes(k)?"on":""}" data-act="ex-col" data-c="${k}">${esc(COLS[k].l)}</button>`).join("")}</div></div>
+    <div class="field"><span class="lbl">Alternative (se l'atleta non riesce a farlo: attrezzo occupato, mancante…)</span><div class="altrow">
+      ${(e.alts||[]).map((n,k) => `<span class="altc">${esc(n)}<button type="button" data-act="xalt-rm" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
+      <input class="in altin" id="x-alt" list="exlib" aria-label="Aggiungi alternativa" data-change="xalt-add" placeholder="+ alternativa"></div>
+      <span class="faint" style="font-size:12px">${(e.alts||[]).length ? "L'atleta le vedrà per prime; sotto, come riserva, anche gli esercizi con lo stesso pattern motorio." : "Se non ne metti, all'atleta verranno proposti gli esercizi con lo stesso pattern motorio."}</span></div>
     <div class="field"><label class="lbl" for="x-video">Link video (YouTube, Instagram…)</label><input class="in" id="x-video" type="url" value="${esc(e.video||"")}" placeholder="https://"></div>
     <div class="field"><label class="lbl" for="x-notes">Indicazioni tecniche</label><textarea class="in" id="x-notes">${esc(e.notes||"")}</textarea></div>
     <div class="row"><button class="btn pri">Salva</button><button type="button" class="btn ghost" data-act="ex-cancel">Annulla</button><span class="grow"></span>${e.isNew?"":`<button type="button" class="btn danger ghost" data-act="ex-del">Elimina</button>`}</div>
   </form>` : paramsPanel()}</div></div>`;
   const f = $("#ex-form");
   if (f) f.onsubmit = async ev => { ev.preventDefault();
-    const x = {id: e.id || uid(), name: $("#x-name").value.trim(), category: readOpt("cat"), pattern: readOpt("pat"), cols: e.cols||[], video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
+    const x = {id: e.id || uid(), name: $("#x-name").value.trim(), category: readOpt("cat"), pattern: readOpt("pat"), cols: e.cols||[], alts: (e.alts||[]).filter(n => !sameName(n, $("#x-name").value)), video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
     if (!x.name) return;
     await DB.saveExercise(x);
     const i = S.exercises.findIndex(y => y.id === x.id); if (i>=0) S.exercises[i] = x; else S.exercises.push(x);
@@ -1289,7 +1338,7 @@ function wStats(w){
   let sets = 0, vol = 0, reps = 0; const ex = {};
   (w.exercises||[]).forEach(x => { const rr = (w.results||{})[x.id] || [];
     rr.forEach(r => { if (emptyRes(r)) return; sets++; const k = numv(r.kg), rp = numv(r.reps);
-      const e = (ex[x.name] ??= {sets:0, reps:0, vol:0, kgMax:null, hMax:null, tMin:null});
+      const e = (ex[exName(w, x)] ??= {sets:0, reps:0, vol:0, kgMax:null, hMax:null, tMin:null});
       const hh = numv(r.height), tt = numv(r.time);
       if (hh != null) e.hMax = Math.max(e.hMax ?? 0, hh);
       if (tt != null && tt > 0 && !x.cols.includes("reps")) e.tMin = Math.min(e.tMin ?? Infinity, tt);
@@ -1497,7 +1546,7 @@ async function collectRows(){
   const ath = activeAthletes().filter(a => dataQ.who === "all" || a.email === dataQ.who);
   const ws = monday(dataQ.from), n = Math.ceil((daysBetween(ws, dataQ.to)+1)/7);
   await Promise.all(ath.map(a => ensureWeeks(a.email, ws, n)));
-  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Esercizio","Categoria","Pattern","Serie","Tipo serie",
+  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
     ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta"];
   const rows = [];
   ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>effDate(x).localeCompare(effDate(y))).forEach(w => {
@@ -1505,14 +1554,14 @@ async function collectRows(){
     const L = exLabels(w.exercises);
     const mz = mesoAt(a, effDate(w)) || {};
     (w.exercises||[]).forEach((x, xi) => {
-      const lib = libByName(x.name) || {};
+      const done = exName(w, x), lib = libByName(done) || {}, sw = swapOf(w, x);
       const res = (w.results||{})[x.id] || [];
       const n = Math.max(x.sets.length, res.length);
       for (let i=0;i<n;i++){
         const s = x.sets[i] || {}, r = res[i] || {};
         if (i >= x.sets.length && emptyRes(res[i])) continue;
         rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
-          mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], x.name, lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
+          mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
           ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.athleteNote||""]);
       }
     });
@@ -1622,6 +1671,7 @@ function exEditorHtml(x, i, res, L){
       <button class="btn ghost icon" data-act="ex-down" data-i="${i}" aria-label="Sposta giù" ${i===S.editor.w.exercises.length-1?"disabled":""}>↓</button>
       <button class="btn ghost icon danger" data-act="ex-rm" data-i="${i}" aria-label="Rimuovi esercizio">✕</button>
     </div>
+    ${(sw => sw ? `<div class="done-box warnb swbox"><b>↔ L'atleta l'ha cambiato con «${esc(sw.name)}»</b><span>${esc(swapWhy(sw) || "nessun motivo indicato")}${sw.at ? ` · ${esc(fmtLong(sw.at.slice(0,10)))}` : ""}</span><div><button type="button" class="btn sm ghost" data-act="swap-undo" data-i="${i}">Annulla il cambio</button></div></div>` : "")(swapOf(S.editor.w, x))}
     ${lib ? "" : x.name ? `<div class="faint" style="font-size:12px">Non è nella libreria: <button class="btn sm ghost" data-act="ex-tolib" data-i="${i}">Aggiungilo</button></div>` : ""}
     <div class="cols">${cols.map((c,k) => `<span class="c"><button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="-1" aria-label="Sposta ${COLS[c].l} a sinistra" ${k===0?"disabled":""}>‹</button>${COLS[c].l}<button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="1" aria-label="Sposta ${COLS[c].l} a destra" ${k===cols.length-1?"disabled":""}>›</button><button data-act="col-rm" data-i="${i}" data-c="${c}" aria-label="Togli ${COLS[c].l}">×</button></span>`).join("")}
       ${avail.length ? `<select aria-label="Aggiungi parametro" data-change="col-add" data-i="${i}"><option value="">+ parametro</option>${avail.map(c=>`<option value="${c}">${esc(COLS[c].l)}</option>`).join("")}<option value="__new">+ Nuovo parametro…</option></select>` : ""}</div>
@@ -1634,9 +1684,21 @@ function exEditorHtml(x, i, res, L){
     ${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}
     <div class="row"><span class="lbl">Serie</span><span class="stepper"><button data-act="set-minus" data-i="${i}" aria-label="Togli serie">−</button><span class="num">${x.sets.length}</span><button data-act="set-plus" data-i="${i}" aria-label="Aggiungi serie">+</button></span>
       <input class="in grow" style="min-width:200px" aria-label="Note esercizio" data-bind="exercises.${i}.notes" value="${esc(x.notes||"")}" placeholder="Nota per l'atleta su questo esercizio"></div>
+    ${x.name ? altsRowHtml(x, i, lib) : ""}
     ${res && res.some((r,j) => !(j >= x.sets.length && emptyRes(r))) ? `<button type="button" class="done-box edit" data-act="fix-res" data-i="${i}" title="Clicca per correggere"><b>Eseguito dall'atleta${S.editor.w.coachEditedAt ? ` <span class="faint" style="font-weight:500">· corretto da te</span>` : ""}</b><div class="done-sets">${res.map((r,j)=> j >= x.sets.length && emptyRes(r) ? "" : `<span><span class="faint">${j+1}${j >= x.sets.length ? " extra" : ""})</span> ${esc(resultLine(r, cols) || (r.done?"✓":"–"))}</span>`).join("")}</div><span class="fix">✎ Correggi</span></button>`
       : !S.editor.tpl && S.editor.w.date <= TODAY() && !S.editor.isNew ? `<div><button type="button" class="btn sm ghost" data-act="fix-res" data-i="${i}">✎ Inserisci i dati eseguiti</button></div>` : ""}
   </section>`;
+}
+/* alternative che l'atleta può scegliere se non riesce a fare l'esercizio */
+function altsRowHtml(x, i, lib){
+  const own = Array.isArray(x.alts), list = altsOf(x);
+  const pat = lib?.pattern ? S.exercises.filter(e => e.id !== lib.id && e.pattern === lib.pattern).length : 0;
+  return `<div class="altrow"><span class="lbl" title="Se l'atleta non riesce a fare questo esercizio (attrezzo occupato, mancante…) può sceglierne uno di questi">Se non può farlo ↔</span>
+    ${list.map((n,k) => `<span class="altc ${own ? "" : "inh"}">${esc(n)}<button type="button" data-act="alt-rm" data-i="${i}" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
+    ${!own && list.length ? `<span class="faint" style="font-size:11px">dalla libreria</span>` : ""}
+    <input class="in altin" list="exlib" aria-label="Aggiungi alternativa" data-change="alt-add" data-i="${i}" placeholder="+ alternativa">
+    ${own && lib ? `<button type="button" class="btn sm ghost" data-act="alt-reset" data-i="${i}" title="Usa le alternative scritte nella libreria">↺ come in libreria</button>` : ""}
+    ${list.length ? "" : `<span class="faint" style="font-size:11px">${pat ? `nessuna: gli proporrò gli esercizi con lo stesso pattern (${esc(lib.pattern)})` : "nessuna: non potrà cambiarlo"}</span>`}</div>`;
 }
 /* ---------- correzione dei dati registrati (coach) ---------- */
 async function saveCoachFix(patch){
@@ -1654,7 +1716,7 @@ function fixResults(i){
   while (rows.length < x.sets.length) rows.push({});
   const L = exLabels(w.exercises);
   const draw = () => {
-    $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="fix-form" style="max-width:620px"><header><h2>Correggi · ${esc(L[i])} ${esc(x.name)}</h2></header><div class="body">
+    $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="fix-form" style="max-width:620px"><header><h2>Correggi · ${esc(L[i])} ${esc(exName(S.editor.w, x))}</h2></header><div class="body">
       <div class="faint" style="font-size:12px">In grigio il valore programmato. Quello che scrivi qui sostituisce quello registrato dall'atleta.</div>
       ${cols.length ? `<div class="scroll-x"><table class="fixt"><thead><tr><th></th>${cols.map(c => `<th>${COLS[c].l}</th>`).join("")}<th>Fatta</th><th></th></tr></thead><tbody>
       ${rows.map((r,j) => { const p = x.sets[j] || {}; return `<tr><td class="faint">${j+1}${j >= x.sets.length ? "<br><small>extra</small>" : ""}</td>
@@ -1790,14 +1852,14 @@ function renderAthlete(){
     <div class="alist">${list.length ? list.map(w => { const st = statusOf(w); return `<button class="acard" data-act="a-open" data-id="${w.id}">
         <div class="t"><span class="grow">${esc(w.title)}</span><span class="status-pill st-${st}">${STATUS_TXT[st]}</span></div>
         ${w.doneDate && w.doneDate !== w.date ? `<div class="faint" style="font-size:12px">Svolto in anticipo/ritardo · era previsto ${esc(fmtLong(w.date))}</div>` : ""}
-        ${planListHtml(w.exercises)}</button>`; }).join("")
+        ${planListHtml(w.exercises, w)}</button>`; }).join("")
       : `<div class="empty"><b>Riposo</b><br>Nessun allenamento in programma.${next?`<br><br>Prossimo: <button class="btn sm" data-act="a-day" data-d="${next.date}">${esc(fmtLong(next.date))} · ${esc(next.title)}</button>`:""}</div>`}</div>
   </div>`;
 }
 function previousFor(name, before){
   const key = (name||"").trim().toLowerCase();
   const ws = Object.values(S.cache[S.user.email]||{}).filter(w => w.date < before && w.results).sort((a,b)=>b.date.localeCompare(a.date));
-  for (const w of ws){ const x = (w.exercises||[]).find(x => (x.name||"").trim().toLowerCase() === key); const r = x && w.results[x.id];
+  for (const w of ws){ const x = (w.exercises||[]).find(x => (exName(w, x)||"").trim().toLowerCase() === key); const r = x && w.results[x.id];
     if (r && r.some(s => s.done)) return {date: w.date, cols: x.cols, res: r.filter(s => s.done)}; }
   return null;
 }
@@ -1824,8 +1886,9 @@ function athExHtml(w, x, label, res){
   const infoCols = x.cols.filter(c => !COLS[c].log);
   const r = res[x.id] || [];
   const n = Math.max(x.sets.length, r.length);
-  const lib = libByName(x.name);
-  const prev = previousFor(x.name, w.date);
+  const sw = swapOf(w, x), name = exName(w, x);
+  const lib = libByName(name);
+  const prev = previousFor(name, w.date);
   const cell = (c, j, s, rr) => {
     if (!COLS[c].log) return `<td><div class="ro" title="Indicazione del coach: non va compilata">${esc(s[c] || "–")}</div></td>`;
     if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
@@ -1834,7 +1897,8 @@ function athExHtml(w, x, label, res){
   };
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
   return `<div class="sub">
-    <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(x.name)}</span></div>
+    <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(name)}</span>${sw ? "" : `<button class="swbtn" data-act="a-swap" data-x="${x.id}" title="Non riesci a farlo? Cambialo con un'alternativa">↔ Cambia</button>`}</div>
+    ${sw ? `<div class="swinfo"><span>↔ Al posto di <b>${esc(x.name)}</b>${swapWhy(sw) ? ` · ${esc(swapWhy(sw))}` : ""}</span><button class="btn sm ghost" data-act="a-unswap" data-x="${x.id}">Annulla cambio</button></div>` : ""}
     ${sideHint ? `<div class="info">Lato programmato: ${esc(sideHint)} · segna quello che hai fatto</div>` : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${lib?.notes ? `<div class="info faint">${esc(lib.notes)}</div>` : ""}
@@ -1861,10 +1925,46 @@ async function flushSave(extra={}){
   Object.assign(w, extra);
   const saved = clone({exercises: w.exercises, results: w.results||{}}); pruneExtra(saved);   // nel database non finiscono serie extra vuote
   const patch = {results: saved.results, status: w.status||"progress", updatedByAthleteAt: new Date().toISOString()};
-  ["sessionRpe","durationMin","athleteNote","completedAt","doneDate"].forEach(k => { if (k in extra) patch[k] = extra[k]; });
+  ["sessionRpe","durationMin","athleteNote","completedAt","doneDate","swaps"].forEach(k => { if (k in extra) patch[k] = extra[k]; });
   try { await DB.saveResults(S.user.email, w.id, patch); saveState = "Salvato ✓"; }
   catch(e) { console.error(e); saveState = "Salvato sul telefono, invio appena c'è rete"; }
   const s = $("#saved"); if (s) s.textContent = saveState;
+}
+function keepExForm(){ const e = S.exEdit;
+  [["x-name","name"],["x-video","video"],["x-notes","notes"]].forEach(([id,k]) => { const el = $("#"+id); if (el) e[k] = el.value; });
+  if ($("#x-cat")) { e.category = readOpt("cat"); e.pattern = readOpt("pat"); } return e; }
+function swapSheet(xid){
+  const w = athleteWorkout(); const x = w?.exercises?.find(e => e.id === xid); if (!x) return;
+  const o = swapOptions(x); let pick = null, why = null;
+  const opt = (k, title, sub) => `<button type="button" class="wopt" data-o="${k}" role="radio" aria-checked="false"><i></i><span><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</span></button>`;
+  $("#modal").innerHTML = `<div class="back" style="align-items:flex-end;padding:0"><form class="modal sm" id="swf" style="margin:0;border-radius:18px 18px 0 0;max-width:560px;padding-bottom:env(safe-area-inset-bottom,0px)">
+    <header><h2>Cambia esercizio</h2><button type="button" class="btn ghost icon" data-act="modal-close" aria-label="Chiudi">✕</button></header>
+    <div class="body">
+      <div class="info" style="font-size:13px;color:var(--muted)">Il coach ha scelto <b style="color:var(--ink)">${esc(x.name)}</b> per un motivo: cambialo solo se non riesci proprio a farlo. Serie e ripetizioni restano quelle scritte.</div>
+      ${o.kind === "none" ? `<div class="done-box warnb"><b>Il coach non ha indicato alternative per questo esercizio.</b><span>Se non riesci a farlo, scrivigli nella nota finale cosa hai fatto al suo posto.</span></div>` : `
+      <div id="sw-o" style="display:flex;flex-direction:column;gap:14px">
+      ${o.nCoach ? `<div class="field"><span class="lbl">Alternative indicate dal coach</span>
+        <div class="wopts" role="radiogroup" aria-label="Alternative indicate dal coach">${o.list.slice(0, o.nCoach).map((n,k) => opt(k, n, "")).join("")}</div></div>` : ""}
+      ${o.list.length > o.nCoach ? `<div class="field"><span class="lbl">${o.nCoach ? "Altre possibilità · stesso pattern motorio" : "Esercizi con lo stesso pattern motorio"} (${esc(o.pattern)})</span>
+        ${o.nCoach ? `<span class="faint" style="font-size:12px;margin-top:-2px">Solo se non riesci nemmeno con quelle del coach.</span>` : ""}
+        <div class="wopts" role="radiogroup" aria-label="Esercizi con lo stesso pattern motorio">${o.list.slice(o.nCoach).map((n,k) => { const l = libByName(n); return opt(o.nCoach + k, n, l?.category || ""); }).join("")}</div></div>` : ""}
+      </div>
+      <div class="field"><span class="lbl">Perché lo cambi?</span><div class="rchips" id="sw-r">${Object.entries(SWAP_REASONS).map(([k,v]) => `<button type="button" data-r="${k}" aria-pressed="false">${v}</button>`).join("")}</div></div>
+      <div class="field"><label class="lbl" for="sw-note">Dettagli <span class="faint" id="sw-req">(facoltativo)</span></label><input class="in" id="sw-note" placeholder="es. rack occupato da un'altra squadra" maxlength="140"></div>`}
+    </div><footer>${o.kind === "none" ? `<button type="button" class="btn grow" style="justify-content:center;padding:12px" data-act="modal-close">Ho capito</button>` : `<button class="btn pri grow" style="justify-content:center;padding:12px">Cambia esercizio</button>`}</footer></form></div>`;
+  const f = $("#swf"); if (o.kind === "none") return;
+  f.querySelectorAll("#sw-o [data-o]").forEach(b => b.onclick = () => { pick = o.list[+b.dataset.o];
+    f.querySelectorAll("#sw-o [data-o]").forEach(y => { y.classList.toggle("on", y === b); y.setAttribute("aria-checked", y === b); }); });
+  f.querySelectorAll("#sw-r [data-r]").forEach(b => b.onclick = () => { why = b.dataset.r;
+    f.querySelectorAll("#sw-r [data-r]").forEach(y => { y.classList.toggle("on", y === b); y.setAttribute("aria-pressed", y === b); });
+    $("#sw-req").textContent = why === "other" || why === "pain" ? "(scrivi cosa succede)" : "(facoltativo)"; });
+  f.onsubmit = async ev => { ev.preventDefault();
+    const note = $("#sw-note").value.trim();
+    if (!pick) return toast("Scegli con quale esercizio lo sostituisci");
+    if (!why) return toast("Indica il motivo del cambio");
+    if ((why === "other" || why === "pain") && !note) { $("#sw-note").focus(); return toast("Scrivi due parole al coach sul motivo"); }
+    w.swaps = {...(w.swaps||{}), [x.id]: {name: pick, reason: why, note, at: new Date().toISOString()}};
+    $("#modal").innerHTML = ""; { const y = scrollY; renderWorkout(); scrollTo(0, y); } await flushSave({swaps: w.swaps}); toast(`Cambiato con ${pick}`); };
 }
 function finishSheet(skip=false){
   const w = athleteWorkout();
@@ -2018,7 +2118,16 @@ const ACT = {
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); setTimeout(()=>$("#x-name")?.focus(), 20); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },
-  "ex-col"(t){ const e = S.exEdit; const c = t.dataset.c; ["x-name","x-video","x-notes"].forEach(id => { const k = {"x-name":"name","x-video":"video","x-notes":"notes"}[id]; e[k] = $("#"+id).value; }); e.category = readOpt("cat"); e.pattern = readOpt("pat");
+  "xalt-rm"(t){ const e = keepExForm(); e.alts = (e.alts||[]).filter((_,k) => k !== +t.dataset.k); renderView(); },
+  /* alternative nell'editor allenamento: toccarle le rende "di questo allenamento" (la libreria non cambia) */
+  "alt-rm"(t){ const x = S.editor.w.exercises[+t.dataset.i]; x.alts = altsOf(x).filter((_,k) => k !== +t.dataset.k); markDirty(); drawEditor(); },
+  "alt-reset"(t){ const x = S.editor.w.exercises[+t.dataset.i]; delete x.alts; markDirty(); drawEditor(); },
+  async "swap-undo"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const sw = {...(S.editor.w.swaps||{})}; delete sw[x.id]; await saveCoachFix({swaps: sw}); },
+  /* atleta */
+  "a-swap"(t){ swapSheet(t.dataset.x); },
+  async "a-unswap"(t){ const w = athleteWorkout(); if (!w) return; const sw = {...(w.swaps||{})}; delete sw[t.dataset.x]; w.swaps = sw;
+    { const y = scrollY; renderWorkout(); scrollTo(0, y); } await flushSave({swaps: sw}); toast("Torni all'esercizio del coach"); },
+  "ex-col"(t){ const e = keepExForm(); const c = t.dataset.c;
     e.cols = e.cols.includes(c) ? e.cols.filter(k => k !== c) : [...e.cols, c]; renderView(); },
   async "ex-del"(){ const e = S.exEdit; if (!(await confirmBox(`Eliminare «${e.name}» dalla libreria? Gli allenamenti già scritti non cambiano.`, "Elimina"))) return;
     await DB.deleteExercise(e.id); S.exercises = S.exercises.filter(x => x.id !== e.id); fillDatalist(); S.exEdit = null; renderView(); },
@@ -2087,7 +2196,14 @@ document.addEventListener("change", async e => {
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;
     if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }
     x.cols = [...x.cols, c]; x.sets.forEach(s => s[c] = s[c] || ""); markDirty(); return drawEditor(); }
-  if (k === "ex-name") { const x = S.editor.w.exercises[+t.dataset.i]; const lib = libByName(t.value);
+  if (k === "alt-add" || k === "xalt-add") { const n = t.value.trim(); t.value = ""; if (!n) return;
+    const hit = libByName(n); const name = hit ? hit.name : n;
+    if (k === "xalt-add") { const e = keepExForm(); if (sameName(name, e.name)) return toast("È lo stesso esercizio");
+      if (!(e.alts||[]).some(a => sameName(a, name))) e.alts = [...(e.alts||[]), name]; renderView(); return setTimeout(() => $("#x-alt")?.focus(), 20); }
+    const x = S.editor.w.exercises[+t.dataset.i]; if (sameName(name, x.name)) return toast("È lo stesso esercizio");
+    const cur = altsOf(x); if (!cur.some(a => sameName(a, name))) x.alts = [...cur, name];
+    markDirty(); return setTimeout(() => { if (S.editor) drawEditor(); }, 0); }
+  if (k === "ex-name") { const x = S.editor.w.exercises[+t.dataset.i]; const lib = libByName(t.value); delete x.alts;
     const blank = x.sets.every(s => Object.values(s).every(v => !v));
     if (lib && blank && lib.cols?.length) { x.cols = [...lib.cols]; x.sets = x.sets.map(() => Object.fromEntries(lib.cols.map(c => [c, ""]))); }
     setTimeout(() => { if (S.editor) { const f = document.activeElement?.dataset?.bind; drawEditor(); if (f) document.querySelector(`[data-bind="${f}"]`)?.focus(); } }, 0); }

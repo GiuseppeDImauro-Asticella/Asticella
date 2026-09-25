@@ -1723,14 +1723,14 @@ function videoEmbed(url){
   let u; try { u = new URL(String(url||"").trim()); } catch(e) { return null; }
   const h = u.hostname.replace(/^(www|m|mobile)\./, ""), path = u.pathname;
   const secs = t => { if (!t) return 0; if (/^\d+$/.test(t)) return +t; const m = t.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/); return m ? (+m[1]||0)*3600 + (+m[2]||0)*60 + (+m[3]||0) : 0; };
-  const yt = (id, tall) => id && {src: `https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1&modestbranding=1${secs(u.searchParams.get("t") || u.searchParams.get("start")) ? "&start=" + secs(u.searchParams.get("t") || u.searchParams.get("start")) : ""}`, tall, site: "YouTube"};
+  const yt = (id, tall) => id && {ownFs: true, src: `https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1&modestbranding=1${secs(u.searchParams.get("t") || u.searchParams.get("start")) ? "&start=" + secs(u.searchParams.get("t") || u.searchParams.get("start")) : ""}`, tall, site: "YouTube"};
   let m;
   if (h === "youtu.be") return yt(path.slice(1).split("/")[0]);
   if (h === "youtube.com" || h === "youtube-nocookie.com") {
     if (u.searchParams.get("v")) return yt(u.searchParams.get("v"));
     if ((m = path.match(/^\/(shorts|embed|live)\/([\w-]+)/))) return yt(m[2], m[1] === "shorts"); }
-  if (h === "vimeo.com" && (m = path.match(/^\/(\d+)/))) return {src: `https://player.vimeo.com/video/${m[1]}`, site: "Vimeo"};
-  if (h === "player.vimeo.com") return {src: u.href, site: "Vimeo"};
+  if (h === "vimeo.com" && (m = path.match(/^\/(\d+)/))) return {src: `https://player.vimeo.com/video/${m[1]}`, site: "Vimeo", ownFs: true};
+  if (h === "player.vimeo.com") return {src: u.href, site: "Vimeo", ownFs: true};
   if (h === "drive.google.com") { const id = (path.match(/\/file\/d\/([\w-]+)/) || [])[1] || u.searchParams.get("id");
     if (id) return {src: `https://drive.google.com/file/d/${id}/preview`, site: "Google Drive", drive: true}; }
   if (h === "instagram.com" && (m = path.match(/^\/(?:[\w.]+\/)?(p|reel|reels|tv)\/([\w-]+)/))) return {src: `https://www.instagram.com/${m[1] === "reels" ? "reel" : m[1]}/${m[2]}/embed`, tall: true, site: "Instagram"};
@@ -1741,7 +1741,7 @@ function openVideo(url, title){
   const v = videoEmbed(url); if (!v) { window.open(url, "_blank", "noopener"); return; }
   const box = $("#vid");
   box.innerHTML = `<div class="vback" data-act="video-close"><div class="vwrap ${v.tall ? "tall" : ""} ${v.drive ? "drv" : ""}" role="dialog" aria-modal="true" aria-label="Video ${esc(title||"")}">
-    <div class="vhead"><b>${esc(title || "Video")}</b><button type="button" class="btn ghost sm vfs" data-act="video-full" aria-pressed="false" title="Ingrandisci a tutto schermo (poi puoi girare il telefono)">⛶ Schermo intero</button><button type="button" class="btn ghost icon" data-act="video-close" aria-label="Chiudi il video">✕</button></div>
+    <div class="vhead"><b>${esc(title || "Video")}</b>${v.ownFs ? "" : `<button type="button" class="btn ghost sm vfs" data-act="video-full" aria-pressed="false" title="Ingrandisci a tutto schermo (poi puoi girare il telefono)">⛶ Schermo intero</button>`}<button type="button" class="btn ghost icon" data-act="video-close" aria-label="Chiudi il video">✕</button></div>
     <div class="vframe">${v.file ? `<video src="${esc(v.src)}" controls playsinline autoplay></video>`
       : `<iframe src="${esc(v.src)}" title="${esc(title || "Video")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}</div>
     <div class="vfoot">Non parte? <a href="${esc(url)}" target="_blank" rel="noopener">Aprilo su ${esc(v.site)} ↗</a></div></div></div>`;

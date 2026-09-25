@@ -481,6 +481,7 @@ tr.ok .ck svg{stroke:#fff}
 .ctip .tl{color:var(--muted)}
 .kfilt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
 .kfilt .lbl{margin:0 4px 0 0}
+.kfilt .wkn{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:13px}
 .kfilt button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--muted)}
 .kfilt button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .clegend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
@@ -1423,7 +1424,7 @@ function drawExDialog(){
 function closeExDialog(){ S.exDlg = null; S.exEdit = null; $("#confirm").innerHTML = ""; }
 
 /* ---------- ANALISI ---------- */
-const anQ = {kv: "pesi", ks: "all", who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume"};
+const anQ = {gran: "week", dws: null, kv: "pesi", ks: "all", who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume"};
 const METRICS = {
   volume: {l:"Volume", u:"kg", d:"Somma di kg × reps delle serie registrate (solo le serie con kg e reps compilati)."},
   sets:   {l:"Serie", u:"", d:"Numero di serie registrate: spuntate o compilate, extra comprese."},
@@ -1451,12 +1452,20 @@ function weeklySeries(email, from, to){
   return Array.from({length:n}, (_,k) => { const ws = addDays(w0, k*7), we = addDays(ws, 6);
     const a = ws < from ? from : ws, b = we > to ? to : we;
     const list = wIn(email, a, b);
-    const o = {ws, volume:0, sets:0, srpe:0, planned: list.length, done: 0, cut: ws < from || we > to, open: we >= today, byK: {}};
-    const inK = (f, k) => !f || f === "all" || f === k;   // filtro "tipo di seduta" per volume e serie (anQ.kv / anQ.ks)
-    list.forEach(w => { const st = wStats(w), k = kindOf(w), b = (o.byK[k] ??= {volume:0, sets:0, srpe:0, n:0});
-      b.volume += st.vol; b.sets += st.sets; b.srpe += st.srpe; b.n++;
-      if (inK(anQ.kv, k)) o.volume += st.vol; if (inK(anQ.ks, k)) o.sets += st.sets; o.srpe += st.srpe; if (w.status === "done") o.done++; });
-    return o; });
+    return accumLoad({ws, volume:0, sets:0, srpe:0, planned: list.length, done: 0, cut: ws < from || we > to, open: we >= today, byK: {}}, list); });
+}
+function accumLoad(o, list){
+  const inK = (f, k) => !f || f === "all" || f === k;   // filtro "tipo di seduta" per volume e serie (anQ.kv / anQ.ks)
+  list.forEach(w => { const st = wStats(w), k = kindOf(w), b = (o.byK[k] ??= {volume:0, sets:0, srpe:0, n:0});
+    b.volume += st.vol; b.sets += st.sets; b.srpe += st.srpe; b.n++;
+    if (inK(anQ.kv, k)) o.volume += st.vol; if (inK(anQ.ks, k)) o.sets += st.sets; o.srpe += st.srpe; if (w.status === "done") o.done++; });
+  return o;
+}
+/* i 7 giorni di una settimana (giorno = quello in cui l'allenamento è stato svolto) */
+function dailySeries(email, ws){
+  const today = TODAY();
+  return Array.from({length:7}, (_,k) => { const d = addDays(ws, k), list = wIn(email, d, d);
+    return accumLoad({ws: d, day: true, list, volume:0, sets:0, srpe:0, planned: list.length, done: 0, cut: false, open: d > today, byK: {}}, list); });
 }
 function niceMax(v){ if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
 async function viewAnalysis(m){
@@ -1487,6 +1496,11 @@ async function viewAnalysis(m){
   const prev = full[full.length-2];
   const delta = k => { if (!prev || !prev[k]) return ""; const d = (last[k] - prev[k]) / prev[k] * 100; return ` <span class="faint">(${d >= 0 ? "+" : ""}${fmtN(d)}% vs precedente)</span>`; };
   const M = METRICS[anQ.metric];
+  const minWs = monday(from), maxWs = monday(to);
+  if (!anQ.dws || anQ.dws < minWs || anQ.dws > maxWs) anQ.dws = monday(to < TODAY() ? to : TODAY()) < minWs ? minWs : monday(to < TODAY() ? to : TODAY());
+  const byDay = anQ.gran === "day", dser = byDay ? dailySeries(a.email, anQ.dws) : null;
+  const mono = (() => { if (!byDay) return null; const L = dser.map(o => o.srpe), tot = L.reduce((t,v) => t+v, 0), mean = tot / 7;
+    const sd = Math.sqrt(L.reduce((t,v) => t + (v-mean)**2, 0) / 7); return {tot, mean, mono: sd > 0 ? mean / sd : null}; })();
   const kFilt = k => { const f = k === "volume" ? anQ.kv : k === "sets" ? anQ.ks : "all"; return f && f !== "all" ? f : ""; };
   // tabella per esercizio
   const exAgg = {};
@@ -1508,11 +1522,17 @@ async function viewAnalysis(m){
     <div class="kpis">${Object.entries(METRICS).map(([k, mm]) => `<button class="kpi ${anQ.metric===k?"on":""}" data-act="an-metric" data-v="${k}" aria-pressed="${anQ.metric===k}">
       <span class="k-l">${mm.l} · media settimanale${kFilt(k) ? ` · <b style="color:var(--ink)">${KINDS[kFilt(k)].l}</b>` : ""}</span><span class="k-v num">${compact(avg(k))}${mm.u ? `<small>${mm.u}</small>` : ""}</span>
       <span class="k-s">${full.length ? `Ultima settimana conclusa: <b>${fmtN(last[k])}</b>${delta(k)}` : "Nessuna settimana intera conclusa nel periodo"}</span></button>`).join("")}</div>
-    <section class="panel chartcard"><h3>${M.l} per settimana${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
-      <div class="cdesc">${M.d} Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo.${anQ.metric === "srpe" ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
+    <section class="panel chartcard"><h3>${M.l} per ${byDay ? "giorno" : "settimana"}${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
+      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto)." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per vederne i giorni."}${anQ.metric === "srpe" ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
+      <div class="kfilt" role="group" aria-label="Vista"><span class="lbl">Vista</span>${[["week","Settimane"],["day","Giorni"]].map(([k,l]) => `<button class="${anQ.gran === k ? "on" : ""}" data-act="an-gran" data-v="${k}" aria-pressed="${anQ.gran === k}">${l}</button>`).join("")}
+        ${byDay ? `<span class="wkn"><button class="btn sm ghost icon" data-act="an-dws" data-d="-1" aria-label="Settimana precedente" ${anQ.dws <= minWs ? "disabled" : ""}>‹</button><b>Sett. ${weekNo(anQ.dws)} · ${esc(fmtRange(anQ.dws))}</b><button class="btn sm ghost icon" data-act="an-dws" data-d="1" aria-label="Settimana successiva" ${anQ.dws >= maxWs ? "disabled" : ""}>›</button></span>` : ""}</div>
       ${anQ.metric === "srpe" ? "" : `<div class="kfilt" role="group" aria-label="Tipo di seduta"><span class="lbl">Sedute</span>${["all", ...KIND_KEYS].map(k => { const on = (anQ.metric === "volume" ? anQ.kv : anQ.ks) === k;
         return `<button class="${on ? "on" : ""}" data-act="an-kind" data-v="${k}" aria-pressed="${on}">${k === "all" ? "Tutte" : KINDS[k].l}</button>`; }).join("")}</div>`}
-      <div class="chartwrap" id="an-chart"></div></section>
+      <div class="chartwrap" id="an-chart"></div>
+      ${byDay && anQ.metric === "srpe" ? `<div class="sstats"><span>carico della settimana: <b>${fmtN(mono.tot)}</b> UA</span><span>media al giorno: <b>${fmtN(mono.mean)}</b> UA</span>
+        <span title="Carico medio giornaliero ÷ deviazione standard dei 7 giorni (i giorni di riposo contano 0). Sopra 2 = giorni troppo simili tra loro.">monotonia: <b>${mono.mono != null ? fmtN(mono.mono, 2) : "–"}</b></span>
+        <span title="Carico della settimana × monotonia">strain: <b>${mono.mono != null ? fmtN(mono.tot * mono.mono) : "–"}</b></span></div>
+        <div class="cdesc" style="margin-top:4px">Monotonia (Foster): carico medio del giorno ÷ quanto varia da un giorno all'altro. Più è alta, più i giorni sono simili tra loro; sopra 2 la settimana è poco variata e, con un carico alto, aumenta il rischio di sovraccarico.</div>` : ""}</section>
     ${sessionPanelHtml(a, sessList, sess)}
     <div class="antables">
       <section class="panel"><h3>Per esercizio</h3><div class="cdesc">${esc(a.name)} · ${fmtD(from)} – ${fmtD(to)}</div>
@@ -1526,7 +1546,7 @@ async function viewAnalysis(m){
           <td class="num">${fmtN(c.sets)}</td><td class="num">${c.volume ? fmtN(c.volume) : "–"}</td><td class="num">${c.srpeAvg ? fmtN(c.srpeAvg) : "–"}</td></tr>`).join("")}
         </tbody></table></div></section>
     </div>`;
-  drawBarChart($("#an-chart"), ser, anQ.metric, a);
+  drawBarChart($("#an-chart"), byDay ? dser : ser, anQ.metric, a);
   if (sess) drawSessionChart($("#an-schart"), sess);
 }
 const kFilt0 = k => { const f = k === "volume" ? anQ.kv : k === "sets" ? anQ.ks : "all"; return f && f !== "all" ? f : ""; };
@@ -1560,10 +1580,10 @@ function drawBarChart(el, ser, key, a){
     svg += `<g class="col" tabindex="0" data-k="${k}" aria-label="Settimana ${weekNo(o.ws)}: ${fmtN(v)} ${METRICS[key].u}">
       <rect class="hit" x="${cx-band/2+1}" y="${padT}" width="${band-2}" height="${ih}" rx="4"/>
       ${stack || (path ? `<path class="bar ${part?"part":""}" d="${path}"/>` : "")}
-      ${k === ser.length-2 || (v === Math.max(...ser.map(q => q[key])) && v > 0) ? `<text class="vlab" x="${cx}" y="${top-6}" text-anchor="middle">${compact(v)}</text>` : ""}
+      ${(!o.day && k === ser.length-2) || (v === Math.max(...ser.map(q => q[key])) && v > 0) ? `<text class="vlab" x="${cx}" y="${top-6}" text-anchor="middle">${compact(v)}</text>` : ""}
       ${mz ? `<rect x="${cx-band/2+1}" y="${padT+ih+6}" width="${band-2}" height="4" rx="2" style="fill:${mz.color}"/>` : ""}
     </g>
-    <g class="axis">${(ser.length - 1 - k) % lblEvery === 0 ? `<text class="${cur?"cur":""}" x="${cx}" y="${padT+ih+24}" text-anchor="middle">S${weekNo(o.ws)}</text>${showDate || cur ? `<text x="${cx}" y="${padT+ih+37}" text-anchor="middle" style="font-size:10px">${cur ? (showDate ? "in corso" : "ora") : fmtD(o.ws)}</text>` : ""}` : ""}</g>`;
+    <g class="axis">${o.day ? `<text class="${o.ws === TODAY() ? "cur" : ""}" x="${cx}" y="${padT+ih+24}" text-anchor="middle">${DAYS[k]}</text><text x="${cx}" y="${padT+ih+37}" text-anchor="middle" style="font-size:10px">${o.ws === TODAY() ? "oggi" : parse(o.ws).getDate()}</text>` : (ser.length - 1 - k) % lblEvery === 0 ? `<text class="${cur?"cur":""}" x="${cx}" y="${padT+ih+24}" text-anchor="middle">S${weekNo(o.ws)}</text>${showDate || cur ? `<text x="${cx}" y="${padT+ih+37}" text-anchor="middle" style="font-size:10px">${cur ? (showDate ? "in corso" : "ora") : fmtD(o.ws)}</text>` : ""}` : ""}</g>`;
   });
   svg += `</svg><div class="ctip" hidden></div>`;
   if (key === "srpe") { const used = KIND_KEYS.filter(kk => ser.some(o => o.byK[kk]?.srpe));
@@ -1575,8 +1595,8 @@ function drawBarChart(el, ser, key, a){
   const show = g => { const o = ser[+g.dataset.k]; const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
     tip.replaceChildren();
     const tv = document.createElement("div"); tv.className = "tv"; tv.textContent = `${fmtN(o[key])} ${METRICS[key].u}`.trim();
-    const tl = document.createElement("div"); tl.className = "tl"; tl.textContent = `Sett. ${weekNo(o.ws)} · ${fmtRange(o.ws)}${o.ws === curWs ? " (in corso)" : o.cut ? " (solo in parte nel periodo)" : ""}`;
-    const t2 = document.createElement("div"); t2.className = "tl"; t2.textContent = `Sedute completate ${o.done}/${o.planned}`;
+    const tl = document.createElement("div"); tl.className = "tl"; tl.textContent = o.day ? fmtLong(o.ws) : `Sett. ${weekNo(o.ws)} · ${fmtRange(o.ws)}${o.ws === curWs ? " (in corso)" : o.cut ? " (solo in parte nel periodo)" : ""}`;
+    const t2 = document.createElement("div"); t2.className = "tl"; t2.textContent = o.day ? (o.list.length ? o.list.map(w => `${w.title || "Allenamento"} (${KINDS[kindOf(w)].l}${w.status === "done" ? "" : " · " + STATUS_TXT[statusOf(w)].toLowerCase()})`).join(" · ") : "Nessun allenamento") : `Sedute completate ${o.done}/${o.planned}`;
     tip.append(tv, tl, t2);
     if (key === "srpe") KIND_KEYS.forEach(kk => { const v = o.byK[kk]?.srpe; if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${KINDS[kk].l}: ${fmtN(v)} UA (${o.byK[kk].n} sedut${o.byK[kk].n === 1 ? "a" : "e"})`; tip.append(d); } });
     else if (kFilt0(key)) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `Solo sedute: ${KINDS[kFilt0(key)].l}`; tip.append(d); }
@@ -1585,7 +1605,10 @@ function drawBarChart(el, ser, key, a){
     let x = b.left - p.left + b.width/2 - tip.offsetWidth/2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 10) + "px"; };
   el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => show(g)); g.addEventListener("focus", () => show(g));
-    g.addEventListener("pointerleave", () => tip.hidden = true); g.addEventListener("blur", () => tip.hidden = true); });
+    g.addEventListener("pointerleave", () => tip.hidden = true); g.addEventListener("blur", () => tip.hidden = true);
+    if (!ser[0]?.day) { g.style.cursor = "pointer";   // dalla settimana ai suoi giorni
+      const go = () => { anQ.gran = "day"; anQ.dws = ser[+g.dataset.k].ws; renderView(); };
+      g.addEventListener("click", go); g.addEventListener("keydown", e => { if (e.key === "Enter") go(); }); } });
 }
 
 /* ---------- ANDAMENTO DELLA SEDUTA ----------
@@ -2327,6 +2350,8 @@ const ACT = {
   "an-meso"(t){ anQ.from = t.dataset.f; anQ.to = t.dataset.t; renderView(); },
   "an-last12"(){ anQ.from = addDays(monday(TODAY()), -77); anQ.to = addDays(monday(TODAY()), 6); renderView(); },
   "an-metric"(t){ anQ.metric = t.dataset.v; renderView(); },
+  "an-gran"(t){ anQ.gran = t.dataset.v; renderView(); },
+  "an-dws"(t){ anQ.dws = addDays(anQ.dws, 7 * +t.dataset.d); renderView(); },
   "an-kind"(t){ if (anQ.metric === "volume") anQ.kv = t.dataset.v; else anQ.ks = t.dataset.v; renderView(); },
   "an-pick"(t){ anQ.who = t.dataset.e; anQ.sess = null; renderView(); scrollTo(0,0); },
   "an-sess-step"(t){ const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));

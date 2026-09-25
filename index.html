@@ -338,6 +338,19 @@ button.done-box:hover .fix{color:var(--ink)}
 .aex .info{font-size:13px;color:var(--muted);white-space:pre-wrap}
 .aex .prev{font-size:12px;color:var(--faint)}
 .aex a{color:var(--accent);font-size:13px;font-weight:600}
+/* video dentro l'app */
+.aex .vbtn{align-self:flex-start;border:0;background:none;padding:0;color:var(--accent);font-size:13px;font-weight:600}
+#vid .vback{position:fixed;inset:0;z-index:90;background:rgba(10,12,20,.78);display:flex;align-items:center;justify-content:center;padding:16px}
+#vid .vwrap{background:var(--surface);border-radius:14px;overflow:hidden;width:min(900px,100%);display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}
+#vid .vwrap.tall{width:min(420px,100%)}
+#vid .vhead{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px}
+#vid .vhead b{flex:1;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vid .vframe{position:relative;background:#000;aspect-ratio:16/9;max-height:calc(100dvh - 130px)}
+#vid .vwrap.tall .vframe{aspect-ratio:9/16}
+#vid .vframe iframe,#vid .vframe video{position:absolute;inset:0;width:100%;height:100%;border:0}
+#vid .vfoot{padding:8px 14px;font-size:12px;color:var(--muted)}
+#vid .vfoot a{color:var(--accent);font-weight:600}
+body.noscroll{overflow:hidden}
 /* cambio esercizio */
 .aex .h .swbtn{border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;flex:none;align-self:center}
 .aex .h .swbtn:hover{color:var(--ink);border-color:var(--faint)}
@@ -477,6 +490,7 @@ table.nt{width:100%;border-collapse:collapse;font-size:13px}
 <div id="app"></div>
 <div id="modal"></div>
 <div id="confirm"></div>
+<div id="vid"></div>
 <div id="toast" hidden></div>
 <div id="ptr" aria-live="polite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span>Tira giù per aggiornare</span></div>
 <datalist id="exlib"></datalist>
@@ -1310,7 +1324,8 @@ function viewExercises(m){
       ${(e.alts||[]).map((n,k) => `<span class="altc">${esc(n)}<button type="button" data-act="xalt-rm" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
       <input class="in altin" id="x-alt" list="exlib" aria-label="Aggiungi alternativa" data-change="xalt-add" placeholder="+ alternativa"></div>
       <span class="faint" style="font-size:12px">${(e.alts||[]).length ? "L'atleta le vedrà per prime; sotto, come riserva, anche gli esercizi con lo stesso pattern motorio." : "Se non ne metti, all'atleta verranno proposti gli esercizi con lo stesso pattern motorio."}</span></div>
-    <div class="field"><label class="lbl" for="x-video">Link video (YouTube, Instagram…)</label><input class="in" id="x-video" type="url" value="${esc(e.video||"")}" placeholder="https://"></div>
+    <div class="field"><label class="lbl" for="x-video">Link video (YouTube, Instagram…)</label><div class="row" style="flex-wrap:nowrap"><input class="in grow" id="x-video" type="url" value="${esc(e.video||"")}" placeholder="https://"><button type="button" class="btn" data-act="x-video-try" title="Guarda come lo vedrà l'atleta">▶ Prova</button></div>
+      <span class="faint" style="font-size:12px">Si apre dentro l'app con YouTube, Vimeo, Google Drive (condiviso a "chiunque abbia il link") e Instagram.</span></div>
     <div class="field"><label class="lbl" for="x-notes">Indicazioni tecniche</label><textarea class="in" id="x-notes">${esc(e.notes||"")}</textarea></div>
     <div class="row"><button class="btn pri">Salva</button><button type="button" class="btn ghost" data-act="ex-cancel">Annulla</button><span class="grow"></span>${e.isNew?"":`<button type="button" class="btn danger ghost" data-act="ex-del">Elimina</button>`}</div>
   </form>` : paramsPanel()}</div></div>`;
@@ -1689,6 +1704,38 @@ function exEditorHtml(x, i, res, L){
       : !S.editor.tpl && S.editor.w.date <= TODAY() && !S.editor.isNew ? `<div><button type="button" class="btn sm ghost" data-act="fix-res" data-i="${i}">✎ Inserisci i dati eseguiti</button></div>` : ""}
   </section>`;
 }
+/* ---------- video dentro l'app ----------
+   trasforma il link (YouTube, Shorts, Vimeo, Google Drive, Instagram, file .mp4) nell'indirizzo del lettore "incorporato";
+   se il sito non si può incorporare restituisce null e il link si apre in una pagina nuova come prima */
+function videoEmbed(url){
+  let u; try { u = new URL(String(url||"").trim()); } catch(e) { return null; }
+  const h = u.hostname.replace(/^(www|m|mobile)\./, ""), path = u.pathname;
+  const secs = t => { if (!t) return 0; if (/^\d+$/.test(t)) return +t; const m = t.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/); return m ? (+m[1]||0)*3600 + (+m[2]||0)*60 + (+m[3]||0) : 0; };
+  const yt = (id, tall) => id && {src: `https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1&modestbranding=1${secs(u.searchParams.get("t") || u.searchParams.get("start")) ? "&start=" + secs(u.searchParams.get("t") || u.searchParams.get("start")) : ""}`, tall, site: "YouTube"};
+  let m;
+  if (h === "youtu.be") return yt(path.slice(1).split("/")[0]);
+  if (h === "youtube.com" || h === "youtube-nocookie.com") {
+    if (u.searchParams.get("v")) return yt(u.searchParams.get("v"));
+    if ((m = path.match(/^\/(shorts|embed|live)\/([\w-]+)/))) return yt(m[2], m[1] === "shorts"); }
+  if (h === "vimeo.com" && (m = path.match(/^\/(\d+)/))) return {src: `https://player.vimeo.com/video/${m[1]}`, site: "Vimeo"};
+  if (h === "player.vimeo.com") return {src: u.href, site: "Vimeo"};
+  if (h === "drive.google.com") { const id = (path.match(/\/file\/d\/([\w-]+)/) || [])[1] || u.searchParams.get("id");
+    if (id) return {src: `https://drive.google.com/file/d/${id}/preview`, site: "Google Drive"}; }
+  if (h === "instagram.com" && (m = path.match(/^\/(?:[\w.]+\/)?(p|reel|reels|tv)\/([\w-]+)/))) return {src: `https://www.instagram.com/${m[1] === "reels" ? "reel" : m[1]}/${m[2]}/embed`, tall: true, site: "Instagram"};
+  if (/\.(mp4|webm|m4v|mov)$/i.test(path)) return {src: u.href, file: true, site: "il video"};
+  return null;
+}
+function openVideo(url, title){
+  const v = videoEmbed(url); if (!v) { window.open(url, "_blank", "noopener"); return; }
+  const box = $("#vid");
+  box.innerHTML = `<div class="vback" data-act="video-close"><div class="vwrap ${v.tall ? "tall" : ""}" role="dialog" aria-modal="true" aria-label="Video ${esc(title||"")}">
+    <div class="vhead"><b>${esc(title || "Video")}</b><button type="button" class="btn ghost icon" data-act="video-close" aria-label="Chiudi il video">✕</button></div>
+    <div class="vframe">${v.file ? `<video src="${esc(v.src)}" controls playsinline autoplay></video>`
+      : `<iframe src="${esc(v.src)}" title="${esc(title || "Video")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}</div>
+    <div class="vfoot">Non parte? <a href="${esc(url)}" target="_blank" rel="noopener">Aprilo su ${esc(v.site)} ↗</a></div></div></div>`;
+  document.body.classList.add("noscroll");
+}
+function closeVideo(){ $("#vid").innerHTML = ""; document.body.classList.remove("noscroll"); }   // svuotare il riquadro ferma anche il video
 /* alternative che l'atleta può scegliere se non riesce a fare l'esercizio */
 function altsRowHtml(x, i, lib){
   const own = Array.isArray(x.alts), list = altsOf(x);
@@ -1902,7 +1949,7 @@ function athExHtml(w, x, label, res){
     ${sideHint ? `<div class="info">Lato programmato: ${esc(sideHint)} · segna quello che hai fatto</div>` : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${lib?.notes ? `<div class="info faint">${esc(lib.notes)}</div>` : ""}
-    ${lib?.video ? `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>` : ""}
+    ${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}">▶ Guarda il video</button>` : `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>`) : ""}
     ${x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
         return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${x.cols.map(c => cell(c, j, s, rr)).join("")}
@@ -2125,6 +2172,10 @@ const ACT = {
   async "swap-undo"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const sw = {...(S.editor.w.swaps||{})}; delete sw[x.id]; await saveCoachFix({swaps: sw}); },
   /* atleta */
   "a-swap"(t){ swapSheet(t.dataset.x); },
+  video(t){ openVideo(t.dataset.u, t.dataset.t); },
+  "video-close"(t, e){ if (e && t.classList.contains("vback") && e.target !== t) return; closeVideo(); },
+  "x-video-try"(){ const u = $("#x-video").value.trim(); if (!u) return toast("Incolla prima il link del video");
+    if (!videoEmbed(u)) return toast("Questo link non si può aprire dentro l'app: all'atleta si aprirà in una pagina nuova"); openVideo(u, $("#x-name").value.trim()); },
   async "a-unswap"(t){ const w = athleteWorkout(); if (!w) return; const sw = {...(w.swaps||{})}; delete sw[t.dataset.x]; w.swaps = sw;
     { const y = scrollY; renderWorkout(); scrollTo(0, y); } await flushSave({swaps: sw}); toast("Torni all'esercizio del coach"); },
   "ex-col"(t){ const e = keepExForm(); const c = t.dataset.c;
@@ -2168,6 +2219,7 @@ document.addEventListener("click", e => {
   const f = ACT[t.dataset.act]; if (f) f(t, e);
 });
 document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && $("#vid").innerHTML) { closeVideo(); return; }
   if (e.key === "Enter" && e.target.matches(".wcard")) ACT["open-w"](e.target, e);
   if (S.editor && e.key === "Escape" && !$("#confirm").innerHTML) closeEditor();
   if (S.editor && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveEditor(); }

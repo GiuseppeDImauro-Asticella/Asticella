@@ -190,6 +190,7 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .wcard.st-done{border-left:3px solid var(--ok)}
 .wcard.st-progress{border-left:3px solid var(--warn)}
 .wcard.st-missed,.wcard.st-skipped{border-left:3px solid var(--bad)}
+.wcard .kindt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:1px}
 .wcard .moved{margin-top:3px;font-size:11px;color:var(--muted);font-style:italic}
 .wcard .meta{margin-top:5px;font-size:11px;color:var(--ok);font-weight:600}
 
@@ -478,6 +479,10 @@ tr.ok .ck svg{stroke:#fff}
 .ctip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:12px;min-width:140px;z-index:5}
 .ctip .tv{font-size:16px;font-weight:700;color:var(--ink)}
 .ctip .tl{color:var(--muted)}
+.kfilt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+.kfilt .lbl{margin:0 4px 0 0}
+.kfilt button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--muted)}
+.kfilt button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .clegend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:8px}
 .clegend span{display:inline-flex;align-items:center;gap:6px}
 .clegend i{display:inline-block;width:14px;height:6px;border-radius:2px;background:var(--c)}
@@ -636,7 +641,7 @@ const ICON = {
 /* =====================================================================
    DATI — due "motori": DEMO (browser) e FIREBASE (online)
    ===================================================================== */
-const COACH_FIELDS = ["id","date","title","notes","exercises","createdAt","updatedAt","doneDate"];
+const COACH_FIELDS = ["id","date","title","notes","kind","exercises","createdAt","updatedAt","doneDate"];
 const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt","doneDate","swaps"];
 
 function LocalDB(){
@@ -951,6 +956,19 @@ const SIDES = ["", "Dx", "Sx", "Dx+Sx"];
 /* tipo di serie: lo decide solo il coach (campo "type" nella serie programmata) */
 const SET_TYPES = {R:{l:"Ramping set", s:"Ramp"}, W:{l:"Work set", s:"Work"}, B:{l:"Back-off set", s:"Back-off"}, D:{l:"Down set", s:"Down"}};
 const TYPE_ORDER = ["", "R", "W", "B", "D"];
+/* tipo di seduta: lo sceglie il coach nell'allenamento; se non l'ha indicato lo deduco dagli esercizi */
+const KINDS = {pesi:{l:"Pesi"}, campo:{l:"Campo"}, tecnica:{l:"Tecnica"}, partita:{l:"Partita"}};
+const KIND_KEYS = Object.keys(KINDS);
+const kindColor = k => `var(--s${KIND_KEYS.indexOf(k) + 1})`;
+function guessKind(w){
+  const n = {pesi:0, campo:0, tecnica:0};
+  (w.exercises || []).forEach(x => { const lib = libByName(x.name) || {}; const c = (lib.category || "").toLowerCase();
+    const k = /tecnica/.test(c) ? "tecnica" : /forza|potenza|ipertrofia/.test(c) ? "pesi" : /pliometria|velocit|sprint|salt|campo|agilit/.test(c) ? "campo"
+      : /core|prevenzione|mobilit|riscaldamento/.test(c) ? null : (x.cols || []).includes("kg") ? "pesi" : "campo";
+    if (k) n[k] += Math.max(1, (x.sets || []).length); });
+  const best = Object.entries(n).sort((a, b) => b[1] - a[1])[0]; return best[1] ? best[0] : "campo";
+}
+const kindOf = w => KINDS[w?.kind] ? w.kind : guessKind(w || {});
 const typeBadge = (t, extra="") => t && SET_TYPES[t] ? `<span class="stb t-${t}" title="${SET_TYPES[t].l}" ${extra}>${t}</span>` : "";
 /* una serie registrata è "vuota" se non ha valori e non è spuntata */
 const emptyRes = r => !r || (!r.done && !Object.entries(r).some(([k,v]) => k !== "done" && String(v ?? "").trim() !== ""));
@@ -1228,6 +1246,7 @@ function cardHtml(email, w){
   const st = statusOf(w);
   return `<div class="wcard st-${st}" draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <div class="t"><span class="dot st-${st}"></span>${esc(w.title||"Senza titolo")}</div>
+    <div class="kindt" title="Tipo di seduta${KINDS[w.kind] ? "" : " (dedotto dagli esercizi: sceglilo nell'allenamento)"}">${KINDS[kindOf(w)].l}${KINDS[w.kind] ? "" : " ?"}</div>
     ${miniListHtml(w.exercises, w)}
     ${st==="done" ? `<div class="meta">✓ ${w.sessionRpe?`RPE ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin}′`:""}</div>` : ""}
     ${w.doneDate && w.doneDate !== w.date ? `<div class="moved">↷ previsto ${esc(DAYS[dayIdx(w.date)].toLowerCase())} ${parse(w.date).getDate()}</div>` : ""}</div>`;
@@ -1404,7 +1423,7 @@ function drawExDialog(){
 function closeExDialog(){ S.exDlg = null; S.exEdit = null; $("#confirm").innerHTML = ""; }
 
 /* ---------- ANALISI ---------- */
-const anQ = {who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume"};
+const anQ = {kv: "pesi", ks: "all", who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume"};
 const METRICS = {
   volume: {l:"Volume", u:"kg", d:"Somma di kg × reps delle serie registrate (solo le serie con kg e reps compilati)."},
   sets:   {l:"Serie", u:"", d:"Numero di serie registrate: spuntate o compilate, extra comprese."},
@@ -1432,8 +1451,11 @@ function weeklySeries(email, from, to){
   return Array.from({length:n}, (_,k) => { const ws = addDays(w0, k*7), we = addDays(ws, 6);
     const a = ws < from ? from : ws, b = we > to ? to : we;
     const list = wIn(email, a, b);
-    const o = {ws, volume:0, sets:0, srpe:0, planned: list.length, done: 0, cut: ws < from || we > to, open: we >= today};
-    list.forEach(w => { const st = wStats(w); o.volume += st.vol; o.sets += st.sets; o.srpe += st.srpe; if (w.status === "done") o.done++; });
+    const o = {ws, volume:0, sets:0, srpe:0, planned: list.length, done: 0, cut: ws < from || we > to, open: we >= today, byK: {}};
+    const inK = (f, k) => !f || f === "all" || f === k;   // filtro "tipo di seduta" per volume e serie (anQ.kv / anQ.ks)
+    list.forEach(w => { const st = wStats(w), k = kindOf(w), b = (o.byK[k] ??= {volume:0, sets:0, srpe:0, n:0});
+      b.volume += st.vol; b.sets += st.sets; b.srpe += st.srpe; b.n++;
+      if (inK(anQ.kv, k)) o.volume += st.vol; if (inK(anQ.ks, k)) o.sets += st.sets; o.srpe += st.srpe; if (w.status === "done") o.done++; });
     return o; });
 }
 function niceMax(v){ if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
@@ -1465,6 +1487,7 @@ async function viewAnalysis(m){
   const prev = full[full.length-2];
   const delta = k => { if (!prev || !prev[k]) return ""; const d = (last[k] - prev[k]) / prev[k] * 100; return ` <span class="faint">(${d >= 0 ? "+" : ""}${fmtN(d)}% vs precedente)</span>`; };
   const M = METRICS[anQ.metric];
+  const kFilt = k => { const f = k === "volume" ? anQ.kv : k === "sets" ? anQ.ks : "all"; return f && f !== "all" ? f : ""; };
   // tabella per esercizio
   const exAgg = {};
   wIn(a.email, from, to).forEach(w => { const st = wStats(w); Object.entries(st.ex).forEach(([n, e]) => {
@@ -1483,10 +1506,12 @@ async function viewAnalysis(m){
     return {x, planned: pl, done: dn, sets: tot("sets"), volume: tot("volume"), srpeAvg: f.length ? f.reduce((t,o) => t + o.srpe, 0) / f.length : 0}; });
   $("#an-body").innerHTML = `
     <div class="kpis">${Object.entries(METRICS).map(([k, mm]) => `<button class="kpi ${anQ.metric===k?"on":""}" data-act="an-metric" data-v="${k}" aria-pressed="${anQ.metric===k}">
-      <span class="k-l">${mm.l} · media settimanale</span><span class="k-v num">${compact(avg(k))}${mm.u ? `<small>${mm.u}</small>` : ""}</span>
+      <span class="k-l">${mm.l} · media settimanale${kFilt(k) ? ` · <b style="color:var(--ink)">${KINDS[kFilt(k)].l}</b>` : ""}</span><span class="k-v num">${compact(avg(k))}${mm.u ? `<small>${mm.u}</small>` : ""}</span>
       <span class="k-s">${full.length ? `Ultima settimana conclusa: <b>${fmtN(last[k])}</b>${delta(k)}` : "Nessuna settimana intera conclusa nel periodo"}</span></button>`).join("")}</div>
     <section class="panel chartcard"><h3>${M.l} per settimana${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
-      <div class="cdesc">${M.d} Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo.</div>
+      <div class="cdesc">${M.d} Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo.${anQ.metric === "srpe" ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
+      ${anQ.metric === "srpe" ? "" : `<div class="kfilt" role="group" aria-label="Tipo di seduta"><span class="lbl">Sedute</span>${["all", ...KIND_KEYS].map(k => { const on = (anQ.metric === "volume" ? anQ.kv : anQ.ks) === k;
+        return `<button class="${on ? "on" : ""}" data-act="an-kind" data-v="${k}" aria-pressed="${on}">${k === "all" ? "Tutte" : KINDS[k].l}</button>`; }).join("")}</div>`}
       <div class="chartwrap" id="an-chart"></div></section>
     ${sessionPanelHtml(a, sessList, sess)}
     <div class="antables">
@@ -1495,7 +1520,7 @@ async function viewAnalysis(m){
         ${exRows.map(([n, e]) => `<tr><td>${esc(n)}</td><td class="num">${e.sessions}</td><td class="num">${e.sets}</td><td class="num">${e.reps ? fmtN(e.reps) : "–"}</td><td class="num">${e.vol ? fmtN(e.vol) : "–"}</td><td class="num">${best(e)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nessun dato registrato nel periodo.</td></tr>`}
         </tbody></table></div></section>
       <section class="panel"><h3>Confronto atleti</h3><div class="cdesc">${fmtD(from)} – ${fmtD(to)} · clicca un nome per vederne l'analisi</div>
-        <div class="scroll-x"><table class="nt"><thead><tr><th>Atleta</th><th>Sedute fatte</th><th>Serie</th><th>Volume kg</th><th>sRPE medio sett.</th></tr></thead><tbody>
+        <div class="scroll-x"><table class="nt"><thead><tr><th>Atleta</th><th>Sedute fatte</th><th>Serie${kFilt("sets") ? ` <span class="faint">(${KINDS[kFilt("sets")].l})</span>` : ""}</th><th>Volume kg${kFilt("volume") ? ` <span class="faint">(${KINDS[kFilt("volume")].l})</span>` : ""}</th><th>sRPE medio sett.</th></tr></thead><tbody>
         ${cmp.map(c => `<tr class="${c.x.email===a.email?"sel":""}"><td><button class="lk" data-act="an-pick" data-e="${esc(c.x.email)}">${esc(c.x.name)}</button><div class="faint" style="font-size:11px">${esc(c.x.group||"")}</div></td>
           <td class="num">${c.done}/${c.planned}<span class="meter" aria-hidden="true"><i style="width:${c.planned ? Math.round(c.done/c.planned*100) : 0}%"></i></span></td>
           <td class="num">${fmtN(c.sets)}</td><td class="num">${c.volume ? fmtN(c.volume) : "–"}</td><td class="num">${c.srpeAvg ? fmtN(c.srpeAvg) : "–"}</td></tr>`).join("")}
@@ -1504,6 +1529,7 @@ async function viewAnalysis(m){
   drawBarChart($("#an-chart"), ser, anQ.metric, a);
   if (sess) drawSessionChart($("#an-schart"), sess);
 }
+const kFilt0 = k => { const f = k === "volume" ? anQ.kv : k === "sets" ? anQ.ks : "all"; return f && f !== "all" ? f : ""; };
 function drawBarChart(el, ser, key, a){
   const W = Math.max(320, el.clientWidth || 700), H = 240, padL = 44, padR = 8, padT = 18, padB = 46;
   const iw = W - padL - padR, ih = H - padT - padB;
@@ -1523,16 +1549,25 @@ function drawBarChart(el, ser, key, a){
     const r = Math.min(4, h, bw/2);
     const path = h > 0 ? `M${cx-bw/2},${padT+ih} V${top+r} Q${cx-bw/2},${top} ${cx-bw/2+r},${top} H${cx+bw/2-r} Q${cx+bw/2},${top} ${cx+bw/2},${top+r} V${padT+ih} Z` : "";
     const cur = o.ws === curWs; const part = o.open || o.cut;
+    /* sRPE: colonna divisa per tipo di seduta (pesi in basso, poi campo, tecnica, partita), 2px di stacco tra i pezzi */
+    let stack = "";
+    if (key === "srpe" && h > 0) { let cum = 0; const segs = KIND_KEYS.map(kk => [kk, o.byK[kk]?.srpe || 0]).filter(([,v]) => v > 0);
+      segs.forEach(([kk, v], i) => { const y0 = y(cum), y1 = y(cum + v), isTop = i === segs.length - 1; cum += v;
+        const yt = isTop ? y1 : y1 + 2, hh = y0 - yt; if (hh <= 0) return;
+        const rr = isTop ? Math.min(4, hh, bw/2) : 0;
+        stack += `<path class="seg" style="fill:${kindColor(kk)};${part ? "opacity:.45" : ""}" d="M${cx-bw/2},${y0} V${yt+rr} Q${cx-bw/2},${yt} ${cx-bw/2+rr},${yt} H${cx+bw/2-rr} Q${cx+bw/2},${yt} ${cx+bw/2},${yt+rr} V${y0} Z"/>`; }); }
     const mz = mesoAt(a, o.ws); if (mz) mesoUsed[mz.id] = mz;
     svg += `<g class="col" tabindex="0" data-k="${k}" aria-label="Settimana ${weekNo(o.ws)}: ${fmtN(v)} ${METRICS[key].u}">
       <rect class="hit" x="${cx-band/2+1}" y="${padT}" width="${band-2}" height="${ih}" rx="4"/>
-      ${path ? `<path class="bar ${part?"part":""}" d="${path}"/>` : ""}
+      ${stack || (path ? `<path class="bar ${part?"part":""}" d="${path}"/>` : "")}
       ${k === ser.length-2 || (v === Math.max(...ser.map(q => q[key])) && v > 0) ? `<text class="vlab" x="${cx}" y="${top-6}" text-anchor="middle">${compact(v)}</text>` : ""}
       ${mz ? `<rect x="${cx-band/2+1}" y="${padT+ih+6}" width="${band-2}" height="4" rx="2" style="fill:${mz.color}"/>` : ""}
     </g>
     <g class="axis">${(ser.length - 1 - k) % lblEvery === 0 ? `<text class="${cur?"cur":""}" x="${cx}" y="${padT+ih+24}" text-anchor="middle">S${weekNo(o.ws)}</text>${showDate || cur ? `<text x="${cx}" y="${padT+ih+37}" text-anchor="middle" style="font-size:10px">${cur ? (showDate ? "in corso" : "ora") : fmtD(o.ws)}</text>` : ""}` : ""}</g>`;
   });
   svg += `</svg><div class="ctip" hidden></div>`;
+  if (key === "srpe") { const used = KIND_KEYS.filter(kk => ser.some(o => o.byK[kk]?.srpe));
+    if (used.length) svg += `<div class="clegend">${used.map(kk => `<span style="--c:${kindColor(kk)}"><i style="height:10px;width:10px"></i>${KINDS[kk].l}</span>`).join("")}</div>`; }
   const mz = Object.values(mesoUsed);
   if (mz.length) svg += `<div class="clegend">${mz.map(m => `<span style="--c:${m.color}"><i></i>${esc(m.name)}${m.goal ? " · " + esc(m.goal) : ""}</span>`).join("")}</div>`;
   el.innerHTML = svg;
@@ -1542,7 +1577,10 @@ function drawBarChart(el, ser, key, a){
     const tv = document.createElement("div"); tv.className = "tv"; tv.textContent = `${fmtN(o[key])} ${METRICS[key].u}`.trim();
     const tl = document.createElement("div"); tl.className = "tl"; tl.textContent = `Sett. ${weekNo(o.ws)} · ${fmtRange(o.ws)}${o.ws === curWs ? " (in corso)" : o.cut ? " (solo in parte nel periodo)" : ""}`;
     const t2 = document.createElement("div"); t2.className = "tl"; t2.textContent = `Sedute completate ${o.done}/${o.planned}`;
-    tip.append(tv, tl, t2); const mm = mesoAt(a, o.ws); if (mm) { const t3 = document.createElement("div"); t3.className = "tl"; t3.textContent = `${mm.name} · settimana ${mm.idx} di ${mm.weeks}`; tip.append(t3); }
+    tip.append(tv, tl, t2);
+    if (key === "srpe") KIND_KEYS.forEach(kk => { const v = o.byK[kk]?.srpe; if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${KINDS[kk].l}: ${fmtN(v)} UA (${o.byK[kk].n} sedut${o.byK[kk].n === 1 ? "a" : "e"})`; tip.append(d); } });
+    else if (kFilt0(key)) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `Solo sedute: ${KINDS[kFilt0(key)].l}`; tip.append(d); }
+    const mm = mesoAt(a, o.ws); if (mm) { const t3 = document.createElement("div"); t3.className = "tl"; t3.textContent = `${mm.name} · settimana ${mm.idx} di ${mm.weeks}`; tip.append(t3); }
     tip.hidden = false;
     let x = b.left - p.left + b.width/2 - tip.offsetWidth/2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 10) + "px"; };
@@ -1585,7 +1623,7 @@ function sessionPanelHtml(a, list, w){
       <div class="row"><button class="btn sm ghost icon" data-act="an-sess-step" data-d="1" aria-label="Seduta precedente" ${idx >= list.length - 1 ? "disabled" : ""}>‹</button>
         <select class="in" data-change="an-sess" aria-label="Seduta">${list.map(x => `<option value="${x.id}" ${x === w ? "selected" : ""}>${esc(fmtD(effDate(x)))} · ${esc(x.title || "Senza titolo")}${x.status === "done" ? "" : " (non completata)"}</option>`).join("")}</select>
         <button class="btn sm ghost icon" data-act="an-sess-step" data-d="-1" aria-label="Seduta successiva" ${idx <= 0 ? "disabled" : ""}>›</button></div></div>
-    <div class="sstats"><span><b>${sets.length}</b> serie</span><span>con RPE: <b>${withR.length}</b></span>
+    <div class="sstats"><span>tipo: <b>${KINDS[kindOf(w)].l}</b></span><span><b>${sets.length}</b> serie</span><span>con RPE: <b>${withR.length}</b></span>
       ${avg != null ? `<span>RPE medio serie: <b>${fmtN(avg, 1)}</b></span><span>picco: <b>${fmt1(peak.act.v)}</b> (${esc(peak.lab)} ${esc(peak.name)}, serie ${peak.n})</span>` : ""}
       ${w.sessionRpe ? `<span>RPE seduta: <b>${w.sessionRpe}</b></span>` : ""}${w.durationMin ? `<span>durata: <b>${w.durationMin}′</b></span>` : ""}
       ${w.sessionRpe && w.durationMin ? `<span>carico sRPE: <b>${fmtN(w.sessionRpe * w.durationMin)}</b> UA</span>` : ""}</div>
@@ -1732,7 +1770,7 @@ async function collectRows(){
   const ath = activeAthletes().filter(a => dataQ.who === "all" || a.email === dataQ.who);
   const ws = monday(dataQ.from), n = Math.ceil((daysBetween(ws, dataQ.to)+1)/7);
   await Promise.all(ath.map(a => ensureWeeks(a.email, ws, n)));
-  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
+  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
     ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta"];
   const rows = [];
   ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>effDate(x).localeCompare(effDate(y))).forEach(w => {
@@ -1746,7 +1784,7 @@ async function collectRows(){
       for (let i=0;i<n;i++){
         const s = x.sets[i] || {}, r = res[i] || {};
         if (i >= x.sets.length && emptyRes(res[i])) continue;
-        rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
+        rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, KINDS[kindOf(w)].l, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
           mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
           ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.athleteNote||""]);
       }
@@ -1806,6 +1844,7 @@ function drawEditorInner(){
     <header><h2>${E.isNew?"Nuovo allenamento":"Allenamento"} · ${esc(a?.name||"")}</h2><span class="status-pill st-${st}"><span class="dot st-${st}"></span>${STATUS_TXT[st]}</span><button class="btn ghost icon" data-act="ed-close" aria-label="Chiudi">✕</button></header>
     <div class="body">
       <div class="row"><div class="field grow" style="min-width:220px"><label class="lbl" for="ed-title">Titolo</label><input class="in" id="ed-title" data-bind="title" value="${esc(w.title||"")}" placeholder="es. Forza + rincorsa"></div>
+        <div class="field"><label class="lbl" for="ed-kind">Tipo di seduta</label><select class="in" id="ed-kind" data-bind="kind">${KINDS[w.kind] ? "" : `<option value="" selected>Da scegliere (ora: ${KINDS[guessKind(w)].l})</option>`}${KIND_KEYS.map(k => `<option value="${k}" ${w.kind === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select></div>
         <div class="field"><label class="lbl" for="ed-date">Data</label><input class="in" id="ed-date" type="date" data-bind="date" value="${w.date}"></div></div>
       ${E.isNew && S.templates.length ? `<div class="field"><label class="lbl" for="ed-from">Parti da un allenamento salvato</label><select class="in" id="ed-from" data-change="ed-from"><option value="">— scegli (facoltativo) —</option>${S.templates.map(t => `<option value="${t.id}">${esc(t.title)}</option>`).join("")}</select></div>` : ""}
       <div class="field"><label class="lbl" for="ed-notes">Note per l'atleta</label><textarea class="in" id="ed-notes" data-bind="notes" placeholder="Riscaldamento, obiettivo della seduta…">${esc(w.notes||"")}</textarea></div>
@@ -1831,7 +1870,8 @@ function drawTplEditor(){
   $("#modal").innerHTML = `<div class="back" data-act="ed-back"><div class="modal" role="dialog" aria-label="Allenamento salvato">
     <header><h2>${E.isNew ? "Nuovo allenamento" : "Allenamento"}</h2><span class="status-pill">Non assegnato</span><button class="btn ghost icon" data-act="ed-close" aria-label="Chiudi">✕</button></header>
     <div class="body">
-      <div class="field"><label class="lbl" for="ed-title">Titolo</label><input class="in" id="ed-title" data-bind="title" value="${esc(w.title||"")}" placeholder="es. Pliometria · base"></div>
+      <div class="row"><div class="field grow" style="min-width:220px"><label class="lbl" for="ed-title">Titolo</label><input class="in" id="ed-title" data-bind="title" value="${esc(w.title||"")}" placeholder="es. Pliometria · base"></div>
+        <div class="field"><label class="lbl" for="ed-kind">Tipo di seduta</label><select class="in" id="ed-kind" data-bind="kind">${KINDS[w.kind] ? "" : `<option value="" selected>Da scegliere (ora: ${KINDS[guessKind(w)].l})</option>`}${KIND_KEYS.map(k => `<option value="${k}" ${w.kind === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select></div></div>
       <div class="field"><label class="lbl" for="ed-notes">Note per l'atleta</label><textarea class="in" id="ed-notes" data-bind="notes" placeholder="Riscaldamento, obiettivo della seduta…">${esc(w.notes||"")}</textarea></div>
       ${exBlocksHtml(w, {})}
       <div class="row"><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
@@ -2006,7 +2046,7 @@ async function saveEditor(){
   w.exercises = (w.exercises||[]).filter(x => (x.name||"").trim());
   w.updatedAt = new Date().toISOString();
   if (E.tpl) {
-    const t = {id: w.id, title: w.title, notes: w.notes||"", exercises: w.exercises, createdAt: w.createdAt || w.updatedAt, updatedAt: w.updatedAt};
+    const t = {id: w.id, title: w.title, notes: w.notes||"", ...(KINDS[w.kind] ? {kind: w.kind} : {}), exercises: w.exercises, createdAt: w.createdAt || w.updatedAt, updatedAt: w.updatedAt};
     await DB.saveTemplate(t);
     const i = S.templates.findIndex(x => x.id === t.id); if (i >= 0) S.templates[i] = t; else S.templates.push(t);
     S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
@@ -2043,7 +2083,7 @@ function freshCopy(w, date){
   const c = clone(w); const now = new Date().toISOString();
   const idMap = {};
   c.exercises = (c.exercises||[]).map(x => { const nid = uid(); idMap[x.id] = nid; return {...x, id: nid}; });
-  return {id: uid(), date, title: c.title, notes: c.notes||"", exercises: c.exercises, status:"todo", results:{}, createdAt: now, updatedAt: now};
+  return {id: uid(), date, title: c.title, notes: c.notes||"", ...(KINDS[c.kind] ? {kind: c.kind} : {}), exercises: c.exercises, status:"todo", results:{}, createdAt: now, updatedAt: now};
 }
 async function copyWorkouts(list, shiftFrom, toDate, emails){
   const diff = daysBetween(shiftFrom, toDate); let n = 0;
@@ -2287,6 +2327,7 @@ const ACT = {
   "an-meso"(t){ anQ.from = t.dataset.f; anQ.to = t.dataset.t; renderView(); },
   "an-last12"(){ anQ.from = addDays(monday(TODAY()), -77); anQ.to = addDays(monday(TODAY()), 6); renderView(); },
   "an-metric"(t){ anQ.metric = t.dataset.v; renderView(); },
+  "an-kind"(t){ if (anQ.metric === "volume") anQ.kv = t.dataset.v; else anQ.ks = t.dataset.v; renderView(); },
   "an-pick"(t){ anQ.who = t.dataset.e; anQ.sess = null; renderView(); scrollTo(0,0); },
   "an-sess-step"(t){ const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));
     const nw = list[i + +t.dataset.d]; if (nw) { anQ.sess = nw.id; redrawSess(); } },
@@ -2301,9 +2342,9 @@ const ACT = {
   async "tpl-del"(){ const E = S.editor; if (!(await confirmBox(`Eliminare «${E.w.title||"allenamento"}» dagli Allenamenti? Quelli già assegnati agli atleti restano.`, "Elimina"))) return;
     await DB.deleteTemplate(E.w.id); S.templates = S.templates.filter(x => x.id !== E.w.id); closeEditor(true); toast("Eliminato"); refreshCoach(); },
   async "tpl-dup"(){ const E = S.editor; if (E.dirty && !(await confirmBox("Duplicare senza salvare le modifiche fatte a questo?", "Duplica", false))) return;
-    const c = freshCopy(E.w, ""); S.editor = null; openEditor(null, {id: c.id, title: (E.w.title||"") + " (copia)", notes: c.notes, exercises: c.exercises}, true, true); },
+    const c = freshCopy(E.w, ""); S.editor = null; openEditor(null, {id: c.id, title: (E.w.title||"") + " (copia)", notes: c.notes, kind: c.kind, exercises: c.exercises}, true, true); },
   async "ed-totpl"(){ const w = S.editor.w; const c = freshCopy(w, "");
-    const t = {id: uid(), title: (w.title||"Allenamento").trim(), notes: w.notes||"", exercises: c.exercises, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()};
+    const t = {id: uid(), title: (w.title||"Allenamento").trim(), notes: w.notes||"", ...(KINDS[w.kind] ? {kind: w.kind} : {}), exercises: c.exercises, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()};
     await DB.saveTemplate(t); S.templates.push(t); S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
     toast(`«${t.title}» salvato in Allenamenti`); drawEditor(); },
   "fix-sess"(){ fixSession(); },
@@ -2426,7 +2467,7 @@ document.addEventListener("change", async e => {
   const t = e.target, k = t.dataset.change; if (!k) return;
   if (k === "demo-role") return setDemoRole(t.value);
   if (k === "ed-from") { const tp = S.templates.find(x => x.id === t.value); if (!tp || !S.editor) return; const c = freshCopy(tp, "");
-    const w = S.editor.w; w.title = tp.title; w.notes = tp.notes || ""; w.exercises = c.exercises; markDirty(); drawEditor(); toast(`Caricato «${tp.title}»`); return; }
+    const w = S.editor.w; w.title = tp.title; w.notes = tp.notes || ""; if (KINDS[tp.kind]) w.kind = tp.kind; w.exercises = c.exercises; markDirty(); drawEditor(); toast(`Caricato «${tp.title}»`); return; }
   if (k === "a-noacc") { $("#a-email-f").hidden = t.checked; return; }
   if (k === "x-opt") { const inp = $(`#x-${t.dataset.k}-new`); inp.hidden = t.value !== "__new"; if (!inp.hidden) inp.focus(); return; }
   if (k === "an-date") { let f = $("#an-from").value || anQ.from, to = $("#an-to").value || anQ.to; if (f > to) [f, to] = [to, f];

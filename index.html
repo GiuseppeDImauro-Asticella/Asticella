@@ -1523,7 +1523,7 @@ async function viewAnalysis(m){
       <span class="k-l">${mm.l} · media settimanale${kFilt(k) ? ` · <b style="color:var(--ink)">${KINDS[kFilt(k)].l}</b>` : ""}</span><span class="k-v num">${compact(avg(k))}${mm.u ? `<small>${mm.u}</small>` : ""}</span>
       <span class="k-s">${full.length ? `Ultima settimana conclusa: <b>${fmtN(last[k])}</b>${delta(k)}` : "Nessuna settimana intera conclusa nel periodo"}</span></button>`).join("")}</div>
     <section class="panel chartcard"><h3>${M.l} per ${byDay ? "giorno" : "settimana"}${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
-      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto)." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per vederne i giorni."}${anQ.metric === "srpe" ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
+      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto)." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per vederne i giorni."}${anQ.metric === "srpe" || !kFilt(anQ.metric) ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
       <div class="kfilt" role="group" aria-label="Vista"><span class="lbl">Vista</span>${[["week","Settimane"],["day","Giorni"]].map(([k,l]) => `<button class="${anQ.gran === k ? "on" : ""}" data-act="an-gran" data-v="${k}" aria-pressed="${anQ.gran === k}">${l}</button>`).join("")}
         ${byDay ? `<span class="wkn"><button class="btn sm ghost icon" data-act="an-dws" data-d="-1" aria-label="Settimana precedente" ${anQ.dws <= minWs ? "disabled" : ""}>‹</button><b>Sett. ${weekNo(anQ.dws)} · ${esc(fmtRange(anQ.dws))}</b><button class="btn sm ghost icon" data-act="an-dws" data-d="1" aria-label="Settimana successiva" ${anQ.dws >= maxWs ? "disabled" : ""}>›</button></span>` : ""}</div>
       ${anQ.metric === "srpe" ? "" : `<div class="kfilt" role="group" aria-label="Tipo di seduta"><span class="lbl">Sedute</span>${["all", ...KIND_KEYS].map(k => { const on = (anQ.metric === "volume" ? anQ.kv : anQ.ks) === k;
@@ -1551,6 +1551,7 @@ async function viewAnalysis(m){
 }
 const kFilt0 = k => { const f = k === "volume" ? anQ.kv : k === "sets" ? anQ.ks : "all"; return f && f !== "all" ? f : ""; };
 function drawBarChart(el, ser, key, a){
+  const stacked = key === "srpe" || !kFilt0(key);   // colonne divise per tipo di seduta: sRPE sempre, volume e serie quando il filtro è "Tutte"
   const W = Math.max(320, el.clientWidth || 700), H = 240, padL = 44, padR = 8, padT = 18, padB = 46;
   const iw = W - padL - padR, ih = H - padT - padB;
   const max = niceMax(Math.max(...ser.map(o => o[key]), 0));
@@ -1571,7 +1572,7 @@ function drawBarChart(el, ser, key, a){
     const cur = o.ws === curWs; const part = o.open || o.cut;
     /* sRPE: colonna divisa per tipo di seduta (pesi in basso, poi campo, tecnica, partita), 2px di stacco tra i pezzi */
     let stack = "";
-    if (key === "srpe" && h > 0) { let cum = 0; const segs = KIND_KEYS.map(kk => [kk, o.byK[kk]?.srpe || 0]).filter(([,v]) => v > 0);
+    if (stacked && h > 0) { let cum = 0; const segs = KIND_KEYS.map(kk => [kk, o.byK[kk]?.[key] || 0]).filter(([,v]) => v > 0);
       segs.forEach(([kk, v], i) => { const y0 = y(cum), y1 = y(cum + v), isTop = i === segs.length - 1; cum += v;
         const yt = isTop ? y1 : y1 + 2, hh = y0 - yt; if (hh <= 0) return;
         const rr = isTop ? Math.min(4, hh, bw/2) : 0;
@@ -1579,14 +1580,14 @@ function drawBarChart(el, ser, key, a){
     const mz = mesoAt(a, o.ws); if (mz) mesoUsed[mz.id] = mz;
     svg += `<g class="col" tabindex="0" data-k="${k}" aria-label="Settimana ${weekNo(o.ws)}: ${fmtN(v)} ${METRICS[key].u}">
       <rect class="hit" x="${cx-band/2+1}" y="${padT}" width="${band-2}" height="${ih}" rx="4"/>
-      ${stack || (path ? `<path class="bar ${part?"part":""}" d="${path}"/>` : "")}
+      ${stack || (path ? `<path class="bar ${part?"part":""}" d="${path}" ${kFilt0(key) ? `style="fill:${kindColor(kFilt0(key))};${part ? "opacity:.45" : ""}"` : ""}/>` : "")}
       ${(!o.day && k === ser.length-2) || (v === Math.max(...ser.map(q => q[key])) && v > 0) ? `<text class="vlab" x="${cx}" y="${top-6}" text-anchor="middle">${compact(v)}</text>` : ""}
       ${mz ? `<rect x="${cx-band/2+1}" y="${padT+ih+6}" width="${band-2}" height="4" rx="2" style="fill:${mz.color}"/>` : ""}
     </g>
     <g class="axis">${o.day ? `<text class="${o.ws === TODAY() ? "cur" : ""}" x="${cx}" y="${padT+ih+24}" text-anchor="middle">${DAYS[k]}</text><text x="${cx}" y="${padT+ih+37}" text-anchor="middle" style="font-size:10px">${o.ws === TODAY() ? "oggi" : parse(o.ws).getDate()}</text>` : (ser.length - 1 - k) % lblEvery === 0 ? `<text class="${cur?"cur":""}" x="${cx}" y="${padT+ih+24}" text-anchor="middle">S${weekNo(o.ws)}</text>${showDate || cur ? `<text x="${cx}" y="${padT+ih+37}" text-anchor="middle" style="font-size:10px">${cur ? (showDate ? "in corso" : "ora") : fmtD(o.ws)}</text>` : ""}` : ""}</g>`;
   });
   svg += `</svg><div class="ctip" hidden></div>`;
-  if (key === "srpe") { const used = KIND_KEYS.filter(kk => ser.some(o => o.byK[kk]?.srpe));
+  if (stacked) { const used = KIND_KEYS.filter(kk => ser.some(o => o.byK[kk]?.[key]));
     if (used.length) svg += `<div class="clegend">${used.map(kk => `<span style="--c:${kindColor(kk)}"><i style="height:10px;width:10px"></i>${KINDS[kk].l}</span>`).join("")}</div>`; }
   const mz = Object.values(mesoUsed);
   if (mz.length) svg += `<div class="clegend">${mz.map(m => `<span style="--c:${m.color}"><i></i>${esc(m.name)}${m.goal ? " · " + esc(m.goal) : ""}</span>`).join("")}</div>`;
@@ -1598,7 +1599,7 @@ function drawBarChart(el, ser, key, a){
     const tl = document.createElement("div"); tl.className = "tl"; tl.textContent = o.day ? fmtLong(o.ws) : `Sett. ${weekNo(o.ws)} · ${fmtRange(o.ws)}${o.ws === curWs ? " (in corso)" : o.cut ? " (solo in parte nel periodo)" : ""}`;
     const t2 = document.createElement("div"); t2.className = "tl"; t2.textContent = o.day ? (o.list.length ? o.list.map(w => `${w.title || "Allenamento"} (${KINDS[kindOf(w)].l}${w.status === "done" ? "" : " · " + STATUS_TXT[statusOf(w)].toLowerCase()})`).join(" · ") : "Nessun allenamento") : `Sedute completate ${o.done}/${o.planned}`;
     tip.append(tv, tl, t2);
-    if (key === "srpe") KIND_KEYS.forEach(kk => { const v = o.byK[kk]?.srpe; if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${KINDS[kk].l}: ${fmtN(v)} UA (${o.byK[kk].n} sedut${o.byK[kk].n === 1 ? "a" : "e"})`; tip.append(d); } });
+    if (stacked) KIND_KEYS.forEach(kk => { const v = o.byK[kk]?.[key]; if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${KINDS[kk].l}: ${fmtN(v)} ${METRICS[key].u}`.trim() + ` (${o.byK[kk].n} sedut${o.byK[kk].n === 1 ? "a" : "e"})`; tip.append(d); } });
     else if (kFilt0(key)) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `Solo sedute: ${KINDS[kFilt0(key)].l}`; tip.append(d); }
     const mm = mesoAt(a, o.ws); if (mm) { const t3 = document.createElement("div"); t3.className = "tl"; t3.textContent = `${mm.name} · settimana ${mm.idx} di ${mm.weeks}`; tip.append(t3); }
     tip.hidden = false;

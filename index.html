@@ -349,6 +349,18 @@ button.done-box:hover .fix{color:var(--ink)}
 #vid .vwrap.tall .vframe{aspect-ratio:9/16}
 #vid .vframe iframe,#vid .vframe video{position:absolute;inset:0;width:100%;height:100%;border:0}
 #vid .vfoot{padding:8px 14px;font-size:12px;color:var(--muted)}
+#vid .vhead .vfs{white-space:nowrap;font-size:12px}
+/* Google Drive: non sappiamo se il video è verticale o orizzontale → riquadro alto, il lettore di Drive lo centra da solo */
+#vid .vwrap.drv{width:min(560px,100%)}
+#vid .vwrap.drv .vframe{aspect-ratio:auto;height:min(72dvh,720px)}
+/* telefono: finestra più larga possibile */
+@media (max-width:700px){ #vid .vback{padding:8px} #vid .vwrap,#vid .vwrap.tall,#vid .vwrap.drv{width:100%} #vid .vwrap{max-height:calc(100dvh - 16px)} }
+/* schermo intero (anche finto, per iPhone) */
+#vid .vwrap.full{position:fixed;inset:0;width:100%!important;max-height:none;height:100dvh;border-radius:0}
+#vid .vwrap.full .vframe{flex:1;aspect-ratio:auto;height:auto;max-height:none}
+#vid .vwrap.full .vfoot{display:none}
+#vid .vwrap.full{background:#000} #vid .vwrap.full .vhead{padding:2px 4px 2px 12px;color:#fff} #vid .vwrap.full .vhead .btn{color:#fff}
+#vid .vback:fullscreen{padding:0;background:#000}
 #vid .vfoot a{color:var(--accent);font-weight:600}
 body.noscroll{overflow:hidden}
 /* cambio esercizio */
@@ -1720,7 +1732,7 @@ function videoEmbed(url){
   if (h === "vimeo.com" && (m = path.match(/^\/(\d+)/))) return {src: `https://player.vimeo.com/video/${m[1]}`, site: "Vimeo"};
   if (h === "player.vimeo.com") return {src: u.href, site: "Vimeo"};
   if (h === "drive.google.com") { const id = (path.match(/\/file\/d\/([\w-]+)/) || [])[1] || u.searchParams.get("id");
-    if (id) return {src: `https://drive.google.com/file/d/${id}/preview`, site: "Google Drive"}; }
+    if (id) return {src: `https://drive.google.com/file/d/${id}/preview`, site: "Google Drive", drive: true}; }
   if (h === "instagram.com" && (m = path.match(/^\/(?:[\w.]+\/)?(p|reel|reels|tv)\/([\w-]+)/))) return {src: `https://www.instagram.com/${m[1] === "reels" ? "reel" : m[1]}/${m[2]}/embed`, tall: true, site: "Instagram"};
   if (/\.(mp4|webm|m4v|mov)$/i.test(path)) return {src: u.href, file: true, site: "il video"};
   return null;
@@ -1728,14 +1740,27 @@ function videoEmbed(url){
 function openVideo(url, title){
   const v = videoEmbed(url); if (!v) { window.open(url, "_blank", "noopener"); return; }
   const box = $("#vid");
-  box.innerHTML = `<div class="vback" data-act="video-close"><div class="vwrap ${v.tall ? "tall" : ""}" role="dialog" aria-modal="true" aria-label="Video ${esc(title||"")}">
-    <div class="vhead"><b>${esc(title || "Video")}</b><button type="button" class="btn ghost icon" data-act="video-close" aria-label="Chiudi il video">✕</button></div>
+  box.innerHTML = `<div class="vback" data-act="video-close"><div class="vwrap ${v.tall ? "tall" : ""} ${v.drive ? "drv" : ""}" role="dialog" aria-modal="true" aria-label="Video ${esc(title||"")}">
+    <div class="vhead"><b>${esc(title || "Video")}</b><button type="button" class="btn ghost sm vfs" data-act="video-full" aria-pressed="false" title="Ingrandisci a tutto schermo (poi puoi girare il telefono)">⛶ Schermo intero</button><button type="button" class="btn ghost icon" data-act="video-close" aria-label="Chiudi il video">✕</button></div>
     <div class="vframe">${v.file ? `<video src="${esc(v.src)}" controls playsinline autoplay></video>`
       : `<iframe src="${esc(v.src)}" title="${esc(title || "Video")}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`}</div>
     <div class="vfoot">Non parte? <a href="${esc(url)}" target="_blank" rel="noopener">Aprilo su ${esc(v.site)} ↗</a></div></div></div>`;
   document.body.classList.add("noscroll");
 }
-function closeVideo(){ $("#vid").innerHTML = ""; document.body.classList.remove("noscroll"); }   // svuotare il riquadro ferma anche il video
+/* schermo intero: la finestra occupa tutto lo schermo (funziona ovunque, anche su iPhone);
+   dove il browser lo permette (Android, computer) si attiva anche lo schermo intero "vero" */
+function toggleVideoFull(){
+  const w = $("#vid .vwrap"), b = $("#vid .vfs"); if (!w) return;
+  const on = !w.classList.contains("full");
+  w.classList.toggle("full", on); b.setAttribute("aria-pressed", on); b.textContent = on ? "↙ Riduci" : "⛶ Schermo intero";
+  const back = $("#vid .vback");
+  try { if (on && back.requestFullscreen && !document.fullscreenElement) back.requestFullscreen().catch(() => {});
+        else if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch(e) {}
+}
+document.addEventListener("fullscreenchange", () => { const w = $("#vid .vwrap");   // uscito dallo schermo intero col tasto indietro → torna la finestra normale
+  if (!document.fullscreenElement && w?.classList.contains("full")) toggleVideoFull(); });
+function closeVideo(){ try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch(e) {}
+  $("#vid").innerHTML = ""; document.body.classList.remove("noscroll"); }   // svuotare il riquadro ferma anche il video
 /* alternative che l'atleta può scegliere se non riesce a fare l'esercizio */
 function altsRowHtml(x, i, lib){
   const own = Array.isArray(x.alts), list = altsOf(x);
@@ -2173,6 +2198,7 @@ const ACT = {
   /* atleta */
   "a-swap"(t){ swapSheet(t.dataset.x); },
   video(t){ openVideo(t.dataset.u, t.dataset.t); },
+  "video-full"(){ toggleVideoFull(); },
   "video-close"(t, e){ if (e && t.classList.contains("vback") && e.target !== t) return; closeVideo(); },
   "x-video-try"(){ const u = $("#x-video").value.trim(); if (!u) return toast("Incolla prima il link del video");
     if (!videoEmbed(u)) return toast("Questo link non si può aprire dentro l'app: all'atleta si aprirà in una pagina nuova"); openVideo(u, $("#x-name").value.trim()); },

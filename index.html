@@ -20,6 +20,7 @@
   --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --r:10px;
   --blk0:#2650D6;--blk1:#8A3FD1;--blk2:#0E7C86;--blk3:#C2570C;--blk4:#C0266D;--blk5:#4D7A12;--blk6:#5B6476;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#4a3aa7;--s8:#e34948;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -29,6 +30,7 @@
     --ok:#3DC88B; --ok-soft:#11281E; --warn:#E6AA3C; --warn-soft:#2D2311; --bad:#F06C6C; --bad-soft:#321717;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px rgba(0,0,0,.45);
     --blk0:#7D97FF;--blk1:#C08BFF;--blk2:#3CC3CE;--blk3:#F29A55;--blk4:#F27AAE;--blk5:#9CCB5A;--blk6:#9AA3B3;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;
   }
 }
 :root[data-theme="dark"]{
@@ -38,6 +40,7 @@
   --ok:#3DC88B; --ok-soft:#11281E; --warn:#E6AA3C; --warn-soft:#2D2311; --bad:#F06C6C; --bad-soft:#321717;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 34px rgba(0,0,0,.45);
   --blk0:#7D97FF;--blk1:#C08BFF;--blk2:#3CC3CE;--blk3:#F29A55;--blk4:#F27AAE;--blk5:#9CCB5A;--blk6:#9AA3B3;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -450,6 +453,27 @@ tr.ok .ck svg{stroke:#fff}
 .chartwrap .col{cursor:default;outline:none}
 .chartwrap .col:focus-visible .hit{stroke:var(--accent);stroke-width:1.5}
 .chartwrap .hit{fill:transparent}
+/* andamento della seduta */
+.sesshead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-start;justify-content:space-between}
+.sesshead .row{flex-wrap:nowrap;gap:6px;align-items:center}
+.sesshead select{max-width:300px}
+.sstats{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:13px;color:var(--muted)}
+.sstats b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+#an-schart{overflow-x:auto;padding-bottom:4px}
+#an-schart .sline{fill:none;stroke:var(--muted);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+#an-schart .splan{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;opacity:.8}
+#an-schart .vlab{fill:var(--ink);font-size:11px;font-weight:700}
+#an-schart .ssess{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55}
+#an-schart .snone{fill:var(--surface);stroke:var(--faint);stroke-width:1.5}
+#an-schart .sband{stroke:var(--line);stroke-width:2;stroke-linecap:round}
+#an-schart .styp{font-weight:700;font-size:10px}
+#an-schart .styp.t-W{fill:var(--ink)}
+#an-schart .col:hover .hit,#an-schart .col:focus .hit{fill:color-mix(in srgb,var(--ink) 5%,transparent)}
+.slegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:12px;color:var(--muted)}
+.slegend span{display:inline-flex;align-items:center;gap:6px}
+.slegend svg{flex:none}
+.sdet{margin-top:10px;font-size:13px}
+.sdet summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:12px}
 .chartwrap .vlab{fill:var(--ink);font-size:11px;font-weight:600;font-family:var(--sans)}
 .ctip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:12px;min-width:140px;z-index:5}
 .ctip .tv{font-size:16px;font-weight:700;color:var(--ink)}
@@ -1450,6 +1474,9 @@ async function viewAnalysis(m){
     if (e.tMin != null) t.tMin = Math.min(t.tMin ?? Infinity, e.tMin); }); });
   const best = e => e.kgMax != null ? `${fmtN(e.kgMax, 1)} kg` : e.hMax != null ? `${fmtN(e.hMax)} cm` : e.tMin != null ? `${fmtN(e.tMin, 2)} s` : "–";
   const exRows = Object.entries(exAgg).sort((x,y) => y[1].vol - x[1].vol || y[1].sets - x[1].sets);
+  // sedute del periodo per "Andamento della seduta" (dalla più recente)
+  const sessList = sessListFor(a);
+  const sess = sessList.find(w => w.id === anQ.sess) || sessList.find(w => w.status === "done") || sessList[0] || null;
   // confronto atleti
   const cmp = ath.map(x => { const s = weeklySeries(x.email, from, to); const f = s.filter(o => !o.cut && !o.open);
     const tot = k => s.reduce((t,o) => t + o[k], 0); const pl = tot("planned"), dn = tot("done");
@@ -1461,6 +1488,7 @@ async function viewAnalysis(m){
     <section class="panel chartcard"><h3>${M.l} per settimana${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
       <div class="cdesc">${M.d} Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo.</div>
       <div class="chartwrap" id="an-chart"></div></section>
+    ${sessionPanelHtml(a, sessList, sess)}
     <div class="antables">
       <section class="panel"><h3>Per esercizio</h3><div class="cdesc">${esc(a.name)} · ${fmtD(from)} – ${fmtD(to)}</div>
         <div class="scroll-x"><table class="nt"><thead><tr><th>Esercizio</th><th>Sedute</th><th>Serie</th><th>Reps</th><th>Volume kg</th><th title="Kg massimi, altezza massima o tempo migliore">Migliore</th></tr></thead><tbody>
@@ -1474,6 +1502,7 @@ async function viewAnalysis(m){
         </tbody></table></div></section>
     </div>`;
   drawBarChart($("#an-chart"), ser, anQ.metric, a);
+  if (sess) drawSessionChart($("#an-schart"), sess);
 }
 function drawBarChart(el, ser, key, a){
   const W = Math.max(320, el.clientWidth || 700), H = 240, padL = 44, padR = 8, padT = 18, padB = 46;
@@ -1517,6 +1546,108 @@ function drawBarChart(el, ser, key, a){
     tip.hidden = false;
     let x = b.left - p.left + b.width/2 - tip.offsetWidth/2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 10) + "px"; };
+  el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => show(g)); g.addEventListener("focus", () => show(g));
+    g.addEventListener("pointerleave", () => tip.hidden = true); g.addEventListener("blur", () => tip.hidden = true); });
+}
+
+/* ---------- ANDAMENTO DELLA SEDUTA ----------
+   una colonna per ogni serie registrata, nell'ordine in cui è stata fatta (le superserie alternate: A1, A2, A1, A2…);
+   altezza del punto = RPE della serie (se c'è solo il RIR: RPE ≈ 10 − RIR). Colore = esercizio. */
+const rpeNum = v => { const n = String(v ?? "").replace(/,/g, ".").match(/\d+(\.\d+)?/g); if (!n) return null;
+  const a = n.slice(0, 2).map(Number), x = a.reduce((t, q) => t + q, 0) / a.length; return x >= 0 && x <= 10 ? x : null; };   // "7-8" → 7,5
+function setRpe(o){ const r = rpeNum(o?.rpe); if (r != null && r > 0) return {v: r, from: "rpe"};
+  const q = rpeNum(o?.rir); if (q != null) return {v: Math.max(1, 10 - q), from: "rir"}; return null; }
+function sessionSets(w){
+  const out = [], order = [], ex = w.exercises || [], res = w.results || {}, L = exLabels(ex);
+  ssGroups(ex).forEach(g => {
+    const len = Math.max(0, ...g.map(i => Math.max(ex[i].sets.length, (res[ex[i].id] || []).length)));
+    for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], r = (res[x.id] || [])[j];
+      if (!r || emptyRes(r)) return;
+      const name = exName(w, x), s = x.sets[j] || {};
+      if (!order.includes(name)) order.push(name);
+      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, cols: x.cols, act: setRpe(r), plan: setRpe(s)}); });
+  });
+  return {sets: out, order};
+}
+const exColor = (order, name) => { const i = order.indexOf(name); return i >= 0 && i < 8 ? `var(--s${i+1})` : "var(--faint)"; };
+function sessionPanelHtml(a, list, w){
+  if (!list.length) return `<section class="panel chartcard"><h3>Andamento della seduta</h3><div class="cdesc">Nessuna seduta registrata da ${esc(a.name)} nel periodo scelto.</div></section>`;
+  const {sets, order} = sessionSets(w);
+  const withR = sets.filter(o => o.act), avg = withR.length ? withR.reduce((t, o) => t + o.act.v, 0) / withR.length : null;
+  const peak = withR.reduce((m, o) => !m || o.act.v > m.act.v ? o : m, null);
+  const idx = list.indexOf(w);
+  const fmt1 = v => fmtN(v, Number.isInteger(v) ? 0 : 1);
+  const mk = (kind, c) => `<svg width="18" height="12" aria-hidden="true">${kind === "bar" ? `<rect x="4" y="1" width="10" height="11" rx="2" fill="${c}"/>` : kind === "rbar" ? `<rect x="4.75" y="1.75" width="8.5" height="9.5" rx="2" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : kind === "dot" ? `<circle cx="9" cy="6" r="5" fill="${c}"/>` : kind === "ring" ? `<circle cx="9" cy="6" r="4" fill="var(--surface)" stroke="${c}" stroke-width="2"/>`
+    : kind === "plan" ? `<line x1="2" x2="16" y1="6" y2="6" class="splan" style="stroke:var(--ink);stroke-width:2;opacity:.45"/>` : kind === "sess" ? `<line x1="1" x2="17" y1="6" y2="6" style="stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55"/>`
+    : `<circle cx="9" cy="6" r="3" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/>`}</svg>`;
+  return `<section class="panel chartcard" id="an-sess">
+    <div class="sesshead"><div><h3>Andamento della seduta · ${esc(a.name)}</h3><div class="cdesc">Una barra per ogni serie, nell'ordine in cui è stata fatta, alta quanto il suo RPE: si vede come è cresciuta (o calata) l'intensità durante l'allenamento. Nelle superserie le serie sono alternate.</div></div>
+      <div class="row"><button class="btn sm ghost icon" data-act="an-sess-step" data-d="1" aria-label="Seduta precedente" ${idx >= list.length - 1 ? "disabled" : ""}>‹</button>
+        <select class="in" data-change="an-sess" aria-label="Seduta">${list.map(x => `<option value="${x.id}" ${x === w ? "selected" : ""}>${esc(fmtD(effDate(x)))} · ${esc(x.title || "Senza titolo")}${x.status === "done" ? "" : " (non completata)"}</option>`).join("")}</select>
+        <button class="btn sm ghost icon" data-act="an-sess-step" data-d="-1" aria-label="Seduta successiva" ${idx <= 0 ? "disabled" : ""}>›</button></div></div>
+    <div class="sstats"><span><b>${sets.length}</b> serie</span><span>con RPE: <b>${withR.length}</b></span>
+      ${avg != null ? `<span>RPE medio serie: <b>${fmtN(avg, 1)}</b></span><span>picco: <b>${fmt1(peak.act.v)}</b> (${esc(peak.lab)} ${esc(peak.name)}, serie ${peak.n})</span>` : ""}
+      ${w.sessionRpe ? `<span>RPE seduta: <b>${w.sessionRpe}</b></span>` : ""}${w.durationMin ? `<span>durata: <b>${w.durationMin}′</b></span>` : ""}
+      ${w.sessionRpe && w.durationMin ? `<span>carico sRPE: <b>${fmtN(w.sessionRpe * w.durationMin)}</b> UA</span>` : ""}</div>
+    ${sets.length && !withR.length ? `<div class="note" style="margin-top:10px">In questa seduta nessuna serie ha RPE o RIR: per vedere l'andamento aggiungi il parametro <b>RPE</b> (o RIR) agli esercizi, così l'atleta lo compila a ogni serie.</div>` : ""}
+    ${sets.length ? `<div class="chartwrap" id="an-schart"></div>
+    ${(ls => ls.length ? `<div class="slegend">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}</div>` : "")(order.filter(n => withR.some(o => o.name === n)))}
+    <div class="slegend"><span>${mk("bar", "var(--muted)")}RPE della serie</span><span>${mk("rbar", "var(--muted)")}ricavato dal RIR (10 − RIR)</span><span>${mk("plan")}RPE previsto da te</span>${w.sessionRpe ? `<span>${mk("sess")}RPE della seduta</span>` : ""}<span>${mk("none")}serie senza RPE</span><span><b style="font-size:10px">R W B D</b>&nbsp;tipo di serie</span></div>
+    <details class="sdet"><summary>Vedi come tabella</summary><div class="scroll-x"><table class="nt"><thead><tr><th>#</th><th>Esercizio</th><th>Tipo</th><th>Eseguito</th><th>RPE</th><th>Previsto</th></tr></thead><tbody>
+      ${sets.map((o, k) => `<tr><td class="num">${k+1}</td><td>${esc(o.lab)} ${esc(o.name)} <span class="faint">· serie ${o.n}${o.extra ? " extra" : ""}</span></td><td>${o.type ? SET_TYPES[o.type].s : "–"}</td><td>${esc(resultLine(o.r, o.cols) || "✓")}</td>
+        <td class="num">${o.act ? fmt1(o.act.v) + (o.act.from === "rir" ? " (da RIR)" : "") : "–"}</td><td class="num">${o.plan ? fmt1(o.plan.v) : "–"}</td></tr>`).join("")}</tbody></table></div></details>` : `<div class="muted" style="margin-top:10px;font-size:13px">In questa seduta non ci sono serie registrate.</div>`}
+  </section>`;
+}
+function sessListFor(a){
+  return wIn(a.email, anQ.from, anQ.to).filter(w => w.status === "done" || Object.values(w.results || {}).some(rr => (rr || []).some(r => !emptyRes(r))))
+    .sort((x, y) => effDate(y).localeCompare(effDate(x)) || (y.completedAt || "").localeCompare(x.completedAt || ""));
+}
+function redrawSess(){   // cambia solo il riquadro della seduta, senza ricaricare tutta la pagina
+  const a = athByEmail(anQ.who), el = $("#an-sess"); if (!a || !el) return renderView();
+  const list = sessListFor(a), w = list.find(x => x.id === anQ.sess) || list.find(x => x.status === "done") || list[0];
+  el.outerHTML = sessionPanelHtml(a, list, w); if (w) drawSessionChart($("#an-schart"), w);
+}
+function drawSessionChart(el, w){
+  if (!el) return;
+  const {sets, order} = sessionSets(w); const n = sets.length; if (!n) return;
+  const padL = 30, padR = 10, padT = 26, ih = 200, padB = 58;
+  const avail = Math.max(300, el.clientWidth || 700), band = Math.max(26, Math.min(56, (avail - padL - padR) / n));
+  const W = padL + padR + band * n, H = padT + ih + padB;
+  const y = v => padT + ih - v / 10 * ih, X = k => padL + band * k + band / 2, bw = Math.min(28, band * 0.62);   // barre: partono da 0
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="${W > avail ? `width:${W}px;max-width:none` : ""}" role="img" aria-label="RPE di ogni serie della seduta">
+    <g class="grid">${[0,2,4,6,8,10].map(t => `<line x1="${padL}" x2="${W-padR}" y1="${y(t)}" y2="${y(t)}"/>`).join("")}</g>
+    <g class="axis">${[0,2,4,6,8,10].map(t => `<text x="${padL-8}" y="${y(t)+4}" text-anchor="end">${t}</text>`).join("")}<text x="0" y="10" style="font-size:10px;font-weight:600">RPE</text></g>`;
+  // bande degli esercizi (blocchi consecutivi)
+  const runs = []; sets.forEach((o, k) => { const last = runs[runs.length-1]; if (last && last.grp === o.grp) last.to = k; else runs.push({grp: o.grp, from: k, to: k, lead: o.lead, names: []}); const r = runs[runs.length-1]; if (!r.names.includes(o.name)) r.names.push(o.name); });
+  runs.forEach(r => { const x1 = X(r.from) - band/2 + 4, x2 = X(r.to) + band/2 - 4, wd = x2 - x1;
+    let t = `${r.lead ? r.lead + " · " : ""}${r.names.join(" + ")}`; const max = Math.floor(wd / 6.3); if (t.length > max) t = max > 3 ? t.slice(0, max - 1) + "…" : r.lead;
+    svg += `<line class="sband" x1="${x1}" x2="${x2}" y1="${padT+ih+30}" y2="${padT+ih+30}"/><g class="axis"><text x="${x1}" y="${padT+ih+46}">${esc(t)}</text></g>`; });
+  // RPE della seduta
+  if (w.sessionRpe) svg += `<line class="ssess" x1="${padL}" x2="${W-padR}" y1="${y(+w.sessionRpe)}" y2="${y(+w.sessionRpe)}"/>`;
+  const peak = sets.reduce((m, o, k) => o.act && (m < 0 || o.act.v > sets[m].act.v) ? k : m, -1);
+  const barPath = (cx, v) => { const top = y(v), h = padT + ih - top, r = Math.min(4, h, bw/2), x0 = cx - bw/2, x1 = cx + bw/2;
+    return h <= 0 ? "" : `M${x0},${padT+ih} V${top+r} Q${x0},${top} ${x0+r},${top} H${x1-r} Q${x1},${top} ${x1},${top+r} V${padT+ih} Z`; };
+  sets.forEach((o, k) => { const cx = X(k), c = exColor(order, o.name);
+    svg += `<g class="col" tabindex="0" data-k="${k}"><rect class="hit" x="${cx-band/2+1}" y="${padT-6}" width="${band-2}" height="${ih+12}" rx="4"/>
+      ${o.act ? (o.act.from === "rir" ? `<path d="${barPath(cx, o.act.v)}" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : `<path class="sbar" d="${barPath(cx, o.act.v)}" style="fill:${c}"/>`)
+        : `<circle class="snone" cx="${cx}" cy="${y(0)-5}" r="3.5"/>`}
+      ${k === peak ? `<text class="vlab" x="${cx}" y="${y(o.act.v)-7}" text-anchor="middle">${fmtN(o.act.v, Number.isInteger(o.act.v) ? 0 : 1)}</text>` : ""}
+      ${o.plan ? `<line class="splan" x1="${cx-bw/2-4}" x2="${cx+bw/2+4}" y1="${y(o.plan.v)}" y2="${y(o.plan.v)}"/>` : ""}
+      <text class="styp t-${o.type}" x="${cx}" y="${padT+ih+17}" text-anchor="middle" style="fill:${o.type === "W" ? "var(--ink)" : "var(--muted)"}">${o.type || (o.extra ? "+" : "")}</text></g>`; });
+  // valore del picco e sessione RPE come etichette dirette (poche)
+  if (w.sessionRpe) svg += `<g class="axis"><text x="${padL+4}" y="${y(+w.sessionRpe)-6}" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round">RPE seduta ${w.sessionRpe}</text></g>`;
+  svg += `</svg><div class="ctip" hidden></div>`;
+  el.innerHTML = svg;
+  const tip = el.querySelector(".ctip");
+  const show = g => { const o = sets[+g.dataset.k]; const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
+    const line = (cls, txt) => { const d2 = document.createElement("div"); d2.className = cls; d2.textContent = txt; return d2; };
+    tip.replaceChildren(line("tv", o.act ? `RPE ${fmtN(o.act.v, Number.isInteger(o.act.v) ? 0 : 1)}${o.act.from === "rir" ? ` (da RIR ${o.r.rir})` : ""}` : "RPE non indicato"),
+      line("tl", `${o.lab} ${o.name} · serie ${o.n}${o.extra ? " extra" : ""}${o.type ? " · " + SET_TYPES[o.type].l : ""}`),
+      line("tl", `Eseguito: ${resultLine(o.r, o.cols) || "✓"}`));
+    if (o.plan) tip.append(line("tl", `Previsto: RPE ${fmtN(o.plan.v, Number.isInteger(o.plan.v) ? 0 : 1)}`));
+    tip.hidden = false;
+    let x = b.left - p.left + el.scrollLeft + b.width/2 - tip.offsetWidth/2; x = Math.max(el.scrollLeft, Math.min(x, el.scrollLeft + p.width - tip.offsetWidth));
+    tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 4) + "px"; };
   el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => show(g)); g.addEventListener("focus", () => show(g));
     g.addEventListener("pointerleave", () => tip.hidden = true); g.addEventListener("blur", () => tip.hidden = true); });
 }
@@ -2156,7 +2287,9 @@ const ACT = {
   "an-meso"(t){ anQ.from = t.dataset.f; anQ.to = t.dataset.t; renderView(); },
   "an-last12"(){ anQ.from = addDays(monday(TODAY()), -77); anQ.to = addDays(monday(TODAY()), 6); renderView(); },
   "an-metric"(t){ anQ.metric = t.dataset.v; renderView(); },
-  "an-pick"(t){ anQ.who = t.dataset.e; renderView(); scrollTo(0,0); },
+  "an-pick"(t){ anQ.who = t.dataset.e; anQ.sess = null; renderView(); scrollTo(0,0); },
+  "an-sess-step"(t){ const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));
+    const nw = list[i + +t.dataset.d]; if (nw) { anQ.sess = nw.id; redrawSess(); } },
   "meso-new"(){ const a = athByEmail(S.calAthlete); const ms = a.mesos || [];
     const last = ms[ms.length-1]; const from = last ? addDays(last.from, 7*last.weeks) : S.ws;
     mesoDialog({name: `Mesociclo ${ms.length + 1}`, goal: "", from, weeks: 4, color: MESO_COLORS[ms.length % MESO_COLORS.length]}); },
@@ -2298,7 +2431,8 @@ document.addEventListener("change", async e => {
   if (k === "x-opt") { const inp = $(`#x-${t.dataset.k}-new`); inp.hidden = t.value !== "__new"; if (!inp.hidden) inp.focus(); return; }
   if (k === "an-date") { let f = $("#an-from").value || anQ.from, to = $("#an-to").value || anQ.to; if (f > to) [f, to] = [to, f];
     if (daysBetween(f, to) > 7*104) { toast("Periodo massimo: 2 anni"); f = addDays(to, -7*104); } anQ.from = f; anQ.to = to; return renderView(); }
-  if (k === "an-who") { anQ.who = t.value; return renderView(); }
+  if (k === "an-who") { anQ.who = t.value; anQ.sess = null; return renderView(); }
+  if (k === "an-sess") { anQ.sess = t.value; return redrawSess(); }
   if (k === "cal-ath") { S.calAthlete = t.value; return renderView(); }
   if (k === "d-q") { dataQ.from = $("#d-from").value || dataQ.from; dataQ.to = $("#d-to").value || dataQ.to; dataQ.who = $("#d-who").value; return renderView(); }
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;

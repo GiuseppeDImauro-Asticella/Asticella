@@ -414,6 +414,28 @@ table.progt td.mt{white-space:nowrap;font-weight:700;text-align:right;font-varia
 .prog-empty{padding:10px 12px;font-size:12.5px}
 .progt th.r{text-align:right}
 .progt .pex > div:first-child{font-size:12px;margin-bottom:3px}
+.prog-h .psum{font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0}
+.prog-h .psum b{color:var(--ink)}
+table.progt.grid{width:auto;min-width:100%;border-collapse:separate;border-spacing:0}
+table.progt.grid td{vertical-align:middle}
+table.progt.grid th.c{text-align:center;min-width:92px;white-space:nowrap}
+table.progt.grid tr:not(.first) td{border-top:1px dashed var(--line)}
+table.progt.grid .dt{position:sticky;left:0;z-index:2;background:var(--surface);width:72px;min-width:72px;max-width:72px;box-sizing:border-box;vertical-align:top;padding-top:9px}
+table.progt.grid .rh{position:sticky;left:72px;z-index:2;background:var(--surface);width:190px;min-width:190px;max-width:190px;box-sizing:border-box;border-right:2px solid var(--line)}
+table.progt.grid td.rh b{font-size:12px}
+table.progt.grid td.rh .pl{font-size:11px;margin:0;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.progt.grid .st{position:sticky;right:0;z-index:2;background:var(--surface);border-left:2px solid var(--line);vertical-align:top;padding:9px 10px 6px 12px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+table.progt.grid td.st div{line-height:1.6}
+table.progt.grid td.st small{color:var(--muted);font-size:10px;font-weight:500}
+table.progt.grid td.st .mx{margin-top:2px;padding-top:2px;border-top:1px dashed var(--line)}
+table.progt.grid thead th.dt,table.progt.grid thead th.rh,table.progt.grid thead th.st{z-index:3}
+table.progt.grid td.pc{text-align:center;padding:5px 6px;border-left:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.progt.grid td.pc .m{font-weight:700;font-size:13px}
+table.progt.grid td.pc small{font-weight:500;color:var(--muted);font-size:10px}
+table.progt.grid td.pc .s{font-size:11px;color:var(--muted);display:flex;gap:4px;justify-content:center;align-items:center;margin-top:1px}
+table.progt.grid td.pc.empty{background:color-mix(in srgb,var(--line) 25%,transparent)}
+table.progt.grid tr.dim td.pc{opacity:.5}
+@media (max-width:600px){table.progt.grid .rh{width:120px;min-width:120px;max-width:120px}table.progt.grid .st{position:static}}
 .prog-f{display:flex;align-items:center;gap:8px;padding:6px 12px 8px;border-top:1px solid var(--line);flex-wrap:wrap}
 .prog-f .leg{font-size:11px}
 /* vista progressione */
@@ -2203,39 +2225,70 @@ function patternHistory(email, x, cur, limit = 6){
     out.push({w, date: effDate(w), items, st: stimStats(all), jumps: items.some(o => (o.y.cols || []).includes("height"))}); }
   return {pat, list: out};
 }
+/* ---------- "Ultime volte": griglia sedute × serie ---------- */
+/* una serie eseguita in una casella, sempre con l'unità: "5 rip × 85 kg", sotto "RPE 8,5 W"; colori = differenza dal previsto */
+function progCell(o, cols){
+  const r = o.r, st = o.s || {}, n = v => numv(v);
+  const cmp = (c, better) => { const a = n(r[c]), b = n(st[c]); if (a == null || b == null || a === b) return ""; return (better ? a > b : a < b) ? "pos" : "neg"; };
+  const unit = c => c === "reps" ? "rip" : c === "steps" ? "passi" : (COLS[c]?.u || "");
+  const val = c => `<span class="${cmp(c, c !== "time")}">${esc(r[c] || "–")}</span> <small>${esc(unit(c))}</small>`;
+  let main;
+  if (cols.includes("reps") && cols.includes("kg") && (r.reps || r.kg)) main = `${val("reps")} × ${val("kg")}`;
+  else main = cols.filter(c => COLS[c]?.log && !["rpe", "rir", "side"].includes(c) && r[c]).slice(0, 2).map(val).join(" · ") || "fatto ✓";
+  const pq = setRpe(st), q = setRpe(r), hot = q && pq && q.v - pq.v >= 1 ? "neg" : "";
+  const sub = [r.rpe ? `<span class="${hot}">RPE ${esc(r.rpe)}</span>` : r.rir ? `<span class="${hot}">RIR ${esc(r.rir)}</span>` : "",
+    st.type ? typeBadge(st.type) : "", o.extra ? `<span class="faint">extra</span>` : ""].filter(Boolean).join(" ");
+  const plan = resultLine(st, cols);
+  return `<td class="pc" title="${plan ? "Previsto: " + esc(plan) : "Serie non prevista"}"><div class="m">${main}</div>${sub ? `<div class="s">${sub}</div>` : ""}</td>`;
+}
+/* righe = sedute (o esercizi di una seduta), colonne = Serie 1…N. Data, esercizio e previsto restano fermi a sinistra,
+   lo stimolo resta fermo a destra: con tante serie scorri solo le serie in mezzo */
+function progGrid(rows, extraCol, contacts){
+  const N = Math.max(1, ...rows.map(r => r.sets.length));
+  const stim = r => { const st = r.stats; if (!st && !r.m) return `<td class="mt st" rowspan="${r.span}"></td>`;
+    return `<td class="mt st" rowspan="${r.span}">${st ? `<div>${st.n} <small>serie</small>${st.hard != null ? ` · ${st.hard} <small>allen.</small>` : ""}</div>
+      <div>${st.reps ? `${st.reps} <small>${contacts ? "contatti" : "rip"}</small>` : ""}${st.reps && st.rpe != null ? " · " : ""}${st.rpe != null ? `<small>RPE</small> ${fmtN(st.rpe, 1)}` : ""}</div>` : ""}
+      ${extraCol ? `<div class="mx"><small>${esc(extraCol === "Massimale stimato" ? "Mass. stim." : extraCol)}</small> ${r.m ? `${fmt1(Math.round(r.m.v * 10) / 10)} <small>${r.m.u}</small>` : "–"}</div>` : ""}</td>`; };
+  const body = rows.map(r => `<tr class="${r.first ? "first" : ""} ${r.dim ? "dim" : ""}">
+      ${r.first ? `<td class="dt" rowspan="${r.span}">${esc(fmtD(r.date))}<span>${esc(DAYS[dayIdx(r.date)])}</span></td>` : ""}
+      <td class="rh">${r.label ? `<b>${esc(r.label)}</b>` : ""}${r.note ? `<div class="swx">${r.note}</div>` : ""}<div class="pl" title="${esc(r.plan || "")}">prev. ${esc(r.plan || "–")}</div></td>
+      ${Array.from({length: N}, (_, k) => r.sets[k] ? progCell(r.sets[k], r.cols) : `<td class="pc empty"></td>`).join("")}
+      ${r.first ? stim(r) : ""}</tr>`).join("");
+  return `<div class="scroll-x pgwrap"><table class="progt grid"><thead><tr><th class="dt">Quando</th><th class="rh">${N > 4 ? `<span class="faint" style="font-weight:500;text-transform:none;letter-spacing:0">${N} serie · scorri →</span>` : ""}</th>${Array.from({length: N}, (_, k) => `<th class="c">Serie ${k + 1}</th>`).join("")}<th class="r st">Stimolo</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
 function progPatternHtml(x, P, more){
   if (!P) return `<div class="prog-empty faint">Questo esercizio non ha il <b>pattern motorio</b> in libreria: aggiungilo per confrontarlo con gli esercizi simili.</div>`;
   if (!P.list.length) return `<div class="prog-empty faint">Nessuna seduta precedente con esercizi del pattern «${esc(P.pat)}».</div>`;
-  const rows = (more ? P.list : P.list.slice(0, 3)).map(h => `<tr><td class="dt">${esc(fmtD(h.date))}<span>${esc(DAYS[dayIdx(h.date)])}</span></td>
-    <td>${h.items.map(o => `<div class="pex"><div><b>${esc(o.name)}</b>${o.sw ? ` <span class="faint">(al posto di ${esc(o.y.name)})</span>` : ""} <span class="faint">· previsto ${esc(summarize(o.y) || "–")}</span></div>
-      <div class="exs">${o.sets.map(q => execSetHtml(q, o.y.cols || [])).join("")}</div></div>`).join("")}</td>
-    ${stimTds(h.st)}</tr>`).join("");
-  return `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Esercizi (${esc(P.pat)}): previsto → eseguito</th>${stimThs(P.list.some(q => q.jumps))}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  const rows = [];
+  (more ? P.list : P.list.slice(0, 3)).forEach(h => h.items.forEach((o, k) => rows.push({first: k === 0, span: h.items.length, date: h.date, label: o.name,
+    note: o.sw ? `↔ al posto di ${esc(o.y.name)}` : "", plan: summarize(o.y), sets: o.sets, cols: o.y.cols || [], stats: h.st})));
+  return progGrid(rows, null, P.list.some(q => q.jumps));
 }
 function progHtml(x, i){
   const E = S.editor; if (!E || E.tpl || !E.email || !x.name) return "";
   const a = athByEmail(E.email); const H = coachHistory(E.email, x.name, E.w), P = patternHistory(E.email, x, E.w);
   if (!H.length && !P?.list?.length) return `<div class="prog empty"><span class="faint">Nessuna volta precedente registrata da ${esc((a?.name || "").split(" ")[0])} per questo esercizio${P ? ` né per il pattern «${esc(P.pat)}»` : ""}.</span></div>`;
   const tab = (E.progTab ??= {})[x.id] || (H.length ? "ex" : "pat");
-  const open = (E.progOpen ??= {})[x.id] !== false, more = E.progMore?.[x.id];
+  const open = (E.progOpen ??= {})[x.id] === true, more = E.progMore?.[x.id];   // di partenza chiuso: si vede solo la riga riassuntiva
   const ms = H.filter(h => h.m).map(h => h.m), last = ms[0], prev = ms.slice(1).find(m => m.l === last?.l);
   const d = last && prev ? last.v - prev.v : null;
   const good = d != null && d !== 0 ? (d * (last.up || 1) > 0) : null;
-  const rows = (more ? H : H.slice(0, 3)).map(h => { const cols = h.x.cols || [];
-    return `<tr><td class="dt">${esc(fmtD(h.date))}<span>${esc(DAYS[dayIdx(h.date)])}</span></td>
-      <td><div class="pl">previsto ${esc(summarize(h.x) || "–")}${h.swapped && !h.other ? ` · <i>era previsto ${esc(h.x.name)}</i>` : ""}</div>
-        ${h.other ? `<div class="swx">↔ cambiato con <b>${esc(h.sw.name)}</b>${swapWhy(h.sw) ? ` · ${esc(swapWhy(h.sw))}` : ""}</div>` : ""}<div class="exs ${h.other ? "dim" : ""}">${h.sets.map(o => execSetHtml(o, cols)).join("")}</div></td>
-      ${h.other ? `<td class="mt" colspan="4"></td>` : stimTds(stimStats(h.sets.map(o => o.r)))}
-      <td class="mt">${h.m ? `${fmt1(Math.round(h.m.v * 10) / 10)}<small>${h.m.u}</small>` : "–"}</td></tr>`; }).join("");
+  const gridRows = (more ? H : H.slice(0, 3)).map(h => ({first: true, span: 1, date: h.date, label: "", dim: h.other,
+    note: h.other ? `<span title="${esc(swapWhy(h.sw) || "")}">↔ fatto ${esc(h.sw.name)}</span>` : h.swapped ? `era previsto ${esc(h.x.name)}` : "",
+    plan: summarize(h.x), sets: h.sets, cols: h.x.cols || [], stats: h.other ? null : stimStats(h.sets.map(o => o.r)), m: h.m}));
+  /* riga riassuntiva (riquadro chiuso): l'ultima volta in una riga */
+  const L0 = H.find(h => !h.other), P0 = P?.list?.[0];
+  const sumTxt = L0 ? (() => { const st = stimStats(L0.sets.map(o => o.r)); return `<b>${esc(fmtD(L0.date))}</b> · ${st.n} serie${st.hard != null ? ` (${st.hard} allenanti)` : ""}${st.rpe != null ? ` · RPE ${fmtN(st.rpe, 1)}` : ""}`; })()
+    : P0 ? `mai fatto · pattern ${esc(P.pat)}: <b>${esc(fmtD(P0.date))}</b> ${esc(P0.items.map(o => o.name).join(" + "))} · ${P0.st.n} serie` : "";
   return `<div class="prog ${open ? "" : "closed"}">
-    <button type="button" class="prog-h" data-act="prog-tog" data-x="${x.id}" aria-expanded="${open}"><span class="car">${open ? "▾" : "▸"}</span><b>Ultime volte</b><span class="faint">di ${esc((a?.name || "").split(" ")[0])}</span>
+    <button type="button" class="prog-h" data-act="prog-tog" data-x="${x.id}" aria-expanded="${open}"><span class="car">${open ? "▾" : "▸"}</span><b>Ultime volte</b><span class="faint">di ${esc((a?.name || "").split(" ")[0])}</span>${open ? "" : `<span class="psum">${sumTxt}</span>`}
       ${last ? `<span class="trend">${esc(last.l)} <b>${fmt1(Math.round(last.v * 10) / 10)} ${last.u}</b>${d ? ` <span class="${good ? "pos" : "neg"}">${d > 0 ? "▲" : "▼"} ${fmt1(Math.round(Math.abs(d) * 10) / 10)}</span>` : ""}</span>${spark(ms.slice().reverse().map(m => m.v))}` : ""}</button>
     ${open ? `<div class="prog-tabs" role="tablist"><button type="button" role="tab" class="${tab === "ex" ? "on" : ""}" aria-selected="${tab === "ex"}" data-act="prog-tab" data-x="${x.id}" data-v="ex">Questo esercizio${H.length ? "" : " (mai fatto)"}</button><button type="button" role="tab" class="${tab === "pat" ? "on" : ""}" aria-selected="${tab === "pat"}" data-act="prog-tab" data-x="${x.id}" data-v="pat">Stesso pattern${P ? ` · ${esc(P.pat)}` : ""}</button></div>` : ""}
-    ${open && tab === "pat" ? progPatternHtml(x, P, more) + `<div class="prog-f">${P?.list?.length > 3 ? `<button type="button" class="btn sm ghost" data-act="prog-more" data-x="${x.id}">${more ? "Mostra meno" : `Mostra altre ${P.list.length - 3}`}</button>` : ""}<span class="grow"></span><span class="faint leg">Serie allenanti = RPE ≥ 7 o RIR ≤ 3. I kg di esercizi diversi non si confrontano: guarda serie, ripetizioni e RPE.</span></div>` : ""}
+    ${open && tab === "pat" ? progPatternHtml(x, P, more) + `<div class="prog-f">${P?.list?.length > 3 ? `<button type="button" class="btn sm ghost" data-act="prog-more" data-x="${x.id}">${more ? "Mostra meno" : `Mostra altre ${P.list.length - 3}`}</button>` : ""}<span class="grow"></span><span class="faint leg">Allenanti = RPE ≥ 7 o RIR ≤ 3 · i kg di esercizi diversi non si confrontano · passa sopra una serie per il previsto</span></div>` : ""}
     ${open && tab === "ex" && !H.length ? `<div class="prog-empty faint">${esc((a?.name || "").split(" ")[0])} non ha ancora fatto questo esercizio: guarda «Stesso pattern». Consiglio: la prima volta prescrivilo a RPE o RIR.</div>` : ""}
-    ${open && tab === "ex" && H.length ? `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Previsto → eseguito${(x.cols || []).includes("kg") && (x.cols || []).includes("reps") ? ` <span class="faint" style="font-weight:500;text-transform:none;letter-spacing:0">(reps×kg @RPE)</span>` : ""}</th>${stimThs((x.cols || []).includes("height"))}<th class="r">${esc(last?.l || "")}</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${open && tab === "ex" && H.length ? `${progGrid(gridRows, last?.l || "", (x.cols || []).includes("height"))}
       <div class="prog-f">${H.length > 3 ? `<button type="button" class="btn sm ghost" data-act="prog-more" data-x="${x.id}">${more ? "Mostra meno" : `Mostra altre ${H.length - 3}`}</button>` : ""}<span class="grow"></span>
-        <span class="faint leg"><span class="pos">verde</span> = più del previsto · <span class="neg">rosso</span> = meno (o RPE più alto)${H.some(h => h.sets.some(o => setRpe(o.r)?.from === "rir")) ? " · * = da RIR" : ""}</span>
+        <span class="faint leg"><span class="pos">verde</span> più del previsto · <span class="neg">rosso</span> meno o RPE più alto${H.some(h => h.sets.some(o => setRpe(o.r)?.from === "rir")) ? " · * da RIR" : ""} · passa sopra una serie per il previsto</span>
         <button type="button" class="btn sm" data-act="prog-use" data-i="${i}" title="Copia nelle serie quello che l'atleta ha fatto l'ultima volta (poi lo modifichi tu)">↺ Parti dall'ultima volta</button></div>` : ""}
   </div>`;
 }
@@ -3220,7 +3273,7 @@ const ACT = {
   "pg-settype"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x), st = sets[+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
   "pg-addset"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x); sets.push(clone(sets[sets.length - 1] || {})); drawProg(); },
   "pg-rmset"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x); if (sets.length > 1) sets.pop(); drawProg(); },
-  "prog-tog"(t){ const E = S.editor; (E.progOpen ??= {})[t.dataset.x] = E.progOpen[t.dataset.x] === false; drawEditor(); },
+  "prog-tog"(t){ const E = S.editor; (E.progOpen ??= {})[t.dataset.x] = !E.progOpen[t.dataset.x]; drawEditor(); },
   "prog-tab"(t){ const E = S.editor; (E.progTab ??= {})[t.dataset.x] = t.dataset.v; drawEditor(); },
   "prog-more"(t){ const E = S.editor; (E.progMore ??= {})[t.dataset.x] = !E.progMore[t.dataset.x]; drawEditor(); },
   "prog-use"(t){ const E = S.editor, x = E.w.exercises[+t.dataset.i]; const h = coachHistory(E.email, x.name, E.w).find(h => !h.other); if (!h) return toast("Nessuna volta precedente da cui partire");

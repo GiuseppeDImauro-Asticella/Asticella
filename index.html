@@ -472,6 +472,23 @@ table.progt td.mt{white-space:nowrap;font-weight:700;text-align:right;font-varia
 #ps-chart .sband.gh{stroke-dasharray:4 3}
 #ps-chart .styp.rt{fill:var(--faint);font-weight:600}
 #ps-chart .styp.rt.diff{fill:var(--warn);font-weight:800}
+.pslegend{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:6px;font-size:12px;color:var(--muted)}
+.pslegend span{display:inline-flex;align-items:center;gap:5px}
+.pslegend .pshelp{margin-left:auto;border:0;background:none;color:var(--accent);font-weight:600;font-size:12px;padding:2px 4px}
+.pshelpbox{margin-top:6px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.pshelpbox b{color:var(--ink)}
+#ps-chart .ctip{min-width:0;padding:8px 10px}
+.tt-h{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:4px;font-size:13px}
+table.tt{border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+table.tt th{font-size:10px;font-weight:600;color:var(--muted);text-align:right;padding:0 0 2px 10px;white-space:nowrap}
+table.tt th small{font-weight:500}
+table.tt td{padding:2px 0 2px 10px;white-space:nowrap}
+table.tt td.l{padding-left:0;color:var(--muted);text-align:left}
+table.tt td.l small{display:block;font-size:10.5px;color:var(--faint);max-width:150px;overflow:hidden;text-overflow:ellipsis}
+table.tt td.n{text-align:right;color:var(--ink)}
+table.tt tr.main td{font-weight:700}table.tt tr.main td.l{color:var(--ink)}
+table.tt tr.dim td.n,table.tt td.n.dim{color:var(--faint)}
+table.tt tr + tr td{border-top:1px solid var(--line)}
 .psvol{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;font-size:12.5px}
 .psvol .lbl{margin-right:2px}
 .psvol .pv{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 10px;font-variant-numeric:tabular-nums}
@@ -2325,6 +2342,12 @@ function pgOpen(){
   drawProg();
   ensureWeeks(a.email, addDays(S.ws, -7 * 16), S.calWeeks + 16).then(() => { if (S.prog) drawProg(); });   // ~4 mesi di storia per i riferimenti
 }
+/* ridisegnando la finestra la pagina tornava in cima: salvo e ripristino lo scorrimento di tutte le parti che scorrono */
+function keepScroll(){
+  const sel = ["#modal .back", ".pgv", ".pgl", ".pgmain", ".pgcols", ".pscards", "#ps-chart"];
+  const saved = sel.map(q => { const el = $(q); return el ? [q, el.scrollTop, el.scrollLeft] : null; }).filter(Boolean);
+  return () => saved.forEach(([q, t, l]) => { const el = $(q); if (el) { el.scrollTop = t; el.scrollLeft = l; } });
+}
 function pgHeadHtml(G, a){
   return `<header><h2>Progressione · ${esc(a.name)}</h2><div class="kfilt pgmode" role="tablist" style="margin:0">${[["sess","Per seduta"],["ex","Per esercizio"]].map(([k,l]) => `<button class="${G.mode === k ? "on" : ""}" data-act="pg-mode" data-v="${k}" aria-pressed="${G.mode === k}">${l}</button>`).join("")}</div><span class="grow"></span><button class="btn ghost icon" data-act="pg-close" aria-label="Chiudi">✕</button></header>`;
 }
@@ -2339,7 +2362,7 @@ function pgBarHtml(G, a){
 function drawProg(){
   const G = S.prog; if (!G) return; const a = athByEmail(G.email);
   if (G.mode === "sess") return drawProgSess(G, a);
-  const keepL = $(".pgl")?.scrollTop, keepM = $(".pgmain")?.scrollTop, keepC = $(".pgcols")?.scrollLeft;
+  const restore = keepScroll();
   const all = wIn(G.email, G.from, G.to);
   // elenco esercizi nel periodo, raggruppati per pattern
   const names = {}; all.forEach(w => (w.exercises || []).forEach(x => { const n = x.name.trim(); if (!n) return; (names[n] ??= new Set()).add(w.id); }));
@@ -2397,7 +2420,7 @@ function drawProg(){
             ${dr ? `<div class="pgdr">${esc(M.l)}: <b>${(v => v != null ? fmt1(Math.round(v * 10) / 10) + (M.u ? " " + M.u : "") : "–")(pgVal(G.metric, o.xs.flatMap(x => dr.sets[x.id])))}</b></div>` : ""}</div>`; }).join("") || `<div class="faint">Nessuna seduta con questo ${G.sel.kind === "pat" ? "pattern" : "esercizio"} nel periodo.</div>`}</div>` : ""}
       </section></div></div></div>`;
   if (G.sel) drawPgChart($("#pg-chart"), a, occ, G.metric, draft);
-  if (keepL != null) $(".pgl").scrollTop = keepL; if (keepM != null && $(".pgmain")) $(".pgmain").scrollTop = keepM; if (keepC != null && $(".pgcols")) $(".pgcols").scrollLeft = keepC;
+  restore();
 }
 /* ---------- PROGRESSIONE · PER SEDUTA: tutte le serie della seduta in ordine, da spostare col mouse ---------- */
 const PS_M = {auto: {l: "Parametro di ogni esercizio", u: "", st: 1}, kg: {l: "Carico", u: "kg", st: 2.5}, reps: {l: "Ripetizioni", u: "rip.", st: 1}, rpe: {l: "RPE", u: "", st: 0.5}};
@@ -2486,7 +2509,7 @@ function drawProgSess(G, a){
   const M = PS_M[G.sm];
   const {seq, order} = w ? psSeq(G, w) : {seq: [], order: []};
   const dirty = w && psDirty(G, w);
-  const keepL = $(".pgl")?.scrollTop;
+  const restore = keepScroll();
   $("#modal").innerHTML = `<div class="back" style="padding:12px"><div class="modal pgm" role="dialog" aria-label="Progressione">
     ${pgHeadHtml(G, a)}${pgBarHtml(G, a)}
     <div class="pgv">
@@ -2497,14 +2520,22 @@ function drawProgSess(G, a){
         <div class="kfilt">${Object.entries(PS_M).map(([k, m]) => `<button class="${G.sm === k ? "on" : ""}" data-act="ps-met" data-v="${k}" aria-pressed="${G.sm === k}">${m.l}</button>`).join("")}</div>
         <div class="kfilt"><span class="lbl">Confronta con</span>${[["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${l}</button>`).join("")}</div>
         <div class="chartwrap" id="ps-chart"></div>
-        <div class="slegend">${order.map(n => `<span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="${exColor(order, n)}"/></svg>${esc(n)}</span>`).join("")}</div>
-        <div class="slegend"><span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:${done || !editable ? "var(--faint)" : "var(--muted)"};stroke-width:2;${done || !editable ? "stroke-dasharray:5 4" : ""}"/></svg>${editable ? "Programma (trascina i punti)" : "Previsto"}</span>
-          <span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--faint);stroke-width:2;stroke-dasharray:4 3"/><circle cx="11" cy="5" r="3.5" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>Riferimento reale: ${(G.psRef || "pat") === "pat" ? "la stessa serie nella seduta più recente dello stesso pattern" : "la stessa serie l'ultima volta che ha fatto l'esercizio"}</span>
-          <span><svg width="24" height="24"><circle cx="12" cy="12" r="10" style="fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 2"/><circle cx="12" cy="12" r="5.5" fill="var(--muted)"/></svg>Copre una serie del riferimento fatta con un altro esercizio dello stesso pattern</span>
-          <span><svg width="14" height="14"><circle cx="7" cy="7" r="5" style="fill:var(--surface);stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 2"/></svg>Serie del riferimento non coperte (restano dell'esercizio di allora)</span>
-          <span><b style="font-size:10px;color:var(--muted)">prog. / rif.</b><span>tipo di serie programmato e del riferimento nella stessa posizione · in arancione quando è diverso</span></span>
-          ${done ? `<span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--muted);stroke-width:2"/><circle cx="11" cy="5" r="4" fill="var(--muted)"/></svg>Eseguito (colore = esercizio)</span>` : ""}
-          ${editable ? `<span class="faint">Clic su un punto: tipo di serie, duplica, elimina · frecce ↑↓ da tastiera: uno scatto</span>` : ""}</div>
+        <div class="pslegend">
+          <span title="${editable ? "Programma: trascina i punti per cambiare i valori" : "Previsto"}"><svg width="20" height="10"><line x1="1" x2="19" y1="5" y2="5" style="stroke:${done || !editable ? "var(--faint)" : "var(--muted)"};stroke-width:2;${done || !editable ? "stroke-dasharray:5 4" : ""}"/></svg>${editable ? "programma" : "previsto"}</span>
+          ${done ? `<span><svg width="20" height="10"><line x1="1" x2="19" y1="5" y2="5" style="stroke:var(--muted);stroke-width:2"/><circle cx="10" cy="5" r="3.5" fill="var(--muted)"/></svg>eseguito</span>` : ""}
+          <span><svg width="20" height="10"><line x1="1" x2="19" y1="5" y2="5" style="stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3"/><circle cx="10" cy="5" r="3" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>riferimento</span>
+          <span><svg width="18" height="18"><circle cx="9" cy="9" r="7.5" style="fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 2"/><circle cx="9" cy="9" r="4" fill="var(--muted)"/></svg>copre</span>
+          <span><svg width="12" height="12"><circle cx="6" cy="6" r="4" style="fill:var(--surface);stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 2"/></svg>non coperta</span>
+          <span><b>R</b>/<b style="color:var(--warn)">R</b> tipo diverso</span>
+          <button class="pshelp" data-act="ps-help" aria-expanded="${!!G.psHelp}">${G.psHelp ? "Chiudi" : "ⓘ Come si legge"}</button>
+        </div>
+        ${G.psHelp ? `<div class="pshelpbox">
+          <div><b>Programma</b> — i punti colorati (colore = esercizio) sono le serie che stai programmando${editable ? ": trascinali in su o in giù per cambiare il valore; clic su un punto per tipo di serie, duplica, elimina; frecce ↑↓ da tastiera per uno scatto" : ""}.</div>
+          <div><b>Riferimento</b> — la linea tratteggiata con i puntini vuoti è la stessa serie (stessa posizione) ${(G.psRef || "pat") === "pat" ? "nella seduta più recente dello stesso pattern" : "l'ultima volta che l'atleta ha fatto l'esercizio"}.</div>
+          <div><b>Copre</b> — l'anello tratteggiato: quella serie prende il posto di una serie del riferimento fatta con un altro esercizio dello stesso pattern.</div>
+          <div><b>Non coperta</b> — puntino grigio: serie del riferimento che in questa seduta non hai (ancora) coperto; resta dell'esercizio di allora.</div>
+          <div><b>prog. / rif.</b> — sotto il grafico: tipo di serie programmato e tipo della serie del riferimento nella stessa posizione; in arancione quando sono diversi.</div>
+        </div>` : ""}
         ${psVolHtml(G, w)}
         ${editable ? `<div class="pgtools"><div class="row1"><span class="faint" style="font-size:12px">${dirty ? "Hai modificato questa seduta: applica per salvarla nel calendario." : "Nessuna modifica."}</span><span class="grow"></span>
           <button class="btn ghost" data-act="ps-reset" ${dirty ? "" : "disabled"}>Annulla modifiche</button><button class="btn pri" data-act="ps-apply" ${dirty ? "" : "disabled"}>Applica modifiche</button></div></div>` : ""}
@@ -2515,8 +2546,8 @@ function drawProgSess(G, a){
               <div class="pgsetb"><button data-act="ps-add" data-x="${x.id}">+ serie</button><button data-act="ps-rm" data-x="${x.id}" ${ds.length <= 1 ? "disabled" : ""}>− serie</button></div><div class="pl">${cs.map(c => esc(COLS[c].l)).join(" · ")}</div></div>`
             : (rs => rs.length ? `<div class="exs">${rs.map(q => execSetHtml(q, x.cols || [])).join("")}</div>` : `<div class="pl">${esc(summarize(x) || "–")}</div>`)((w.results?.[x.id] || []).map((r, j) => ({r, s: x.sets[j] || {}, extra: j >= x.sets.length})).filter(q => q.r.done || !emptyRes(q.r)))}</div>`; }).join("")}</div>` : `<div class="faint">Scegli una seduta a sinistra.</div>`}
       </section></div></div></div>`;
-  if (keepL != null) $(".pgl").scrollTop = keepL;
   if (w) drawPsChart(G, w, seq, order, editable, done);
+  restore();
 }
 function psDomains(G, seq, done){
   const vals = {}; seq.forEach(o => { if (!o.p) return; const a = (vals[o.dk] ??= {p: o.p, v: []});
@@ -2569,32 +2600,25 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
       ${cur[k] != null && (auto || chg || G.psDrag === k) ? `<text class="vlab ${chg ? "chg" : ""}" x="${X(k)}" y="${Y(cur[k], k) - 12}" text-anchor="middle">${fmt1(cur[k])}</text>` : ""}`; }
     else svg += `<text x="${X(k)}" y="${pt + ih - 4}" text-anchor="middle" style="font-size:10px;fill:var(--faint)" title="Questo esercizio non ha ${esc(M.l)}">–</text>`;
     const ty = o.ghost ? "" : (o.st.type || ""), rt = o.ghost ? o.gtype : o.rtype;
-    svg += `<text class="styp" x="${X(k)}" y="${pt+ih+17}" text-anchor="middle" style="fill:${ty === "W" ? "var(--ink)" : "var(--muted)"}">${ty || (o.ghost ? "" : "·")}</text>`;
+    svg += `<text class="styp" x="${X(k)}" y="${pt+ih+17}" text-anchor="middle" style="fill:${ty === "W" ? "var(--ink)" : "var(--muted)"}">${ty}</text>`;
     if (rt != null) { const diff = !o.ghost && rt !== ty;   // tipo diverso da quello del riferimento in quella posizione
-      svg += `<text class="styp rt ${diff ? "diff" : ""}" x="${X(k)}" y="${pt+ih+32}" text-anchor="middle">${rt || "·"}</text>`; } });
+      svg += `<text class="styp rt ${diff ? "diff" : ""}" x="${X(k)}" y="${pt+ih+32}" text-anchor="middle">${rt}</text>`; } });
   const popK = G.psPop; const popY = popK != null && seq[popK] ? Y(cur[popK] ?? (doms[seq[popK].dk]?.lo ?? 0), popK) : 0;
   el.innerHTML = svg + `</svg><div class="ctip" hidden></div>${popK != null && seq[popK] ? psPopHtml(popK, seq[popK], X(popK), popY, W) : ""}`;
   // passaggio del mouse (o primo tocco su tablet): dettaglio della serie
   const tip = el.querySelector(".ctip");
   el.addEventListener("pointerdown", e => { if (!e.target.closest(".psdot, .psghost")) { tip.hidden = true; G.psTapK = null; } });
   el.querySelectorAll(".psghost").forEach(g => { const k = +g.dataset.k, o = seq[k];   // serie solo nel riferimento: solo da vedere
-    g.addEventListener("pointerenter", () => { if (G.psDrag != null || G.psPop != null) return; const line = (cls, t) => { const d = document.createElement("div"); d.className = cls; d.textContent = t; return d; };
-      tip.replaceChildren(line("tv", `Riferimento · ${o.name} · serie non coperta`),
-        line("tl", `${o.refInfo.kind === "ex" ? "Stesso esercizio" : `Più recente, pattern ${o.refInfo.pat} · ${o.refInfo.name}`} ${fmtD(o.refInfo.date)}: ${resultLine(o.ref, o.refInfo.x.cols || []) || "✓"}`));
+    g.addEventListener("pointerenter", () => { if (G.psDrag != null || G.psPop != null) return;
+      tip.innerHTML = psTipHtml(o, false, false);
       tip.hidden = false; const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
       let x = b.left - p.left + b.width / 2 - tip.offsetWidth / 2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth)); tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight - 4) + "px"; });
     g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") tip.hidden = true; });
   });
   el.querySelectorAll(".psdot").forEach(g => { const k = +g.dataset.k, o = seq[k];
-    g.addEventListener("pointerenter", pe => { if (G.psDrag != null || G.psPop != null) return; const line = (cls, t) => { const d = document.createElement("div"); d.className = cls; d.textContent = t; return d; };
-      tip.replaceChildren(line("tv", `${o.lab} ${o.name} · serie ${o.j + 1}${o.st.type ? " · " + SET_TYPES[o.st.type].s : ""}`), line("tl", `Programma: ${resultLine(o.st, o.x.cols || []) || "–"}`));
-      if (o.old && JSON.stringify(o.old) !== JSON.stringify(o.st)) tip.append(line("tl", `Prima: ${resultLine(o.old, o.x.cols || []) || "–"}`));
-      const refTxt = (r, I) => (I.kind === "ex" ? `Stesso esercizio · ${fmtD(I.date)}: ` : `Più recente, pattern ${I.pat} · ${I.name} ${fmtD(I.date)}: `) + (resultLine(r, I.x.cols || []) || "✓") + (r === o.ref && o.rtype ? ` · ${SET_TYPES[o.rtype].s}` : r === o.ref && o.rtype === "" ? " · senza tipo" : "");
-      if (o.ref) tip.append(line("tl", (o.cover ? "Copre la serie del riferimento · " : "▸ ") + refTxt(o.ref, o.refInfo) + (o.refOk ? "" : " (kg di un altro esercizio: non in grafico)")));
-      if (o.alt && !(o.altInfo.date === o.refInfo?.date && sameName(o.altInfo.name, o.refInfo?.name))) tip.append(line("tl", "   " + refTxt(o.alt, o.altInfo)));
-      if (done && o.exec) tip.append(line("tl", `Eseguito: ${resultLine(o.exec, o.x.cols || []) || "✓"}`));
-      if (pe.pointerType !== "mouse" && editable) tip.append(line("tl tap", "Tocca di nuovo per tipo di serie, duplica, elimina · trascina per cambiare il valore"));
-      tip.hidden = false; const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
+    g.addEventListener("pointerenter", pe => { if (G.psDrag != null || G.psPop != null) return;
+      tip.innerHTML = psTipHtml(o, done, pe.pointerType !== "mouse" && editable); tip.hidden = false;
+      const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
       let x = b.left - p.left + b.width / 2 - tip.offsetWidth / 2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth)); tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight - 4) + "px"; });
     g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") tip.hidden = true; });
     if (!editable) return;
@@ -2603,6 +2627,27 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
       const v = (psGet(o.p, o.x, o.st) ?? 0) + (e.key === "ArrowUp" ? psStep(o.p) : -psStep(o.p)); psSet(o.p, o.x, o.st, v);
       drawPsChart(G, w, seq, order, editable, done, G.psDoms); el.querySelector(`.psdot[data-k="${k}"]`)?.focus(); psRefreshSide(G, w); });
   });
+}
+/* riquadro di una serie: intestazione + tabellina (righe = programma / prima / riferimenti / eseguito, colonne = parametri) */
+function psTipHtml(o, done, touch){
+  const skip = ["side", "rest", "tut"], colsOf = cs => (cs || []).filter(c => !skip.includes(c) && COLS[c]);
+  const rows = [];
+  const tb = t => t ? typeBadge(t) : "";
+  if (o.ghost) rows.push({l: `Rif. ${fmtD(o.refInfo.date)}`, sub: o.name, r: o.ref, cols: o.refInfo.x.cols, t: o.gtype, main: true});
+  else {
+    rows.push({l: "Programma", r: o.st, cols: o.x.cols, t: o.st.type || "", main: true});
+    if (o.old && JSON.stringify(o.old) !== JSON.stringify(o.st)) rows.push({l: "Prima", r: o.old, cols: o.x.cols, t: o.old.type || "", dim: true});
+    if (o.ref) rows.push({l: `Rif. ${fmtD(o.refInfo.date)}`, sub: sameName(o.refInfo.name, o.x.name) ? (o.refInfo.kind === "ex" ? "stesso esercizio" : "") : `${o.refInfo.name}${o.cover ? " · copre" : ""}`, r: o.ref, cols: o.refInfo.x.cols, t: o.rtype ?? "", other: !sameName(o.refInfo.name, o.x.name)});
+    if (o.alt && !(o.altInfo.date === o.refInfo?.date && sameName(o.altInfo.name, o.refInfo?.name))) rows.push({l: `${fmtD(o.altInfo.date)}`, sub: o.altInfo.kind === "ex" ? "stesso esercizio" : o.altInfo.name, r: o.alt, cols: o.altInfo.x.cols, t: "", dim: true, other: !sameName(o.altInfo.name, o.x.name)});
+    if (done && o.exec) rows.push({l: "Eseguito", r: o.exec, cols: o.x.cols, t: ""}); }
+  const cols = []; rows.forEach(rw => colsOf(rw.cols).forEach(c => { if (!cols.includes(c) && rows.some(q => q.r && q.r[c] !== undefined && q.r[c] !== "")) cols.push(c); }));
+  const cell = (rw, c) => { const v = rw.r?.[c]; if (v === undefined || v === "") return `<td class="n">–</td>`;
+    const hide = rw.other && ["kg", "pct"].includes(c);   // kg di un altro esercizio: solo informazione
+    return `<td class="n ${hide ? "dim" : ""}" ${hide ? `title="kg di un altro esercizio"` : ""}>${esc(v)}</td>`; };
+  return `<div class="tt-h"><b>${o.ghost ? `Riferimento · ${esc(o.name)}` : `${esc(o.lab)} ${esc(o.name)} · serie ${o.j + 1}`}</b>${o.ghost ? `<span class="faint">non coperta</span>` : tb(o.st.type)}</div>
+    <table class="tt"><thead><tr><th></th>${cols.map(c => `<th>${esc(COLS[c].l)}${COLS[c].u && COLS[c].u !== "%" && COLS[c].u.toLowerCase() !== COLS[c].l.toLowerCase() ? ` <small>${esc(COLS[c].u)}</small>` : ""}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${rows.map(rw => `<tr class="${rw.main ? "main" : ""} ${rw.dim ? "dim" : ""}"><td class="l">${esc(rw.l)}${rw.sub ? `<small>${esc(rw.sub)}</small>` : ""}</td>${cols.map(c => cell(rw, c)).join("")}<td>${tb(rw.t)}</td></tr>`).join("")}
+    </tbody></table>${touch ? `<div class="tl tap">Tocca di nuovo per tipo di serie, duplica, elimina · trascina per cambiare il valore</div>` : ""}`;
 }
 function psPopHtml(k, o, x, y, W){
   return `<div class="pspop" style="left:${Math.min(Math.max(0, x - 110), W - 230)}px;top:${y + 16}px"><b>${esc(o.name)} · serie ${o.j + 1}</b>
@@ -3151,6 +3196,7 @@ const ACT = {
     G.sess = null; G.psPop = null; G.wid = t.dataset.id; drawProg(); },
   "ps-met"(t){ S.prog.sm = t.dataset.v; S.prog.psPop = null; drawProg(); },
   "ps-ref"(t){ S.prog.psRef = t.dataset.v; drawProg(); },
+  "ps-help"(){ S.prog.psHelp = !S.prog.psHelp; drawProg(); },
   "ps-reset"(){ S.prog.sess = null; S.prog.psPop = null; drawProg(); },
   "ps-apply"(){ psApply(); },
   "ps-type"(t){ const st = S.prog.sess.sets[t.dataset.x][+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },

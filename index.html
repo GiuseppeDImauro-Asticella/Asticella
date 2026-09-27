@@ -593,6 +593,7 @@ tr.ok .ck svg{stroke:#fff}
 .ctip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:12px;min-width:140px;z-index:5}
 .ctip .tv{font-size:16px;font-weight:700;color:var(--ink)}
 .ctip .tl{color:var(--muted)}
+.ctip .tl.tap{color:var(--accent);font-weight:600;margin-top:3px}
 .kfilt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
 .kfilt .lbl{margin:0 4px 0 0}
 .kfilt .wkn{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:13px}
@@ -1722,11 +1723,16 @@ function drawBarChart(el, ser, key, a){
     tip.hidden = false;
     let x = b.left - p.left + b.width/2 - tip.offsetWidth/2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 10) + "px"; };
-  el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => show(g)); g.addEventListener("focus", () => show(g));
-    g.addEventListener("pointerleave", () => tip.hidden = true); g.addEventListener("blur", () => tip.hidden = true);
+  /* su tablet/telefono non c'è il "passaggio del mouse": il primo tocco mostra il riquadro, il secondo fa l'azione */
+  let lastPT = "mouse", tapK = null;
+  el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerdown", e => lastPT = e.pointerType); g.addEventListener("pointerenter", () => show(g)); g.addEventListener("focus", () => show(g));
+    g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") tip.hidden = true; }); g.addEventListener("blur", () => { tip.hidden = true; tapK = null; });
     if (!ser[0]?.day) { g.style.cursor = "pointer";   // dalla settimana ai suoi giorni
       const go = () => { anQ.gran = "day"; anQ.dws = ser[+g.dataset.k].ws; renderView(); };
-      g.addEventListener("click", go); g.addEventListener("keydown", e => { if (e.key === "Enter") go(); }); } });
+      g.addEventListener("click", () => { if (lastPT !== "mouse" && tapK !== g.dataset.k) { tapK = g.dataset.k; show(g);
+          const h = document.createElement("div"); h.className = "tl tap"; h.textContent = "Tocca di nuovo per vedere i giorni"; tip.append(h); return; }
+        go(); });
+      g.addEventListener("keydown", e => { if (e.key === "Enter") go(); }); } });
 }
 
 /* ---------- ANDAMENTO DELLA SEDUTA ----------
@@ -1828,7 +1834,7 @@ function drawSessionChart(el, w){
     let x = b.left - p.left + el.scrollLeft + b.width/2 - tip.offsetWidth/2; x = Math.max(el.scrollLeft, Math.min(x, el.scrollLeft + p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 4) + "px"; };
   el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => show(g)); g.addEventListener("focus", () => show(g));
-    g.addEventListener("pointerleave", () => tip.hidden = true); g.addEventListener("blur", () => tip.hidden = true); });
+    g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") tip.hidden = true; }); g.addEventListener("blur", () => tip.hidden = true); });
 }
 
 /* ---------- parametri: elenco e creazione ---------- */
@@ -2514,19 +2520,21 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     svg += `<text class="styp" x="${X(k)}" y="${pt+ih+17}" text-anchor="middle" style="fill:${o.st.type === "W" ? "var(--ink)" : "var(--muted)"}">${o.st.type || ""}</text>`; });
   const popK = G.psPop; const popY = popK != null && seq[popK] ? Y(cur[popK] ?? (doms[seq[popK].dk]?.lo ?? 0), popK) : 0;
   el.innerHTML = svg + `</svg><div class="ctip" hidden></div>${popK != null && seq[popK] ? psPopHtml(popK, seq[popK], X(popK), popY, W) : ""}`;
-  // passaggio del mouse: dettaglio della serie
+  // passaggio del mouse (o primo tocco su tablet): dettaglio della serie
   const tip = el.querySelector(".ctip");
+  el.addEventListener("pointerdown", e => { if (!e.target.closest(".psdot")) { tip.hidden = true; G.psTapK = null; } });
   el.querySelectorAll(".psdot").forEach(g => { const k = +g.dataset.k, o = seq[k];
-    g.addEventListener("pointerenter", () => { if (G.psDrag != null || G.psPop != null) return; const line = (cls, t) => { const d = document.createElement("div"); d.className = cls; d.textContent = t; return d; };
+    g.addEventListener("pointerenter", pe => { if (G.psDrag != null || G.psPop != null) return; const line = (cls, t) => { const d = document.createElement("div"); d.className = cls; d.textContent = t; return d; };
       tip.replaceChildren(line("tv", `${o.lab} ${o.name} · serie ${o.j + 1}${o.st.type ? " · " + SET_TYPES[o.st.type].s : ""}`), line("tl", `Programma: ${resultLine(o.st, o.x.cols || []) || "–"}`));
       if (o.old && JSON.stringify(o.old) !== JSON.stringify(o.st)) tip.append(line("tl", `Prima: ${resultLine(o.old, o.x.cols || []) || "–"}`));
       const refTxt = (r, I) => I.kind === "ex" ? `Stesso esercizio · ${fmtD(I.date)}: ${resultLine(r, I.x.cols || []) || "✓"}` : `Più recente, pattern ${I.pat} · ${I.name} ${fmtD(I.date)}: ${resultLine(r, I.x.cols || []) || "✓"}`;
       if (o.ref) tip.append(line("tl", "▸ " + refTxt(o.ref, o.refInfo) + (o.refOk ? "" : " (kg di un altro esercizio: non in grafico)")));
       if (o.alt && !(o.altInfo.date === o.refInfo?.date && sameName(o.altInfo.name, o.refInfo?.name))) tip.append(line("tl", "   " + refTxt(o.alt, o.altInfo)));
       if (done && o.exec) tip.append(line("tl", `Eseguito: ${resultLine(o.exec, o.x.cols || []) || "✓"}`));
+      if (pe.pointerType !== "mouse" && editable) tip.append(line("tl tap", "Tocca di nuovo per tipo di serie, duplica, elimina · trascina per cambiare il valore"));
       tip.hidden = false; const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
       let x = b.left - p.left + b.width / 2 - tip.offsetWidth / 2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth)); tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight - 4) + "px"; });
-    g.addEventListener("pointerleave", () => tip.hidden = true);
+    g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") tip.hidden = true; });
     if (!editable) return;
     g.addEventListener("pointerdown", e => psDragStart(e, G, w, k));
     g.addEventListener("keydown", e => { if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return; e.preventDefault();
@@ -2549,7 +2557,9 @@ function psDragStart(e, G, w, k){
     const v = Math.min(dom.hi * 1.5, Math.max(dom.lo, toVal(ev.clientY))); if (v === psGet(o.p, o.x, o.st)) return; psSet(o.p, o.x, o.st, v);
     const s2 = psSeq(G, w); drawPsChart(G, w, s2.seq, s2.order, true, false, doms); };
   const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); G.psDrag = null;
-    if (!moved) { G.psPop = k; } drawProg(); };
+    if (!moved) { if (e.pointerType !== "mouse" && G.psTapK !== k) { G.psTapK = k; return; }   // tablet: il primo tocco mostra solo il dettaglio
+      G.psTapK = null; G.psPop = k; }
+    drawProg(); };
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
 }
 function psRefreshSide(G, w){ clearTimeout(G.psT); G.psT = setTimeout(() => { if (S.prog === G) drawProg(); }, 700); }

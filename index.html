@@ -470,6 +470,8 @@ table.progt td.mt{white-space:nowrap;font-weight:700;text-align:right;font-varia
 .pspop{position:absolute;z-index:6;width:230px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12px}
 .pspop .row{display:flex;flex-wrap:wrap;gap:4px}
 #ps-chart .sband.gh{stroke-dasharray:4 3}
+#ps-chart .styp.rt{fill:var(--faint);font-weight:600}
+#ps-chart .styp.rt.diff{fill:var(--warn);font-weight:800}
 .psvol{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;font-size:12.5px}
 .psvol .lbl{margin-right:2px}
 .psvol .pv{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 10px;font-variant-numeric:tabular-nums}
@@ -2449,18 +2451,18 @@ function psSeq(G, w){
     for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], ds = D.sets[x.id] || [], st = ds[j], r = refs[x.id];
       if (j >= lenOf(i)) return;
       const ghost = !st;   // serie presente solo nel riferimento: non programmata qui
-      const q = !r.R0 ? null : ghost ? (r.R0.kind === "pat" ? r.extra[j - ds.length] : r.own[j]) : pickRef(r.own, st, j);
+      const q = !r.R0 ? null : ghost ? (r.R0.kind === "pat" ? r.extra[j - ds.length] : r.own[j]) : (r.own[j] || null);   // stessa posizione: serie 3 contro serie 3 del riferimento
       if (ghost && !q) return;
       const info = refInfoOf(r.R0, q);
       if (ghost) {   // serie del riferimento non coperta: resta "sua" (nome, parametro e scala dell'esercizio di allora), in una banda a parte
         const qx = {cols: q.cols || []}, gp = G.sm === "auto" ? psPrimary(qx, [q.r]) : ((q.cols || []).includes(G.sm) || (G.sm === "rpe" && (q.cols || []).some(c => c === "rir")) ? G.sm : null);
         out.push({x, j, lab: L[i], band: "rif:" + q.name, name: q.name, st: null, ghost, gtype: q.s?.type || "", p: gp, dk: G.sm === "auto" ? "rif:" + q.name : "all",
-          ref: q.r, refInfo: info, refOk: true, cmpX: qx, exec: null}); return; }
+          ref: q.r, rtype: q.s?.type || "", refInfo: info, refOk: true, cmpX: qx, exec: null}); return; }
       const name = exName(w, x); if (!order.includes(name)) order.push(name);
       const altQ = r.alt ? (r.alt.kind === "ex" ? pickRef(r.alt.sets, st, j) : null) : null;
       const p = G.sm === "auto" ? psPrimary(x, ds) : (psHas(G.sm, x) ? G.sm : null);
       const other = !!q && !sameName(q.name, x.name);   // copre una serie di un altro esercizio dello stesso pattern
-      out.push({x, j, lab: L[i], band: L[i].charAt(0), name, st, ghost, old: (x.sets || [])[j], p, dk: G.sm === "auto" ? name : "all", cover: other,
+      out.push({x, j, lab: L[i], band: L[i].charAt(0), name, st, ghost, rtype: q ? (q.s?.type || "") : null, old: (x.sets || [])[j], p, dk: G.sm === "auto" ? name : "all", cover: other,
         ref: q?.r || null, refInfo: info, refOk: !!q && !(other && ["kg", "pct"].includes(p)), alt: altQ?.r || null, altInfo: altQ ? refInfoOf(r.alt, altQ) : null, exec: (res[x.id] || [])[j]}); }); });
   return {seq: out, order};
 }
@@ -2500,6 +2502,7 @@ function drawProgSess(G, a){
           <span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--faint);stroke-width:2;stroke-dasharray:4 3"/><circle cx="11" cy="5" r="3.5" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>Riferimento reale: ${(G.psRef || "pat") === "pat" ? "la stessa serie nella seduta più recente dello stesso pattern" : "la stessa serie l'ultima volta che ha fatto l'esercizio"}</span>
           <span><svg width="24" height="24"><circle cx="12" cy="12" r="10" style="fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 2"/><circle cx="12" cy="12" r="5.5" fill="var(--muted)"/></svg>Copre una serie del riferimento fatta con un altro esercizio dello stesso pattern</span>
           <span><svg width="14" height="14"><circle cx="7" cy="7" r="5" style="fill:var(--surface);stroke:var(--muted);stroke-width:1.5;stroke-dasharray:2 2"/></svg>Serie del riferimento non coperte (restano dell'esercizio di allora)</span>
+          <span><b style="font-size:10px;color:var(--muted)">prog. / rif.</b><span>tipo di serie programmato e del riferimento nella stessa posizione · in arancione quando è diverso</span></span>
           ${done ? `<span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--muted);stroke-width:2"/><circle cx="11" cy="5" r="4" fill="var(--muted)"/></svg>Eseguito (colore = esercizio)</span>` : ""}
           ${editable ? `<span class="faint">Clic su un punto: tipo di serie, duplica, elimina · frecce ↑↓ da tastiera: uno scatto</span>` : ""}</div>
         ${psVolHtml(G, w)}
@@ -2532,7 +2535,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
   doms = doms || psDomains(G, seq, done); G.psDoms = doms;
   const val = (o, which) => !o.p ? null : which === "ref" ? (o.refOk ? psGet(o.p, o.x, o.ref) : null) : which === "exec" ? (done ? psGet(o.p, o.x, o.exec) : null) : psGet(o.p, o.x, o.st);
   const cur = seq.map(o => val(o, "cur")), ref = seq.map(o => val(o, "ref")), ex = seq.map(o => val(o, "exec"));
-  const W = Math.max(560, el.clientWidth || 800), H = 300, pl = auto ? 16 : 44, pr = 12, pt = 30, pb = 58, iw = W - pl - pr, ih = H - pt - pb;
+  const W = Math.max(560, el.clientWidth || 800), H = 316, pl = auto ? 30 : 44, pr = 12, pt = 30, pb = 74, iw = W - pl - pr, ih = H - pt - pb;
   const band = iw / seq.length, X = k => pl + band * k + band / 2;
   const Y = (v, k) => { const d = doms[seq[k].dk] || {lo: 0, hi: 1}; return pt + ih - (v - d.lo) / ((d.hi - d.lo) || 1) * ih; };
   G.psGeo = {pt, ih};
@@ -2548,7 +2551,9 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
   // bande dei blocchi, con il parametro mostrato
   const runs = []; seq.forEach((o, k) => { const r = runs[runs.length - 1]; const grp = o.band; if (r && r.grp === grp) r.to = k; else runs.push({grp, from: k, to: k, names: [], ghost: o.ghost}); const rr = runs[runs.length - 1]; const nm = `${o.name}${auto && o.p ? ` (${psUnit(o.p)})` : ""}`; if (!rr.names.includes(nm)) rr.names.push(nm); });
   runs.forEach(r => { const x1 = X(r.from) - band/2 + 4, x2 = X(r.to) + band/2 - 4; let t = r.ghost ? `rif. ${r.names.join(" + ")} · non coperte` : `${r.grp} · ${r.names.join(" + ")}`; const mx = Math.floor((x2 - x1) / 6.3); if (t.length > mx) t = mx > 3 ? t.slice(0, mx - 1) + "…" : r.grp;
-    svg += `<line class="sband ${r.ghost ? "gh" : ""}" x1="${x1}" x2="${x2}" y1="${pt+ih+30}" y2="${pt+ih+30}"/><g class="axis"><text x="${x1}" y="${pt+ih+46}" ${r.ghost ? `style="font-style:italic"` : ""}>${esc(t)}</text></g>`; });
+    svg += `<line class="sband ${r.ghost ? "gh" : ""}" x1="${x1}" x2="${x2}" y1="${pt+ih+46}" y2="${pt+ih+46}"/><g class="axis"><text x="${x1}" y="${pt+ih+62}" ${r.ghost ? `style="font-style:italic"` : ""}>${esc(t)}</text></g>`; });
+  // due righe di lettere: tipo di serie programmato e tipo della serie del riferimento nella stessa posizione
+  svg += `<g class="axis"><text x="2" y="${pt+ih+17}" style="font-size:9px">prog.</text><text x="2" y="${pt+ih+32}" style="font-size:9px">rif.</text></g>`;
   svg += path(ref, "psref") + (done ? path(cur, "psplan") + path(ex, "psexec") : path(cur, editable ? "pscur" : "psplan"));
   seq.forEach((o, k) => { const c = exColor(order, o.name), has = !!o.p;
     if (ref[k] != null) svg += `<circle class="psrefd ${o.refInfo?.kind === "pat" ? "pat" : ""}" cx="${X(k)}" cy="${Y(ref[k], k)}" r="3.5"/>`;
@@ -2563,7 +2568,10 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
       <circle cx="${X(k)}" cy="${Y(v, k)}" r="${cur[k] == null ? 4 : 6.5}" style="fill:${cur[k] == null ? "var(--surface)" : c};stroke:${cur[k] == null ? c : chg ? "var(--s2)" : "var(--surface)"};stroke-width:${chg ? 3 : 2}"/></g>
       ${cur[k] != null && (auto || chg || G.psDrag === k) ? `<text class="vlab ${chg ? "chg" : ""}" x="${X(k)}" y="${Y(cur[k], k) - 12}" text-anchor="middle">${fmt1(cur[k])}</text>` : ""}`; }
     else svg += `<text x="${X(k)}" y="${pt + ih - 4}" text-anchor="middle" style="font-size:10px;fill:var(--faint)" title="Questo esercizio non ha ${esc(M.l)}">–</text>`;
-    const ty = o.ghost ? o.gtype : o.st.type; svg += `<text class="styp" x="${X(k)}" y="${pt+ih+17}" text-anchor="middle" style="fill:${o.ghost ? "var(--faint)" : ty === "W" ? "var(--ink)" : "var(--muted)"}">${ty || ""}</text>`; });
+    const ty = o.ghost ? "" : (o.st.type || ""), rt = o.ghost ? o.gtype : o.rtype;
+    svg += `<text class="styp" x="${X(k)}" y="${pt+ih+17}" text-anchor="middle" style="fill:${ty === "W" ? "var(--ink)" : "var(--muted)"}">${ty || (o.ghost ? "" : "·")}</text>`;
+    if (rt != null) { const diff = !o.ghost && rt !== ty;   // tipo diverso da quello del riferimento in quella posizione
+      svg += `<text class="styp rt ${diff ? "diff" : ""}" x="${X(k)}" y="${pt+ih+32}" text-anchor="middle">${rt || "·"}</text>`; } });
   const popK = G.psPop; const popY = popK != null && seq[popK] ? Y(cur[popK] ?? (doms[seq[popK].dk]?.lo ?? 0), popK) : 0;
   el.innerHTML = svg + `</svg><div class="ctip" hidden></div>${popK != null && seq[popK] ? psPopHtml(popK, seq[popK], X(popK), popY, W) : ""}`;
   // passaggio del mouse (o primo tocco su tablet): dettaglio della serie
@@ -2581,7 +2589,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     g.addEventListener("pointerenter", pe => { if (G.psDrag != null || G.psPop != null) return; const line = (cls, t) => { const d = document.createElement("div"); d.className = cls; d.textContent = t; return d; };
       tip.replaceChildren(line("tv", `${o.lab} ${o.name} · serie ${o.j + 1}${o.st.type ? " · " + SET_TYPES[o.st.type].s : ""}`), line("tl", `Programma: ${resultLine(o.st, o.x.cols || []) || "–"}`));
       if (o.old && JSON.stringify(o.old) !== JSON.stringify(o.st)) tip.append(line("tl", `Prima: ${resultLine(o.old, o.x.cols || []) || "–"}`));
-      const refTxt = (r, I) => I.kind === "ex" ? `Stesso esercizio · ${fmtD(I.date)}: ${resultLine(r, I.x.cols || []) || "✓"}` : `Più recente, pattern ${I.pat} · ${I.name} ${fmtD(I.date)}: ${resultLine(r, I.x.cols || []) || "✓"}`;
+      const refTxt = (r, I) => (I.kind === "ex" ? `Stesso esercizio · ${fmtD(I.date)}: ` : `Più recente, pattern ${I.pat} · ${I.name} ${fmtD(I.date)}: `) + (resultLine(r, I.x.cols || []) || "✓") + (r === o.ref && o.rtype ? ` · ${SET_TYPES[o.rtype].s}` : r === o.ref && o.rtype === "" ? " · senza tipo" : "");
       if (o.ref) tip.append(line("tl", (o.cover ? "Copre la serie del riferimento · " : "▸ ") + refTxt(o.ref, o.refInfo) + (o.refOk ? "" : " (kg di un altro esercizio: non in grafico)")));
       if (o.alt && !(o.altInfo.date === o.refInfo?.date && sameName(o.altInfo.name, o.refInfo?.name))) tip.append(line("tl", "   " + refTxt(o.alt, o.altInfo)));
       if (done && o.exec) tip.append(line("tl", `Eseguito: ${resultLine(o.exec, o.x.cols || []) || "✓"}`));

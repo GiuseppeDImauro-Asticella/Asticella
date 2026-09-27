@@ -340,7 +340,18 @@ button.done-box:hover .fix{color:var(--ink)}
 .aex .sub + .sub{border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
 .aex .h .n{font-weight:700;font-size:16px;flex:1}
 .aex .info{font-size:13px;color:var(--muted);white-space:pre-wrap}
-.aex .prev{font-size:12px;color:var(--faint)}
+.aex .histbtn{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--ink)}
+.aex .histrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px}
+.aex .histbtn .arr{font-size:15px;line-height:1;margin-left:2px;color:var(--muted)}
+.hsess{display:flex;flex-direction:column;gap:6px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.hsess:last-of-type{border-bottom:0}
+.hsess .hh{display:flex;flex-direction:column}
+.hsess .hh b{font-size:14px}
+.hsess .hh span{font-size:12px;color:var(--muted)}
+table.ht{border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+table.ht th{font-size:11px;font-weight:600;color:var(--muted);text-align:left;padding:2px 12px 4px 0;white-space:nowrap}
+table.ht td{padding:3px 12px 3px 0;white-space:nowrap}
+table.ht td.n{color:var(--muted);font-weight:600}
 .aex a{color:var(--accent);font-size:13px;font-weight:600}
 /* video dentro l'app */
 .aex .vbtn{align-self:flex-start;border:0;background:none;padding:0;color:var(--accent);font-size:13px;font-weight:600}
@@ -2151,13 +2162,37 @@ function renderAthlete(){
       : `<div class="empty"><b>Riposo</b><br>Nessun allenamento in programma.${next?`<br><br>Prossimo: <button class="btn sm" data-act="a-day" data-d="${next.date}">${esc(fmtLong(next.date))} · ${esc(next.title)}</button>`:""}</div>`}</div>
   </div>`;
 }
-function previousFor(name, before){
-  const key = (name||"").trim().toLowerCase();
-  const ws = Object.values(S.cache[S.user.email]||{}).filter(w => w.date < before && w.results).sort((a,b)=>b.date.localeCompare(a.date));
-  for (const w of ws){ const x = (w.exercises||[]).find(x => (exName(w, x)||"").trim().toLowerCase() === key); const r = x && w.results[x.id];
-    if (r && r.some(s => s.done)) return {date: w.date, cols: x.cols, res: r.filter(s => s.done)}; }
-  return null;
+/* cronologia di un esercizio: le ultime volte che l'atleta l'ha registrato (anche se l'aveva fatto al posto di un altro) */
+function historyFor(name, cur, limit = 8){
+  const out = [];
+  const ws = Object.values(S.cache[S.user.email] || {}).filter(w => w.id !== cur.id && w.results && effDate(w) <= effDate(cur))
+    .sort((a, b) => effDate(b).localeCompare(effDate(a)) || (b.completedAt || "").localeCompare(a.completedAt || ""));
+  for (const w of ws) { if (out.length >= limit) break;
+    const x = (w.exercises || []).find(x => sameName(exName(w, x), name)); const r = x && (w.results[x.id] || []);
+    const sets = (r || []).map((rr, j) => ({r: rr, type: x.sets[j]?.type || "", extra: j >= x.sets.length})).filter(o => o.r.done || !emptyRes(o.r));
+    if (sets.length) out.push({w, x, date: effDate(w), sets, swapped: !!swapOf(w, x)}); }
+  return out;
 }
+let histOpen = null;
+async function histSheet(xid){
+  const w = athleteWorkout(); const x = w?.exercises?.find(e => e.id === xid); if (!x) return;
+  const name = exName(w, x); histOpen = xid;
+  const draw = loading => { if (histOpen !== xid) return;
+    const H = historyFor(name, w);
+    const body = H.map(h => { const cols = (h.x.cols || []).filter(c => COLS[c].log && h.sets.some(o => o.r[c]));
+      return `<div class="hsess"><div class="hh"><b>${esc(fmtLong(h.date))}</b><span>${esc(h.w.title || "Allenamento")}${h.swapped ? " · al posto di " + esc(h.x.name) : ""}</span></div>
+        ${cols.length ? `<div class="scroll-x"><table class="ht"><thead><tr><th></th>${cols.map(c => `<th>${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}</tr></thead><tbody>
+          ${h.sets.map((o, k) => `<tr><td class="n">${o.extra ? "+" : k + 1}${o.type ? " " + typeBadge(o.type) : ""}</td>${cols.map(c => `<td>${o.r[c] ? esc(o.r[c]) : "–"}</td>`).join("")}</tr>`).join("")}
+        </tbody></table></div>` : `<div class="faint" style="font-size:13px">${h.sets.length} serie fatte ✓</div>`}</div>`; }).join("");
+    $("#modal").innerHTML = `<div class="back" style="align-items:flex-end;padding:0" data-act="modal-back"><div class="modal sm" style="margin:0;border-radius:18px 18px 0 0;max-width:560px;max-height:85dvh;padding-bottom:env(safe-area-inset-bottom,0px)">
+      <header><h2>Cronologia · ${esc(name)}</h2><button type="button" class="btn ghost icon" data-act="hist-close" aria-label="Chiudi">✕</button></header>
+      <div class="body">${body || (loading ? "" : `<div class="muted" style="font-size:14px">Non hai ancora registrato questo esercizio negli ultimi 6 mesi.</div>`)}
+        ${loading ? `<div class="faint" style="font-size:12px">Cerco anche le settimane più vecchie…</div>` : H.length >= 8 ? `<div class="faint" style="font-size:12px">Ultime 8 volte.</div>` : ""}</div></div></div>`; };
+  draw(true);
+  try { await ensureWeeks(S.user.email, addDays(monday(TODAY()), -7 * 26), 27); } catch(e) { console.error(e); }
+  draw(false);
+}
+function closeHist(){ histOpen = null; $("#modal").innerHTML = ""; }
 function renderWorkout(){
   const e = S.user.email, w = S.cache[e]?.[S.ath.open];
   if (!w) { S.ath.open = null; return renderAthlete(); }
@@ -2183,7 +2218,7 @@ function athExHtml(w, x, label, res){
   const n = Math.max(x.sets.length, r.length);
   const sw = swapOf(w, x), name = exName(w, x);
   const lib = libByName(name);
-  const prev = previousFor(name, w.date);
+  const last = historyFor(name, w, 1)[0];
   const cell = (c, j, s, rr) => {
     if (!COLS[c].log) return `<td><div class="ro" title="Indicazione del coach: non va compilata">${esc(s[c] || "–")}</div></td>`;
     if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
@@ -2203,7 +2238,7 @@ function athExHtml(w, x, label, res){
         return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${x.cols.map(c => cell(c, j, s, rr)).join("")}
           <td class="ckc"><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}
     </tbody></table></div>${infoCols.length ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
-    ${prev ? `<div class="prev">Ultima volta (${fmtD(prev.date)}): ${esc(prev.res.map(s => resultLine(s, prev.cols)).filter(Boolean).join("  ·  ") || "fatto")}</div>` : ""}
+    <div class="histrow"><button class="histbtn" data-act="a-hist" data-x="${x.id}">Vedi cronologia <span class="arr" aria-hidden="true">›</span></button>${last ? `<span class="faint">ultima volta ${esc(fmtD(last.date))}</span>` : ""}</div>
   </div>`;
 }
 function athleteWorkout(){ return S.user ? S.cache[S.user.email]?.[S.ath.open] : null; }
@@ -2427,6 +2462,9 @@ const ACT = {
   async "swap-undo"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const sw = {...(S.editor.w.swaps||{})}; delete sw[x.id]; await saveCoachFix({swaps: sw}); },
   /* atleta */
   "a-swap"(t){ swapSheet(t.dataset.x); },
+  "a-hist"(t){ histSheet(t.dataset.x); },
+  "hist-close"(){ closeHist(); },
+  "modal-back"(t, e){ if (e.target === t) closeHist(); },
   video(t){ openVideo(t.dataset.u, t.dataset.t); },
   "video-full"(){ toggleVideoFull(); },
   "video-close"(t, e){ if (e && t.classList.contains("vback") && e.target !== t) return; closeVideo(); },

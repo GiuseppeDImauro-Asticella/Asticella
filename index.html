@@ -174,6 +174,15 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .mesochip{display:inline-block;margin-top:6px;padding:5px 10px;border-radius:8px;background:color-mix(in srgb,var(--mc) 14%,var(--surface));border-left:3px solid var(--mc);font-size:13px}
 .mesochip b{color:var(--mc);white-space:nowrap;margin-right:8px}
 .cal .cell.drop{background:var(--accent-soft)}
+.cal .cell.drop.cp{background:color-mix(in srgb,var(--ok) 14%,var(--surface));outline:2px dashed var(--ok);outline-offset:-3px}
+.wcard.sel{outline:2.5px solid var(--accent);outline-offset:1px;box-shadow:0 0 0 5px var(--accent-soft)}
+.calsel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12px;color:var(--muted);margin:0 0 8px;min-height:30px}
+.calsel.on{background:var(--accent-soft);color:var(--ink);border-radius:8px;padding:4px 6px 4px 12px}
+.calsel.on span{color:var(--muted)}
+.calsel kbd{font-family:inherit;font-size:11px;font-weight:700;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--surface)}
+.lasso{position:fixed;z-index:40;border:1.5px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:4px;pointer-events:none}
+body.nosel{user-select:none}
+@media (hover:none){.calsel:not(.on){display:none}}
 .cal .cell.past{background:color-mix(in srgb,var(--surface2) 40%,var(--surface))}
 .cal .dh{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);font-weight:600}
 .cal .dh .d{font-variant-numeric:tabular-nums}
@@ -987,7 +996,7 @@ const S = {
   view: "overview",
   athletes: [], exercises: [], templates: [], tplQuery: "", params: [],
   ws: monday(TODAY()),   // settimana di riferimento (lunedì)
-  calAthlete: null, calWeeks: (() => { try { return +localStorage.getItem("asticella-weeks") || 4; } catch(e) { return 4; } })(),
+  calAthlete: null, calSel: new Set(), calWeeks: (() => { try { return +localStorage.getItem("asticella-weeks") || 4; } catch(e) { return 4; } })(),
   group: "Tutti",
   cache: {}, loaded: {},  // cache[email][id] = workout ; loaded[email] = Set(lunedì caricati)
   editor: null, athEdit: null, exEdit: null, exQuery: "",
@@ -1347,11 +1356,13 @@ function drawCalendar(){
         ${wOn(a.email, d).map(w => cardHtml(a.email, w)).join("")}</div>`;
     }
   }
-  $("#calwrap").innerHTML = html + `</div>`;
+  const nSel = [...S.calSel].filter(id => S.cache[a.email]?.[id]).length;
+  $("#calwrap").innerHTML = `<div class="calsel ${nSel ? "on" : ""}">${nSel ? `<b>${nSel} allenament${nSel === 1 ? "o" : "i"} selezionat${nSel === 1 ? "o" : "i"}</b><span>Trascinane uno per spostarli tutti · con <kbd>Ctrl</kbd> premuto li copi</span><button class="btn sm ghost" data-act="cal-unsel">Deseleziona</button>`
+    : `<span>Sul computer: <kbd>Ctrl</kbd> + trascina = copia · trascina su uno spazio vuoto per selezionare più allenamenti · <kbd>Ctrl</kbd> + clic per aggiungerne uno</span>`}</div>` + html + `</div>`;
 }
 function cardHtml(email, w){
   const st = statusOf(w);
-  return `<div class="wcard st-${st}" draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
+  return `<div class="wcard st-${st} ${S.calSel.has(w.id) ? "sel" : ""}" draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <div class="t"><span class="dot st-${st}"></span>${esc(w.title||"Senza titolo")}</div>
     <div class="kindt" title="Tipo di seduta${KINDS[w.kind] ? "" : " (dedotto dagli esercizi: sceglilo nell'allenamento)"}">${KINDS[kindOf(w)].l}${KINDS[w.kind] ? "" : " ?"}</div>
     ${miniListHtml(w.exercises, w)}
@@ -2968,7 +2979,10 @@ const ACT = {
   "cal-week"(t){ const d = +t.dataset.d; S.ws = d ? addDays(S.ws, d) : monday(TODAY()); renderView(); },
   "cal-n"(t){ S.calWeeks = Math.min(16, Math.max(1, S.calWeeks + +t.dataset.d)); try { localStorage.setItem("asticella-weeks", S.calWeeks); } catch(e){} renderView(); },
   "open-cal"(t){ S.calAthlete = t.dataset.e; S.view = "calendar"; render(); },
-  "open-w"(t){ const w = S.cache[t.dataset.e]?.[t.dataset.id]; if (w) openEditor(t.dataset.e, w); },
+  "open-w"(t, e){ const w = S.cache[t.dataset.e]?.[t.dataset.id]; if (!w) return;
+    if (e && (e.ctrlKey || e.metaKey) && t.classList.contains("wcard")) { const id = w.id; S.calSel.has(id) ? S.calSel.delete(id) : S.calSel.add(id); drawCalendar(); return; }   // Ctrl + clic: seleziona
+    openEditor(t.dataset.e, w); },
+  "cal-unsel"(){ S.calSel.clear(); drawCalendar(); },
   "new-w"(t, ev){ ev.stopPropagation(); const w = {id: uid(), date: t.dataset.d, title:"", notes:"", exercises:[{...newExercise(), block:"A"}], status:"todo", results:{}}; openEditor(t.dataset.e, w, true); setTimeout(()=>$("#ed-title")?.focus(), 30); },
   "copy-week"(t){ const ws = t.dataset.ws; const a = athByEmail(S.calAthlete);
     const list = wIn(a.email, ws, addDays(ws,6));
@@ -3146,6 +3160,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && $("#vid").innerHTML) { closeVideo(); return; }
+  if (e.key === "Escape" && S.view === "calendar" && S.calSel.size && !$("#modal").innerHTML) { S.calSel.clear(); drawCalendar(); return; }
   if (e.key === "Enter" && e.target.matches(".wcard")) ACT["open-w"](e.target, e);
   if (S.editor && e.key === "Escape" && !$("#confirm").innerHTML) closeEditor();
   if (S.editor && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveEditor(); }
@@ -3174,7 +3189,7 @@ document.addEventListener("change", async e => {
   if (k === "pg-edit") { const sets = pgManualSets(t.dataset.w, t.dataset.x); sets[+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "an-who") { anQ.who = t.value; anQ.sess = null; return renderView(); }
   if (k === "an-sess") { anQ.sess = t.value; return redrawSess(); }
-  if (k === "cal-ath") { S.calAthlete = t.value; return renderView(); }
+  if (k === "cal-ath") { S.calAthlete = t.value; S.calSel.clear(); return renderView(); }
   if (k === "d-q") { dataQ.from = $("#d-from").value || dataQ.from; dataQ.to = $("#d-to").value || dataQ.to; dataQ.who = $("#d-who").value; return renderView(); }
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;
     if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }
@@ -3192,12 +3207,43 @@ document.addEventListener("change", async e => {
     setTimeout(() => { if (S.editor) { const f = document.activeElement?.dataset?.bind; drawEditor(); if (f) document.querySelector(`[data-bind="${f}"]`)?.focus(); } }, 0); }
 });
 /* drag & drop nel calendario */
-document.addEventListener("dragstart", e => { const c = e.target.closest?.("[data-drag]"); if (!c) return; e.dataTransfer.setData("text/plain", c.dataset.drag); e.dataTransfer.effectAllowed = "move"; });
-document.addEventListener("dragover", e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault(); document.querySelectorAll(".cell.drop").forEach(x => x !== c && x.classList.remove("drop")); c.classList.add("drop"); });
+/* trascinando uno degli allenamenti selezionati si spostano (o con Ctrl si copiano) tutti, mantenendo la distanza tra i giorni */
+const copyKey = e => e.ctrlKey || e.metaKey || e.altKey;
+document.addEventListener("dragstart", e => { const c = e.target.closest?.("[data-drag]"); if (!c) return; const id = c.dataset.drag;
+  const ids = S.calSel.has(id) ? [...S.calSel] : [id];
+  e.dataTransfer.setData("text/plain", JSON.stringify({from: id, ids})); e.dataTransfer.effectAllowed = "copyMove"; });
+document.addEventListener("dragover", e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault();
+  e.dataTransfer.dropEffect = copyKey(e) ? "copy" : "move";
+  document.querySelectorAll(".cell.drop").forEach(x => x !== c && x.classList.remove("drop", "cp")); c.classList.add("drop"); c.classList.toggle("cp", copyKey(e)); });
 document.addEventListener("dragleave", e => { const c = e.target.closest?.("[data-drop]"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("drop"); });
-document.addEventListener("drop", async e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault(); c.classList.remove("drop");
-  const id = e.dataTransfer.getData("text/plain"); const em = S.calAthlete; const w = S.cache[em]?.[id]; if (!w || effDate(w) === c.dataset.drop) return;
-  w.date = c.dataset.drop; w.doneDate = null; w.updatedAt = new Date().toISOString(); drawCalendar(); await DB.saveWorkout(em, w); toast(`Spostato a ${fmtLong(w.date)}`); });
+document.addEventListener("drop", async e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault(); c.classList.remove("drop", "cp");
+  let data; try { data = JSON.parse(e.dataTransfer.getData("text/plain")); } catch(err) { data = {from: e.dataTransfer.getData("text/plain")}; }
+  const em = S.calAthlete, anchor = S.cache[em]?.[data.from]; if (!anchor) return;
+  const list = (data.ids || [data.from]).map(id => S.cache[em]?.[id]).filter(Boolean);
+  const delta = daysBetween(effDate(anchor), c.dataset.drop), copy = copyKey(e);
+  if (copy) {
+    const made = []; for (const w of list) { const nw = freshCopy(w, addDays(effDate(w), delta)); await DB.createWorkout(em, nw); (S.cache[em] ??= {})[nw.id] = nw; made.push(nw.id); }
+    S.calSel = new Set(made.length > 1 ? made : []); drawCalendar();
+    toast(list.length === 1 ? `Copiato a ${fmtLong(addDays(effDate(anchor), delta))}` : `${list.length} allenamenti copiati`); return; }
+  if (!delta) return;
+  list.forEach(w => { w.date = addDays(effDate(w), delta); w.doneDate = null; w.updatedAt = new Date().toISOString(); });
+  drawCalendar(); for (const w of list) await DB.saveWorkout(em, w);
+  toast(list.length === 1 ? `Spostato a ${fmtLong(anchor.date)}` : `${list.length} allenamenti spostati`); });
+/* selezione a riquadro: tieni premuto il tasto sinistro su uno spazio vuoto del calendario e trascina */
+document.addEventListener("mousedown", e => {
+  const wrap = e.target.closest?.("#calwrap"); if (!wrap || e.button !== 0 || e.target.closest(".wcard, button, a, input, select, .mband")) return;
+  const x0 = e.clientX, y0 = e.clientY, keep = copyKey(e) ? new Set(S.calSel) : new Set(); let box = null, moved = false;
+  const cards = [...wrap.querySelectorAll(".wcard")].map(el => ({el, id: el.dataset.id}));
+  const move = ev => { if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return; moved = true; ev.preventDefault();
+    if (!box) { box = document.createElement("div"); box.className = "lasso"; document.body.appendChild(box); document.body.classList.add("nosel"); }
+    const l = Math.min(x0, ev.clientX), t = Math.min(y0, ev.clientY), r = Math.max(x0, ev.clientX), b = Math.max(y0, ev.clientY);
+    Object.assign(box.style, {left: l + "px", top: t + "px", width: (r - l) + "px", height: (b - t) + "px"});
+    cards.forEach(c => { const q = c.el.getBoundingClientRect(); const hit = q.left < r && q.right > l && q.top < b && q.bottom > t; c.el.classList.toggle("sel", hit || keep.has(c.id)); }); };
+  const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); box?.remove(); document.body.classList.remove("nosel");
+    if (moved) { S.calSel = new Set([...keep, ...cards.filter(c => c.el.classList.contains("sel")).map(c => c.id)]); drawCalendar(); }
+    else if (S.calSel.size) { S.calSel.clear(); drawCalendar(); } };
+  window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+});
 /* ---------- aggiornamento dati: tira giù, pulsante, ritorno nell'app ---------- */
 let refreshing = false, lastRefresh = Date.now();
 async function refreshData(silent=false){

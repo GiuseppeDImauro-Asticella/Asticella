@@ -232,6 +232,7 @@ table.list{width:100%;border-collapse:collapse}
 .modal.sm{max-width:460px;background:var(--surface)}
 .modal header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
 .modal header h2{flex:1}
+.modal.pgm header h2{flex:0 1 auto}
 .modal .body{padding:16px 18px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;min-height:0;flex:1}
 .modal footer{display:flex;gap:8px;align-items:center;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap;background:inherit;border-radius:0 0 14px 14px}
 .dirty{font-size:12px;color:var(--warn);font-weight:600}
@@ -406,6 +407,71 @@ table.progt td.mt{white-space:nowrap;font-weight:700;text-align:right;font-varia
 .progt .pex > div:first-child{font-size:12px;margin-bottom:3px}
 .prog-f{display:flex;align-items:center;gap:8px;padding:6px 12px 8px;border-top:1px solid var(--line);flex-wrap:wrap}
 .prog-f .leg{font-size:11px}
+/* vista progressione */
+.modal.pgm{max-width:1400px;height:calc(100dvh - 24px);max-height:none}
+.pgbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--line)}
+.pgbar .lbl{margin-right:4px}
+.pgv{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:0;flex:1}
+.pgl{border-right:1px solid var(--line);overflow-y:auto;padding:8px}
+.pgp{margin-bottom:10px}
+.pgpat{display:block;width:100%;text-align:left;border:0;background:none;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-radius:6px}
+.pgpat:not([disabled]):hover,.pgex:hover{background:var(--surface2)}
+.pgex{display:flex;justify-content:space-between;width:100%;text-align:left;border:0;background:none;font-size:13.5px;padding:6px 8px 6px 14px;border-radius:6px}
+.pgex span{color:var(--faint);font-size:12px}
+.pgpat.on,.pgex.on{background:var(--accent-soft);color:var(--accent)}
+.pgmain{overflow-y:auto;padding:14px 18px;min-width:0}
+.pgtitle{font-size:16px;margin-bottom:8px}
+#pg-chart .pgplan{fill:none;stroke:var(--faint);stroke-width:2;stroke-dasharray:5 4}
+#pg-chart .pgexec{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round}
+#pg-chart .pgdraft{fill:none;stroke:var(--s2);stroke-width:2.5;stroke-linejoin:round}
+#pg-chart .pgpd{fill:var(--surface);stroke:var(--faint);stroke-width:2}
+#pg-chart .pgxd{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+#pg-chart .pgdd{fill:var(--surface);stroke:var(--s2);stroke-width:2.5}
+.pgtools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px}
+.pgtools label{display:inline-flex;align-items:center;gap:6px}
+.pgtools select{width:auto;padding:4px 8px}
+.pgcols{display:flex;gap:8px;overflow-x:auto;margin-top:12px;padding-bottom:6px}
+.pgc{flex:0 0 190px;border:1px solid var(--line);border-top:3px solid var(--mc);border-radius:8px;background:var(--surface);padding:8px;font-size:12px;display:flex;flex-direction:column;gap:6px}
+.pgc.done{background:color-mix(in srgb,var(--ok) 5%,var(--surface))}
+.pgch{display:flex;justify-content:space-between;align-items:baseline}.pgch span{color:var(--muted);font-size:11px}
+.pgx .pl{color:var(--muted);font-size:11.5px;margin-bottom:3px}
+.pgxn{font-weight:700;font-size:12px}
+.pgx.dim .exs{opacity:.5}.pgx .swx{color:var(--warn);font-size:11px}
+.pgx .exs{display:flex;flex-wrap:wrap;gap:3px}
+.pgdr{color:var(--s2);font-weight:600;border-top:1px dashed var(--line);padding-top:5px}
+.pgc.chg{border-color:var(--s2);border-top-color:var(--s2)}
+.pgsess{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:7px 8px;border-radius:6px;font-size:13px}
+.pgsess:hover{background:var(--surface2)}.pgsess.on{background:var(--accent-soft)}
+.pgsess .dot{margin-top:5px;flex:none}
+.pgsess small{display:block;font-size:11px;color:var(--muted)}
+#ps-chart{position:relative}
+#ps-chart svg{touch-action:none}
+#ps-chart .pscur{fill:none;stroke:var(--muted);stroke-width:2;stroke-linejoin:round}
+#ps-chart .psplan{fill:none;stroke:var(--faint);stroke-width:2;stroke-dasharray:5 4}
+#ps-chart .psexec{fill:none;stroke:var(--muted);stroke-width:2;stroke-linejoin:round}
+#ps-chart .psref{fill:none;stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3}
+#ps-chart .psrefd{fill:var(--surface);stroke:var(--faint);stroke-width:1.5}
+#ps-chart .psrefd.pat{stroke-dasharray:2 2}
+#ps-chart .vlab.chg{fill:var(--s2)}
+#ps-chart .hitc{fill:transparent}
+#ps-chart .psdot.ed{cursor:ns-resize;outline:none}
+#ps-chart .psdot.ed:focus-visible .hitc{stroke:var(--accent);stroke-width:2}
+#ps-chart .vlab{fill:var(--ink);font-size:11px;font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:3px}
+.pspop{position:absolute;z-index:6;width:230px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;font-size:12px}
+.pspop .row{display:flex;flex-wrap:wrap;gap:4px}
+.pscards{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pscards .pgc{flex:0 1 250px}
+@media (max-width:760px){.pgv{grid-template-columns:minmax(0,1fr);overflow-y:auto}.pgl{max-height:170px;border-right:0;border-bottom:1px solid var(--line)}.pgmain{overflow:visible}.modal.pgm{height:auto;min-height:calc(100dvh - 24px)}}
+.pgtools{flex-direction:column;align-items:stretch}
+.pgtools .row1{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.tchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 10px 3px 5px;font-size:12px;font-weight:600;color:var(--muted)}
+.tchip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.pgedit{display:flex;flex-direction:column;gap:3px}
+.pgset{display:flex;align-items:center;gap:3px}
+.pgset .tbtn{width:24px;height:22px}
+.pgset input{width:44px;min-width:0;border:1px solid var(--line);border-radius:5px;background:var(--surface2);padding:2px 4px;font-size:12px;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pgset input.chg{border-color:var(--s2);color:var(--s2);font-weight:700;background:var(--surface)}
+.pgsetb{display:flex;gap:4px;margin-top:2px}.pgsetb button{border:1px dashed var(--line);background:none;border-radius:5px;font-size:11px;padding:1px 6px;color:var(--muted)}
 /* cambio esercizio */
 .aex .h .swbtn{border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;flex:none;align-self:center}
 .aex .h .swbtn:hover{color:var(--ink);border-color:var(--faint)}
@@ -1255,6 +1321,7 @@ async function viewCalendar(m){
       <select class="in" id="cal-ath" data-change="cal-ath" style="width:auto">${ath.map(x => `<option value="${esc(x.email)}" ${x.email===a.email?"selected":""}>${esc(x.name)}</option>`).join("")}</select>
       ${weekNav("cal-week")}
       <button class="btn" data-act="meso-new">+ Mesociclo</button>
+      <button class="btn" data-act="pg-open" title="Come progrediscono gli esercizi nel periodo: previsto e fatto davvero">↗ Progressione</button>
       <span class="stepper" title="Settimane visibili"><button data-act="cal-n" data-d="-1" aria-label="Una settimana in meno" ${S.calWeeks<=1?"disabled":""}>−</button><span class="num" style="padding:0 8px">${S.calWeeks} sett.</span><button data-act="cal-n" data-d="1" aria-label="Una settimana in più" ${S.calWeeks>=16?"disabled":""}>+</button></span>
     </div></div><div class="scroll-x" id="calwrap"><div class="muted" style="padding:20px">Caricamento…</div></div>`;
   await ensureWeeks(a.email, S.ws, S.calWeeks);
@@ -2130,6 +2197,400 @@ function progHtml(x, i){
         <button type="button" class="btn sm" data-act="prog-use" data-i="${i}" title="Copia nelle serie quello che l'atleta ha fatto l'ultima volta (poi lo modifichi tu)">↺ Parti dall'ultima volta</button></div>` : ""}
   </div>`;
 }
+/* =====================================================================
+   PROGRESSIONE (vista del periodo): previsto e fatto davvero, esercizio per esercizio o per pattern
+   ===================================================================== */
+const PG_METRICS = {
+  kg:   {l: "Carico (kg)", u: "kg", step: [1, 2.5, 5], d: 2.5},
+  e1rm: {l: "Massimale stimato", u: "kg"},
+  sets: {l: "Serie", u: "", step: [1], d: 1},
+  reps: {l: "Ripetizioni", u: "", step: [1, 2], d: 1},
+  rpe:  {l: "RPE", u: "", step: [0.5, 1], d: 0.5},
+  hard: {l: "Serie allenanti", u: ""},
+  height: {l: "Altezza", u: "cm"},
+};
+const avgOf = a => a.length ? a.reduce((t, v) => t + v, 0) / a.length : null;
+/* valore di una metrica su un gruppo di serie (previste o eseguite) */
+function pgVal(metric, rows){
+  if (!rows.length) return null;
+  switch (metric) {
+    case "sets": return rows.length;
+    case "reps": { const v = rows.reduce((t, r) => t + (numv(r.reps) || 0), 0); return v || null; }
+    case "kg": { const v = rows.map(r => numv(r.kg)).filter(v => v != null); return v.length ? Math.max(...v) : null; }
+    case "rpe": return avgOf(rows.map(r => setRpe(r)?.v).filter(v => v != null));
+    case "e1rm": { const v = rows.map(e1rm).filter(v => v != null); return v.length ? Math.max(...v) : null; }
+    case "hard": { const k = rows.filter(r => isHard(r) != null); return k.length ? k.filter(isHard).length : null; }
+    case "height": { const v = rows.map(r => numv(r.height)).filter(v => v != null); return v.length ? Math.max(...v) : null; }
+  }
+  return null;
+}
+function pgMatch(sel){ if (sel.kind === "ex") return (w, x) => sameName(x.name, sel.key) || sameName(exName(w, x), sel.key);
+  return (w, x) => [x.name, exName(w, x)].some(n => libByName(n)?.pattern === sel.key); }
+function pgOccurrences(email, from, to, sel){
+  const m = pgMatch(sel), out = [];
+  wIn(email, from, to).forEach(w => { const xs = (w.exercises || []).filter(x => m(w, x)); if (!xs.length) return;
+    // nell'esercizio singolo, se l'atleta l'aveva cambiato con un altro, quello eseguito non conta (kg di un altro esercizio)
+    const counts = x => sel.kind === "pat" || sameName(exName(w, x), sel.key);
+    const exec = xs.filter(counts).flatMap(x => (w.results?.[x.id] || []).filter(r => r.done || !emptyRes(r)));
+    const plan = xs.flatMap(x => x.sets || []);
+    out.push({w, date: effDate(w), xs, plan, exec, done: w.status === "done" || exec.length > 0}); });
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+function pgMetricsFor(sel, occ){
+  const cols = new Set(occ.flatMap(o => o.xs.flatMap(x => x.cols || [])));
+  const list = [];
+  if (sel.kind === "ex" && cols.has("kg")) list.push("kg"); if (sel.kind === "ex" && cols.has("kg") && cols.has("reps")) list.push("e1rm");
+  if (sel.kind === "ex" && cols.has("height")) list.push("height");
+  list.push("sets"); if (cols.has("reps")) list.push("reps"); if (cols.has("rpe") || cols.has("rir")) list.push("rpe", "hard");
+  return list;
+}
+/* bozza della progressione: dal punto di partenza (ultimo eseguito o previsto) + passo a settimana; scarico = passo fermo */
+/* serie di riferimento (la seduta da cui parte la progressione): eseguite o previste, con il tipo di serie */
+function pgRef(o, sel, useExec){
+  for (const x of o.xs) {
+    if (sel.kind === "ex" && useExec && !sameName(exName(o.w, x), sel.key)) continue;
+    const rows = useExec ? (o.w.results?.[x.id] || []).map((r, j) => ({v: r, t: (x.sets[j] || {}).type || ""})).filter(q => q.v.done || !emptyRes(q.v))
+      : (x.sets || []).map(st => ({v: st, t: st.type || ""}));
+    if (rows.length) return rows; }
+  return null;
+}
+const numStr = v => String(Math.round(v * 100) / 100);
+/* applica la regola alle serie di una seduta futura: solo ai tipi di serie scelti; le altre restano come sono */
+function pgApplyRule(x, ref, metric, delta, types){
+  const sets = clone(x.sets || []); const inT = st => types.includes(st.type || "");
+  if (metric === "sets") {
+    const refN = ref.filter(q => types.includes(q.t)).length; if (!refN) return sets;
+    let cur = sets.filter(inT).length; const target = Math.max(1, refN + delta); if (!cur) return sets;
+    while (cur < target) { const idx = sets.map(inT).lastIndexOf(true); sets.splice(idx + 1, 0, clone(sets[idx])); cur++; }
+    while (cur > target) { const idx = sets.map(inT).lastIndexOf(true); sets.splice(idx, 1); cur--; }
+    return sets; }
+  const col = metric === "rpe" ? ((x.cols || []).includes("rpe") ? "rpe" : (x.cols || []).includes("rir") ? "rir" : null) : metric;
+  if (!col || !(x.cols || []).includes(col)) return sets;
+  sets.forEach((st, j) => { if (!inT(st)) return;
+    // riferimento: stessa posizione nella seduta di partenza se è dello stesso tipo, altrimenti l'ultima serie di quel tipo
+    const r = (ref[j] && ref[j].t === (st.type || "")) ? ref[j] : ref.slice().reverse().find(q => q.t === (st.type || "")) || ref[ref.length - 1];
+    const base = metric === "rpe" ? setRpe(r.v)?.v : numv(r.v[col]); if (base == null) return;
+    if (metric === "rpe") { const v = Math.min(10, Math.max(1, base + delta)); st[col] = numStr(col === "rir" ? Math.max(0, 10 - v) : v); }
+    else st[col] = numStr(Math.max(0, base + delta)); });
+  return sets;
+}
+/* bozza: per ogni seduta futura le serie nuove (regola) o quelle ritoccate a mano */
+function pgDraft(a, occ, G){
+  const metric = G.metric, P = G.P; if (!PG_METRICS[metric]?.step || !G.drafting) return {byW: {}};
+  const useExec = P.base === "exec";
+  const past = occ.filter(o => o.date <= TODAY());
+  const base = useExec ? past.filter(o => o.done).reverse().find(o => pgRef(o, G.sel, true)) : past.slice().reverse().find(o => pgRef(o, G.sel, false)) || occ.find(o => pgRef(o, G.sel, false));
+  if (!base) return {byW: {}};
+  const ref = pgRef(base, G.sel, useExec);
+  const out = {base, ref, bv: pgVal(metric, ref.filter(q => P.types.includes(q.t)).map(q => q.v)) ?? pgVal(metric, ref.map(q => q.v)), byW: {}};
+  let k = 0, lastWs = monday(base.date);
+  occ.filter(o => !o.done && o.date >= TODAY() && o.date > base.date).forEach(o => { const ws = monday(o.date);
+    const dl = /scaric|deload/i.test(`${mesoAt(a, o.date)?.name || ""} ${mesoAt(a, o.date)?.goal || ""}`);
+    if (ws !== lastWs) { if (!dl) k++; lastWs = ws; }   // settimana di scarico: il passo si ferma
+    const sets = {}; let manual = false;
+    o.xs.forEach(x => { const key = o.w.id + "|" + x.id; if (G.manual[key]) { sets[x.id] = clone(G.manual[key]); manual = true; }
+      else sets[x.id] = pgApplyRule(x, ref, metric, P.step * k, P.types); });
+    out.byW[o.w.id] = {sets, dl, manual, k}; });
+  return out;
+}
+const pgChanged = (o, D) => { const d = D.byW[o.w.id]; return !!d && o.xs.some(x => JSON.stringify(d.sets[x.id]) !== JSON.stringify(x.sets || [])); };
+function pgOpen(){
+  const a = athByEmail(S.calAthlete); if (!a) return;
+  S.prog = {email: a.email, from: S.ws, to: addDays(S.ws, 7 * S.calWeeks - 1), sel: null, metric: null, P: {base: "exec", step: null, types: null}, manual: {}, drafting: false, mode: "sess", sm: "auto", sess: null};
+  drawProg();
+  ensureWeeks(a.email, addDays(S.ws, -7 * 16), S.calWeeks + 16).then(() => { if (S.prog) drawProg(); });   // ~4 mesi di storia per i riferimenti
+}
+function pgHeadHtml(G, a){
+  return `<header><h2>Progressione · ${esc(a.name)}</h2><div class="kfilt pgmode" role="tablist" style="margin:0">${[["sess","Per seduta"],["ex","Per esercizio"]].map(([k,l]) => `<button class="${G.mode === k ? "on" : ""}" data-act="pg-mode" data-v="${k}" aria-pressed="${G.mode === k}">${l}</button>`).join("")}</div><span class="grow"></span><button class="btn ghost icon" data-act="pg-close" aria-label="Chiudi">✕</button></header>`;
+}
+function pgBarHtml(G, a){
+  const ms = (a.mesos || []).map(m => ({...m, end: addDays(m.from, 7 * m.weeks - 1)}));
+  const calF = S.ws, calT = addDays(S.ws, 7 * S.calWeeks - 1);
+  return `<div class="pgbar"><span class="lbl">Periodo</span>
+      <button class="mchip ${G.from === calF && G.to === calT ? "whole" : ""}" data-act="pg-range" data-f="${calF}" data-t="${calT}" style="--mc:var(--faint)"><i></i>Settimane del calendario <span>${fmtD(calF)} – ${fmtD(calT)}</span></button>
+      ${ms.map(m => `<button class="mchip ${G.from === m.from && G.to === m.end ? "whole" : ""}" data-act="pg-range" data-f="${m.from}" data-t="${m.end}" style="--mc:${m.color}"><i></i>${esc(m.name)}${m.goal ? " · " + esc(m.goal) : ""} <span>${fmtD(m.from)} – ${fmtD(m.end)}</span></button>`).join("")}
+      ${ms.length > 1 ? (f => `<button class="mchip ${G.from === f[0] && G.to === f[1] ? "whole" : ""}" data-act="pg-range" data-f="${f[0]}" data-t="${f[1]}" style="--mc:var(--accent)"><i></i>Tutti i mesocicli</button>`)([ms.map(m => m.from).sort()[0], ms.map(m => m.end).sort().slice(-1)[0]]) : ""}</div>`;
+}
+function drawProg(){
+  const G = S.prog; if (!G) return; const a = athByEmail(G.email);
+  if (G.mode === "sess") return drawProgSess(G, a);
+  const keepL = $(".pgl")?.scrollTop, keepM = $(".pgmain")?.scrollTop, keepC = $(".pgcols")?.scrollLeft;
+  const all = wIn(G.email, G.from, G.to);
+  // elenco esercizi nel periodo, raggruppati per pattern
+  const names = {}; all.forEach(w => (w.exercises || []).forEach(x => { const n = x.name.trim(); if (!n) return; (names[n] ??= new Set()).add(w.id); }));
+  const byPat = {}; Object.keys(names).forEach(n => { const pt = libByName(n)?.pattern || "Senza pattern"; (byPat[pt] ??= []).push(n); });
+  const pats = Object.keys(byPat).sort((x, y) => (x === "Senza pattern") - (y === "Senza pattern") || x.localeCompare(y, "it"));
+  if (!G.sel && pats.length) { const first = byPat[pats[0]].sort()[0]; G.sel = {kind: "ex", key: first}; }
+  const occ = G.sel ? pgOccurrences(G.email, G.from, G.to, G.sel) : [];
+  const mets = G.sel ? pgMetricsFor(G.sel, occ) : [];
+  if (!mets.includes(G.metric)) G.metric = mets[0];
+  const M = PG_METRICS[G.metric] || {};
+  if (G.P.step == null || (M.step && !M.step.flatMap(v => [v, -v, 0]).includes(G.P.step))) G.P.step = M.d ?? null;
+  // tipi di serie presenti nelle sedute future: di default solo le Work, se ci sono
+  const fut = occ.filter(o => !o.done && o.date >= TODAY());
+  const tPresent = [...new Set(occ.flatMap(o => o.xs.flatMap(x => (x.sets || []).map(st => st.type || ""))))].sort((x, y) => TYPE_ORDER.indexOf(x) - TYPE_ORDER.indexOf(y));
+  if (!G.P.types) G.P.types = tPresent.includes("W") ? ["W"] : tPresent.slice();
+  const draft = M.step ? pgDraft(a, occ, G) : {byW: {}}; G.lastDraft = draft; G.lastOcc = occ;
+  const nChanged = occ.filter(o => pgChanged(o, draft)).length;
+  const ms = (a.mesos || []).map(m => ({...m, end: addDays(m.from, 7 * m.weeks - 1)}));
+  const lastDone = occ.filter(o => o.done).slice(-2);
+  const hot = lastDone.length === 2 && lastDone.every(o => { const e = pgVal("rpe", o.exec), p = pgVal("rpe", o.plan); return e != null && p != null && e - p >= 1; });
+  const calF = S.ws, calT = addDays(S.ws, 7 * S.calWeeks - 1);
+  const colsOf = x => (x.cols || []).filter(c => !["side", "rest", "tut"].includes(c)).slice(0, 3);
+  $("#modal").innerHTML = `<div class="back" style="padding:12px"><div class="modal pgm" role="dialog" aria-label="Progressione">
+    ${pgHeadHtml(G, a)}
+    ${pgBarHtml(G, a)}
+    <div class="pgv">
+      <aside class="pgl">${pats.map(pt => `<div class="pgp"><button class="pgpat ${G.sel?.kind === "pat" && G.sel.key === pt ? "on" : ""}" ${pt === "Senza pattern" ? "disabled" : `data-act="pg-sel" data-k="pat" data-v="${esc(pt)}"`} title="${pt === "Senza pattern" ? "Aggiungi il pattern in libreria" : "Tutti gli esercizi di questo pattern: serie, ripetizioni, RPE, allenanti"}">${esc(pt)}</button>
+        ${byPat[pt].sort((x, y) => x.localeCompare(y, "it")).map(n => `<button class="pgex ${G.sel?.kind === "ex" && sameName(G.sel.key, n) ? "on" : ""}" data-act="pg-sel" data-k="ex" data-v="${esc(n)}">${esc(n)}<span>${names[n].size}</span></button>`).join("")}</div>`).join("") || `<div class="faint" style="padding:12px;font-size:13px">Nessun allenamento nel periodo.</div>`}</aside>
+      <section class="pgmain">${G.sel ? `
+        <div class="pgtitle"><b>${esc(G.sel.key)}</b> <span class="faint">${G.sel.kind === "pat" ? "· pattern: tutti i suoi esercizi (i kg non si confrontano tra esercizi diversi)" : `· ${occ.length} sedute nel periodo`}</span></div>
+        <div class="kfilt" role="tablist">${mets.map(k => `<button class="${G.metric === k ? "on" : ""}" data-act="pg-met" data-v="${k}" aria-pressed="${G.metric === k}">${PG_METRICS[k].l}</button>`).join("")}</div>
+        ${hot ? `<div class="done-box warnb" style="margin-top:10px"><b>⚠ Sta faticando più del previsto</b><span>Nelle ultime 2 sedute l'RPE eseguito è stato almeno 1 punto sopra quello che avevi previsto: valuta di rallentare la progressione.</span></div>` : ""}
+        <div class="chartwrap" id="pg-chart"></div>
+        <div class="slegend"><span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--faint);stroke-width:2;stroke-dasharray:4 3"/></svg>Previsto</span><span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--accent);stroke-width:2.5"/></svg>Eseguito</span>${M.step ? `<span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--s2);stroke-width:2.5"/></svg>Bozza della progressione</span>` : ""}</div>
+        ${M.step ? `<div class="pgtools">
+          <div class="row1"><b>Progressione delle sedute future</b>
+            <label>parti da <select class="in" data-change="pg-base"><option value="exec" ${G.P.base === "exec" ? "selected" : ""}>ultimo eseguito${draft.base && G.P.base === "exec" ? ` (${fmtD(draft.base.date)}${draft.bv != null ? `: ${fmt1(Math.round(draft.bv * 10) / 10)} ${M.u}` : ""})` : ""}</option><option value="plan" ${G.P.base === "plan" ? "selected" : ""}>previsto${draft.base && G.P.base === "plan" ? ` (${fmtD(draft.base.date)})` : ""}</option></select></label>
+            <label>passo <select class="in" data-change="pg-step">${M.step.flatMap(v => [v, -v]).sort((x, y) => y - x).map(v => `<option value="${v}" ${G.P.step === v ? "selected" : ""}>${v > 0 ? "+" : "−"}${fmt1(Math.abs(v))}${M.u ? " " + M.u : G.metric === "sets" ? " serie" : G.metric === "reps" ? " rip." : ""}</option>`).join("")}<option value="0" ${G.P.step === 0 ? "selected" : ""}>mantieni</option></select> a settimana</label></div>
+          <div class="row1"><span>su quali serie</span>${tPresent.map(t => `<button class="tchip ${G.P.types.includes(t) ? "on" : ""}" data-act="pg-type-f" data-t="${t}" aria-pressed="${G.P.types.includes(t)}">${t ? `${typeBadge(t)} ${SET_TYPES[t].s}` : "senza tipo"}</button>`).join("")}
+            <span class="faint" style="font-size:12px">Le settimane di scarico restano ferme. Nelle colonne sotto puoi ritoccare ogni serie (e cambiarne il tipo).</span></div>
+          <div class="row1">${!G.drafting ? `<span class="faint" style="font-size:12px">${!fut.length ? "Nessuna seduta futura nel periodo: creale prima nel calendario (es. con «Copia»)." : "Scegli da dove partire, il passo e su quali serie, poi prepara la bozza: finché non applichi non cambia niente."}</span><span class="grow"></span><button class="btn pri" data-act="pg-draft" ${fut.length ? "" : "disabled"}>Prepara la bozza</button>`
+            : `<span class="faint" style="font-size:12px">${!draft.base ? "Nessuna seduta di partenza: serve almeno una seduta prima di oggi." : nChanged ? `${nChanged} sedut${nChanged === 1 ? "a" : "e"} future cambier${nChanged === 1 ? "à" : "anno"}.` : "La bozza è uguale al programma attuale."}</span><span class="grow"></span>
+            <button class="btn ghost" data-act="pg-reset">Annulla la bozza</button><button class="btn pri" data-act="pg-apply" ${nChanged ? "" : "disabled"}>Applica modifiche${nChanged ? ` (${nChanged})` : ""}</button>`}</div></div>` : `<div class="faint" style="font-size:12px;margin-top:8px">Per impostare la progressione scegli Carico, Serie, Ripetizioni o RPE.</div>`}
+        <div class="pgcols">${occ.map(o => { const dr = draft.byW[o.w.id], mz = mesoAt(a, o.date), ch = dr && pgChanged(o, draft);
+          return `<div class="pgc ${o.done ? "done" : ""} ${ch ? "chg" : ""}" style="--mc:${mz?.color || "var(--line)"}"><div class="pgch"><b>S${weekNo(o.date)} · ${esc(DAYS[dayIdx(o.date)])} ${parse(o.date).getDate()}</b><span>${o.done ? "fatto" : o.date < TODAY() ? "non fatto" : dr ? (dr.manual ? "bozza · a mano" : dr.dl ? "bozza · scarico" : "bozza") : "da fare"}</span></div>
+            ${o.xs.map(x => { const swp = G.sel.kind === "ex" && !sameName(exName(o.w, x), G.sel.key);
+              const head = swp ? `<div class="swx">↔ fatto ${esc(exName(o.w, x))} (non conta)</div>` : G.sel.kind === "pat" || !sameName(x.name, G.sel.key) ? `<div class="pgxn">${esc(exName(o.w, x))}</div>` : "";
+              if (dr) { const ds = dr.sets[x.id], cs = colsOf(x);
+                return `<div class="pgx">${head}<div class="pgedit">${ds.map((st, j) => { const old = (x.sets || [])[j] || {};
+                  return `<div class="pgset"><button class="tbtn ${st.type ? "has" : ""}" data-act="pg-settype" data-w="${o.w.id}" data-x="${x.id}" data-j="${j}" title="Tipo di serie: clicca per cambiare">${st.type ? typeBadge(st.type) : "—"}</button>${cs.map(c => `<input class="${(st[c] || "") !== (old[c] || "") ? "chg" : ""}" aria-label="${esc(COLS[c].l)} serie ${j+1}" title="${esc(COLS[c].l)}${old[c] !== undefined && (st[c] || "") !== (old[c] || "") ? ` (prima: ${esc(old[c] || "–")})` : ""}" value="${esc(st[c] || "")}" placeholder="${esc(COLS[c].l.slice(0, 3).toLowerCase())}" data-change="pg-edit" data-w="${o.w.id}" data-x="${x.id}" data-j="${j}" data-c="${c}">`).join("")}</div>`; }).join("")}
+                  <div class="pgsetb"><button data-act="pg-addset" data-w="${o.w.id}" data-x="${x.id}">+ serie</button><button data-act="pg-rmset" data-w="${o.w.id}" data-x="${x.id}" ${ds.length <= 1 ? "disabled" : ""}>− serie</button></div>
+                  <div class="pl">${cs.map(c => esc(COLS[c].l)).join(" · ")}</div></div></div>`; }
+              const rs = (o.w.results?.[x.id] || []).map((r, j) => ({r, s: x.sets[j] || {}, extra: j >= x.sets.length})).filter(q => q.r.done || !emptyRes(q.r));
+              return `<div class="pgx ${swp ? "dim" : ""}">${head}<div class="pl">${esc(summarize(x) || "–")}</div>${rs.length ? `<div class="exs">${rs.map(q => execSetHtml(q, x.cols || [])).join("")}</div>` : ""}</div>`; }).join("")}
+            ${dr ? `<div class="pgdr">${esc(M.l)}: <b>${(v => v != null ? fmt1(Math.round(v * 10) / 10) + (M.u ? " " + M.u : "") : "–")(pgVal(G.metric, o.xs.flatMap(x => dr.sets[x.id])))}</b></div>` : ""}</div>`; }).join("") || `<div class="faint">Nessuna seduta con questo ${G.sel.kind === "pat" ? "pattern" : "esercizio"} nel periodo.</div>`}</div>` : ""}
+      </section></div></div></div>`;
+  if (G.sel) drawPgChart($("#pg-chart"), a, occ, G.metric, draft);
+  if (keepL != null) $(".pgl").scrollTop = keepL; if (keepM != null && $(".pgmain")) $(".pgmain").scrollTop = keepM; if (keepC != null && $(".pgcols")) $(".pgcols").scrollLeft = keepC;
+}
+/* ---------- PROGRESSIONE · PER SEDUTA: tutte le serie della seduta in ordine, da spostare col mouse ---------- */
+const PS_M = {auto: {l: "Parametro di ogni esercizio", u: "", st: 1}, kg: {l: "Carico", u: "kg", st: 2.5}, reps: {l: "Ripetizioni", u: "rip.", st: 1}, rpe: {l: "RPE", u: "", st: 0.5}};
+const PS_STEP = {kg: 2.5, pct: 2.5, reps: 1, rpe: 0.5, height: 1, dist: 0.5, time: 0.1, vel: 0.05, steps: 1};
+const psStep = p => PS_STEP[p] ?? 1;
+const psUnit = p => p === "rpe" ? "RPE" : p === "reps" ? "rip." : (COLS[p]?.u || COLS[p]?.l || "");
+/* parametro "principale" di un esercizio: quello su cui ha senso vederlo progredire (il primo con un valore programmato) */
+function psPrimary(x, sets){
+  const cols = x.cols || [], order = ["kg", "rpe", "height", "dist", "time", "vel", "reps", "steps", "pct"];   // se il carico non è prescritto, l'RPE/RIR viene prima (carico interno)
+  const cand = [...order.filter(c => c === "rpe" ? cols.includes("rpe") || cols.includes("rir") : cols.includes(c)), ...cols.filter(c => !order.includes(c) && !["side", "rest", "tut", "rpe", "rir"].includes(c))];
+  return cand.find(c => (sets || []).some(st => psGet(c, x, st) != null)) || cand[0] || null;
+}
+const psGet = (m, x, st) => { if (!st) return null; if (m === "rpe") return setRpe(st)?.v ?? null; return numv(st[m]); };
+const psHas = (m, x) => !!m && (m === "rpe" ? (x.cols || []).some(c => c === "rpe" || c === "rir") : (x.cols || []).includes(m));
+function psSet(m, x, st, v){
+  if (m === "rpe") { v = Math.min(10, Math.max(1, v)); if ((x.cols || []).includes("rpe")) st.rpe = numStr(v); else st.rir = numStr(Math.max(0, 10 - v)); }
+  else st[m] = numStr(Math.max(m === "reps" || m === "steps" ? 1 : 0, v));
+}
+/* la seduta in bozza: copia delle serie di ogni esercizio (si salva solo con "Applica") */
+function psDraft(G, w){ if (!G.sess || G.sess.wid !== w.id) G.sess = {wid: w.id, sets: Object.fromEntries((w.exercises || []).map(x => [x.id, clone(x.sets || [])]))}; return G.sess; }
+const psDirty = (G, w) => !!G.sess && G.sess.wid === w.id && (w.exercises || []).some(x => JSON.stringify(G.sess.sets[x.id]) !== JSON.stringify(x.sets || []));
+/* sequenza delle serie nell'ordine in cui si fanno (superserie alternate), con il parametro da mostrare e il riferimento reale */
+function psSeq(G, w){
+  const D = psDraft(G, w), ex = w.exercises || [], L = exLabels(ex), res = w.results || {}, out = [], order = [];
+  const refCache = {}, pickRef = (sets, st, j) => (sets[j] && (sets[j].s.type || "") === (st.type || "")) ? sets[j] : sets.slice().reverse().find(q => (q.s.type || "") === (st.type || "")) || sets[Math.min(j, sets.length - 1)];
+  ssGroups(ex).forEach(g => { const len = Math.max(0, ...g.map(i => (D.sets[ex[i].id] || []).length));
+    for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], st = (D.sets[x.id] || [])[j]; if (!st) return;
+      const name = exName(w, x); if (!order.includes(name)) order.push(name);
+      // riferimento: lo stesso esercizio l'ultima volta che l'atleta l'ha fatto (in qualsiasi seduta precedente);
+      // se non l'ha mai fatto, l'ultima seduta con un esercizio dello stesso pattern
+      // due riferimenti: lo stesso esercizio (ultima volta) e la seduta più recente dello stesso pattern (lo stimolo più recente)
+      const RR = (refCache[x.id] ??= (() => { const H = coachHistory(G.email, x.name, w, 6).find(h => !h.other);
+        const exR = H ? {kind: "ex", date: H.date, name: x.name, sets: H.sets, x: H.x} : null;
+        const P = patternHistory(G.email, x, w, 1), ls = P?.list?.[0]; const it = ls && (ls.items.find(o => sameName(o.name, x.name)) || ls.items[0]);
+        const patR = it ? {kind: "pat", date: ls.date, name: it.name, sets: it.sets, x: it.y, pat: P.pat} : null;
+        return {ex: exR, pat: patR}; })());
+      const R0 = (G.psRef === "ex" ? RR.ex || RR.pat : RR.pat || RR.ex) || null;
+      const ref = R0 ? pickRef(R0.sets, st, j) : null;
+      const alt = R0 === RR.ex ? RR.pat : RR.ex, altRef = alt ? pickRef(alt.sets, st, j) : null;
+      const p = G.sm === "auto" ? psPrimary(x, D.sets[x.id]) : (psHas(G.sm, x) ? G.sm : null);
+      out.push({x, j, lab: L[i], name, st, old: (x.sets || [])[j], p, dk: G.sm === "auto" ? name : "all",
+        ref: ref?.r || null, refInfo: R0, refOk: !!R0 && !(!sameName(R0.name, x.name) && ["kg", "pct"].includes(p)), alt: altRef?.r || null, altInfo: alt, exec: (res[x.id] || [])[j]}); }); });
+  return {seq: out, order};
+}
+function drawProgSess(G, a){
+  const all = wIn(G.email, G.from, G.to).sort((x, y) => x.date.localeCompare(y.date));
+  const todayIdx = all.findIndex(w => w.date >= TODAY() && w.status !== "done");
+  if (!G.wid || !all.some(w => w.id === G.wid)) G.wid = (all[todayIdx] || all[all.length - 1])?.id;
+  const w = all.find(x => x.id === G.wid);
+  const done = w && (w.status === "done" || Object.values(w.results || {}).some(rr => (rr || []).some(r => !emptyRes(r))));
+  const editable = w && !done && w.date >= TODAY();
+  const M = PS_M[G.sm];
+  const {seq, order} = w ? psSeq(G, w) : {seq: [], order: []};
+  const dirty = w && psDirty(G, w);
+  const keepL = $(".pgl")?.scrollTop;
+  $("#modal").innerHTML = `<div class="back" style="padding:12px"><div class="modal pgm" role="dialog" aria-label="Progressione">
+    ${pgHeadHtml(G, a)}${pgBarHtml(G, a)}
+    <div class="pgv">
+      <aside class="pgl">${all.map(x => { const st = statusOf(x);
+        return `<button class="pgsess ${x.id === G.wid ? "on" : ""}" data-act="ps-pick" data-id="${x.id}"><span class="dot st-${st}"></span><span><b>${esc(DAYS[dayIdx(x.date)])} ${parse(x.date).getDate()}/${parse(x.date).getMonth()+1}</b> · ${esc(x.title || "Allenamento")}<small>${esc(KINDS[kindOf(x)].l)} · ${esc(STATUS_TXT[st])}</small></span></button>`; }).join("") || `<div class="faint" style="padding:12px;font-size:13px">Nessun allenamento nel periodo.</div>`}</aside>
+      <section class="pgmain">${w ? `
+        <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}</span></div>
+        <div class="kfilt">${Object.entries(PS_M).map(([k, m]) => `<button class="${G.sm === k ? "on" : ""}" data-act="ps-met" data-v="${k}" aria-pressed="${G.sm === k}">${m.l}</button>`).join("")}</div>
+        <div class="kfilt"><span class="lbl">Confronta con</span>${[["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${l}</button>`).join("")}</div>
+        <div class="chartwrap" id="ps-chart"></div>
+        <div class="slegend">${order.map(n => `<span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="${exColor(order, n)}"/></svg>${esc(n)}</span>`).join("")}</div>
+        <div class="slegend"><span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:${done || !editable ? "var(--faint)" : "var(--muted)"};stroke-width:2;${done || !editable ? "stroke-dasharray:5 4" : ""}"/></svg>${editable ? "Programma (trascina i punti)" : "Previsto"}</span>
+          <span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--faint);stroke-width:2;stroke-dasharray:4 3"/><circle cx="11" cy="5" r="3.5" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>Riferimento reale: ${(G.psRef || "pat") === "pat" ? "la stessa serie nella seduta più recente dello stesso pattern" : "la stessa serie l'ultima volta che ha fatto l'esercizio"}</span>
+          ${done ? `<span><svg width="22" height="10"><line x1="1" x2="21" y1="5" y2="5" style="stroke:var(--muted);stroke-width:2"/><circle cx="11" cy="5" r="4" fill="var(--muted)"/></svg>Eseguito (colore = esercizio)</span>` : ""}
+          ${editable ? `<span class="faint">Clic su un punto: tipo di serie, duplica, elimina · frecce ↑↓ da tastiera: uno scatto</span>` : ""}</div>
+        ${editable ? `<div class="pgtools"><div class="row1"><span class="faint" style="font-size:12px">${dirty ? "Hai modificato questa seduta: applica per salvarla nel calendario." : "Nessuna modifica."}</span><span class="grow"></span>
+          <button class="btn ghost" data-act="ps-reset" ${dirty ? "" : "disabled"}>Annulla modifiche</button><button class="btn pri" data-act="ps-apply" ${dirty ? "" : "disabled"}>Applica modifiche</button></div></div>` : ""}
+        <div class="pscards">${(w.exercises || []).map(x => { const ds = G.sess.sets[x.id] || [], cs = (x.cols || []).filter(c => !["side", "rest", "tut"].includes(c)).slice(0, 4);
+          return `<div class="pgc"><div class="pgch"><b><span style="color:${exColor(order, exName(w, x))}">●</span> ${esc(exName(w, x))}</b><span>${esc(summarize({...x, sets: ds}) || "")}</span></div>
+            ${editable ? `<div class="pgedit">${ds.map((st, j) => { const old = (x.sets || [])[j] || {};
+              return `<div class="pgset"><button class="tbtn ${st.type ? "has" : ""}" data-act="ps-type" data-x="${x.id}" data-j="${j}" title="Tipo di serie: clicca per cambiare">${st.type ? typeBadge(st.type) : "—"}</button>${cs.map(c => `<input class="${(st[c] || "") !== (old[c] || "") ? "chg" : ""}" aria-label="${esc(COLS[c].l)} serie ${j+1}" title="${esc(COLS[c].l)}" value="${esc(st[c] || "")}" placeholder="${esc(COLS[c].l.slice(0, 3).toLowerCase())}" data-change="ps-edit" data-x="${x.id}" data-j="${j}" data-c="${c}">`).join("")}</div>`; }).join("")}
+              <div class="pgsetb"><button data-act="ps-add" data-x="${x.id}">+ serie</button><button data-act="ps-rm" data-x="${x.id}" ${ds.length <= 1 ? "disabled" : ""}>− serie</button></div><div class="pl">${cs.map(c => esc(COLS[c].l)).join(" · ")}</div></div>`
+            : (rs => rs.length ? `<div class="exs">${rs.map(q => execSetHtml(q, x.cols || [])).join("")}</div>` : `<div class="pl">${esc(summarize(x) || "–")}</div>`)((w.results?.[x.id] || []).map((r, j) => ({r, s: x.sets[j] || {}, extra: j >= x.sets.length})).filter(q => q.r.done || !emptyRes(q.r)))}</div>`; }).join("")}</div>` : `<div class="faint">Scegli una seduta a sinistra.</div>`}
+      </section></div></div></div>`;
+  if (keepL != null) $(".pgl").scrollTop = keepL;
+  if (w) drawPsChart(G, w, seq, order, editable, done);
+}
+function psDomains(G, seq, done){
+  const vals = {}; seq.forEach(o => { if (!o.p) return; const a = (vals[o.dk] ??= {p: o.p, v: []});
+    [psGet(o.p, o.x, o.st), o.refOk ? psGet(o.p, o.x, o.ref) : null, done ? psGet(o.p, o.x, o.exec) : null].forEach(v => v != null && a.v.push(v)); });
+  const doms = {};
+  Object.entries(vals).forEach(([k, a]) => { if (a.p === "rpe" && G.sm !== "auto") { doms[k] = {lo: 0, hi: 10}; return; }
+    const st = psStep(a.p); let lo = a.v.length ? Math.min(...a.v) : 0, hi = a.v.length ? Math.max(...a.v) : 1;
+    const pad = Math.max((hi - lo) * 0.25, st * 4); lo = Math.max(0, lo - pad); hi = hi + pad;   // la scala non parte da 0: più precisione nel trascinare
+    const raw = (hi - lo) / 4, p10 = Math.pow(10, Math.floor(Math.log10(raw))), stp = [1, 2, 2.5, 5, 10].map(f => f * p10).find(v => v >= raw);
+    doms[k] = {lo: Math.floor(lo / stp) * stp, hi: Math.ceil(hi / stp) * stp}; });
+  return doms;
+}
+function drawPsChart(G, w, seq, order, editable, done, doms){
+  const el = $("#ps-chart"); if (!el) return; const auto = G.sm === "auto", M = PS_M[G.sm];
+  if (!seq.length) { el.innerHTML = `<div class="faint" style="padding:16px 0">Nessuna serie.</div>`; return; }
+  doms = doms || psDomains(G, seq, done); G.psDoms = doms;
+  const val = (o, which) => !o.p ? null : which === "ref" ? (o.refOk ? psGet(o.p, o.x, o.ref) : null) : which === "exec" ? (done ? psGet(o.p, o.x, o.exec) : null) : psGet(o.p, o.x, o.st);
+  const cur = seq.map(o => val(o, "cur")), ref = seq.map(o => val(o, "ref")), ex = seq.map(o => val(o, "exec"));
+  const W = Math.max(560, el.clientWidth || 800), H = 300, pl = auto ? 16 : 44, pr = 12, pt = 30, pb = 58, iw = W - pl - pr, ih = H - pt - pb;
+  const band = iw / seq.length, X = k => pl + band * k + band / 2;
+  const Y = (v, k) => { const d = doms[seq[k].dk] || {lo: 0, hi: 1}; return pt + ih - (v - d.lo) / ((d.hi - d.lo) || 1) * ih; };
+  G.psGeo = {pt, ih};
+  const one = !auto && doms.all ? doms.all : null;
+  const ticks = one ? Array.from({length: 5}, (_, k) => one.lo + (one.hi - one.lo) * k / 4) : [0, .25, .5, .75, 1];
+  // linee: con una sola scala un'unica linea per tutta la seduta; con "parametro di ogni esercizio" una linea per esercizio
+  const path = (arr, cls) => { const groups = auto ? order.map(n => seq.map((o, k) => o.name === n ? k : -1).filter(k => k >= 0)) : [seq.map((_, k) => k)];
+    return groups.map(ks => { let d = "", on = false; ks.forEach(k => { const v = arr[k]; if (v == null) { on = false; return; } d += `${on ? "L" : "M"}${X(k)},${Y(v, k)} `; on = true; }); return d ? `<path class="${cls}" d="${d}"/>` : ""; }).join(""); };
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(M.l)} di ogni serie">
+    <g class="grid">${ticks.map(t => { const yy = one ? pt + ih - (t - one.lo) / (one.hi - one.lo) * ih : pt + ih - t * ih; return `<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}"/>`; }).join("")}</g>
+    ${one ? `<g class="axis">${ticks.map(t => `<text x="${pl-8}" y="${pt + ih - (t - one.lo) / (one.hi - one.lo) * ih + 4}" text-anchor="end">${fmt1(Math.round(t * 10) / 10)}</text>`).join("")}<text x="0" y="12" style="font-size:10px;font-weight:600">${esc(M.l)}${M.u ? " (" + M.u + ")" : ""}</text></g>`
+      : `<g class="axis"><text x="0" y="12" style="font-size:10px;font-weight:600">Ogni esercizio con la sua scala e il suo parametro (numero sopra ogni punto)</text></g>`}`;
+  // bande dei blocchi, con il parametro mostrato
+  const runs = []; seq.forEach((o, k) => { const r = runs[runs.length - 1]; const grp = o.lab.charAt(0); if (r && r.grp === grp) r.to = k; else runs.push({grp, from: k, to: k, names: []}); const rr = runs[runs.length - 1]; const nm = `${o.name}${auto && o.p ? ` (${psUnit(o.p)})` : ""}`; if (!rr.names.includes(nm)) rr.names.push(nm); });
+  runs.forEach(r => { const x1 = X(r.from) - band/2 + 4, x2 = X(r.to) + band/2 - 4; let t = `${r.grp} · ${r.names.join(" + ")}`; const mx = Math.floor((x2 - x1) / 6.3); if (t.length > mx) t = mx > 3 ? t.slice(0, mx - 1) + "…" : r.grp;
+    svg += `<line class="sband" x1="${x1}" x2="${x2}" y1="${pt+ih+30}" y2="${pt+ih+30}"/><g class="axis"><text x="${x1}" y="${pt+ih+46}">${esc(t)}</text></g>`; });
+  svg += path(ref, "psref") + (done ? path(cur, "psplan") + path(ex, "psexec") : path(cur, editable ? "pscur" : "psplan"));
+  seq.forEach((o, k) => { const c = exColor(order, o.name), has = !!o.p;
+    if (ref[k] != null) svg += `<circle class="psrefd ${o.refInfo?.kind === "pat" ? "pat" : ""}" cx="${X(k)}" cy="${Y(ref[k], k)}" r="3.5"/>`;
+    if (done && ex[k] != null) svg += `<g class="psdot" data-k="${k}"><circle class="hitc" cx="${X(k)}" cy="${Y(ex[k], k)}" r="12"/><circle cx="${X(k)}" cy="${Y(ex[k], k)}" r="5.5" style="fill:${c};stroke:var(--surface);stroke-width:2"/></g>${auto ? `<text class="vlab" x="${X(k)}" y="${Y(ex[k], k) - 11}" text-anchor="middle">${fmt1(ex[k])}</text>` : ""}`;
+    const chg = o.old && has && psGet(o.p, o.x, o.st) !== psGet(o.p, o.x, o.old);
+    if (has && done) { if (cur[k] != null) svg += `<circle cx="${X(k)}" cy="${Y(cur[k], k)}" r="4" style="fill:var(--surface);stroke:var(--faint);stroke-width:2"/>`; }
+    else if (has) { const d = doms[o.dk] || {lo: 0}, v = cur[k] ?? d.lo; svg += `<g class="psdot ${editable ? "ed" : ""}" data-k="${k}" ${editable ? `tabindex="0" role="slider" aria-label="${esc(o.name)} serie ${o.j+1}: ${cur[k] ?? "vuoto"} ${esc(psUnit(o.p))}" aria-valuenow="${cur[k] ?? ""}"` : ""}>
+      <circle class="hitc" cx="${X(k)}" cy="${Y(v, k)}" r="14"/>
+      <circle cx="${X(k)}" cy="${Y(v, k)}" r="${cur[k] == null ? 4 : 6.5}" style="fill:${cur[k] == null ? "var(--surface)" : c};stroke:${cur[k] == null ? c : chg ? "var(--s2)" : "var(--surface)"};stroke-width:${chg ? 3 : 2}"/></g>
+      ${cur[k] != null && (auto || chg || G.psDrag === k) ? `<text class="vlab ${chg ? "chg" : ""}" x="${X(k)}" y="${Y(cur[k], k) - 12}" text-anchor="middle">${fmt1(cur[k])}</text>` : ""}`; }
+    else svg += `<text x="${X(k)}" y="${pt + ih - 4}" text-anchor="middle" style="font-size:10px;fill:var(--faint)" title="Questo esercizio non ha ${esc(M.l)}">–</text>`;
+    svg += `<text class="styp" x="${X(k)}" y="${pt+ih+17}" text-anchor="middle" style="fill:${o.st.type === "W" ? "var(--ink)" : "var(--muted)"}">${o.st.type || ""}</text>`; });
+  const popK = G.psPop; const popY = popK != null && seq[popK] ? Y(cur[popK] ?? (doms[seq[popK].dk]?.lo ?? 0), popK) : 0;
+  el.innerHTML = svg + `</svg><div class="ctip" hidden></div>${popK != null && seq[popK] ? psPopHtml(popK, seq[popK], X(popK), popY, W) : ""}`;
+  // passaggio del mouse: dettaglio della serie
+  const tip = el.querySelector(".ctip");
+  el.querySelectorAll(".psdot").forEach(g => { const k = +g.dataset.k, o = seq[k];
+    g.addEventListener("pointerenter", () => { if (G.psDrag != null || G.psPop != null) return; const line = (cls, t) => { const d = document.createElement("div"); d.className = cls; d.textContent = t; return d; };
+      tip.replaceChildren(line("tv", `${o.lab} ${o.name} · serie ${o.j + 1}${o.st.type ? " · " + SET_TYPES[o.st.type].s : ""}`), line("tl", `Programma: ${resultLine(o.st, o.x.cols || []) || "–"}`));
+      if (o.old && JSON.stringify(o.old) !== JSON.stringify(o.st)) tip.append(line("tl", `Prima: ${resultLine(o.old, o.x.cols || []) || "–"}`));
+      const refTxt = (r, I) => I.kind === "ex" ? `Stesso esercizio · ${fmtD(I.date)}: ${resultLine(r, I.x.cols || []) || "✓"}` : `Più recente, pattern ${I.pat} · ${I.name} ${fmtD(I.date)}: ${resultLine(r, I.x.cols || []) || "✓"}`;
+      if (o.ref) tip.append(line("tl", "▸ " + refTxt(o.ref, o.refInfo) + (o.refOk ? "" : " (kg di un altro esercizio: non in grafico)")));
+      if (o.alt && !(o.altInfo.date === o.refInfo?.date && sameName(o.altInfo.name, o.refInfo?.name))) tip.append(line("tl", "   " + refTxt(o.alt, o.altInfo)));
+      if (done && o.exec) tip.append(line("tl", `Eseguito: ${resultLine(o.exec, o.x.cols || []) || "✓"}`));
+      tip.hidden = false; const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
+      let x = b.left - p.left + b.width / 2 - tip.offsetWidth / 2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth)); tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight - 4) + "px"; });
+    g.addEventListener("pointerleave", () => tip.hidden = true);
+    if (!editable) return;
+    g.addEventListener("pointerdown", e => psDragStart(e, G, w, k));
+    g.addEventListener("keydown", e => { if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return; e.preventDefault();
+      const v = (psGet(o.p, o.x, o.st) ?? 0) + (e.key === "ArrowUp" ? psStep(o.p) : -psStep(o.p)); psSet(o.p, o.x, o.st, v);
+      drawPsChart(G, w, seq, order, editable, done, G.psDoms); el.querySelector(`.psdot[data-k="${k}"]`)?.focus(); psRefreshSide(G, w); });
+  });
+}
+function psPopHtml(k, o, x, y, W){
+  return `<div class="pspop" style="left:${Math.min(Math.max(0, x - 110), W - 230)}px;top:${y + 16}px"><b>${esc(o.name)} · serie ${o.j + 1}</b>
+    <div class="row">${TYPE_ORDER.map(t => `<button class="tchip ${(o.st.type || "") === t ? "on" : ""}" data-act="ps-poptype" data-k="${k}" data-t="${t}">${t ? typeBadge(t) + " " + SET_TYPES[t].s : "nessuno"}</button>`).join("")}</div>
+    <div class="row"><button class="btn sm" data-act="ps-popdup" data-k="${k}">Duplica serie</button><button class="btn sm ghost danger" data-act="ps-popdel" data-k="${k}">Elimina serie</button><span class="grow"></span><button class="btn sm ghost" data-act="ps-popclose">Chiudi</button></div></div>`;
+}
+/* trascinamento: il valore segue il mouse (a scatti: 2,5 kg · 1 rip. · 0,5 RPE · 1 cm…); un clic senza movimento apre il menu della serie */
+function psDragStart(e, G, w, k){
+  e.preventDefault(); const el = $("#ps-chart"); const {seq} = psSeq(G, w); const o = seq[k], st = psStep(o.p);
+  const doms = G.psDoms, dom = doms[o.dk], geo = G.psGeo, y0 = e.clientY; let moved = false; G.psPop = null;
+  const toVal = cy => { const sv = el.querySelector("svg"), r = sv.getBoundingClientRect(), sc = sv.viewBox.baseVal.height / r.height; const py = (cy - r.top) * sc;   /* il grafico viene ridisegnato durante il trascinamento: lo rileggo ogni volta */
+    const v = dom.lo + (geo.pt + geo.ih - py) / geo.ih * (dom.hi - dom.lo); return Math.round(v / st) * st; };
+  const move = ev => { if (!moved && Math.abs(ev.clientY - y0) < 4) return; moved = true; G.psDrag = k;
+    const v = Math.min(dom.hi * 1.5, Math.max(dom.lo, toVal(ev.clientY))); if (v === psGet(o.p, o.x, o.st)) return; psSet(o.p, o.x, o.st, v);
+    const s2 = psSeq(G, w); drawPsChart(G, w, s2.seq, s2.order, true, false, doms); };
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); G.psDrag = null;
+    if (!moved) { G.psPop = k; } drawProg(); };
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+}
+function psRefreshSide(G, w){ clearTimeout(G.psT); G.psT = setTimeout(() => { if (S.prog === G) drawProg(); }, 700); }
+async function psApply(){
+  const G = S.prog, w = S.cache[G.email]?.[G.wid]; if (!w || !psDirty(G, w)) return;
+  const nw = clone(w); nw.exercises.forEach(x => { x.sets = clone(G.sess.sets[x.id]); }); nw.updatedAt = new Date().toISOString();
+  await DB.saveWorkout(G.email, nw); S.cache[G.email][w.id] = {...w, exercises: nw.exercises, updatedAt: nw.updatedAt};
+  G.sess = null; toast("Seduta aggiornata"); drawProg();
+}
+/* ritocco a mano di una seduta della bozza: da quel momento quella seduta non segue più la regola (finché non ripristini) */
+function pgManualSets(wid, xid){
+  const G = S.prog, key = wid + "|" + xid; if (!G.manual[key]) G.manual[key] = clone(G.lastDraft.byW[wid].sets[xid]); return G.manual[key];
+}
+async function pgApply(){
+  const G = S.prog, D = G.lastDraft, a = athByEmail(G.email);
+  const list = G.lastOcc.filter(o => pgChanged(o, D)); if (!list.length) return;
+  if (!(await confirmBox(`Aggiornare ${list.length} allenament${list.length === 1 ? "o" : "i"} futur${list.length === 1 ? "o" : "i"} di ${a.name}? Le sedute già fatte non cambiano.`, "Applica", false))) return;
+  for (const o of list) { const w = S.cache[G.email][o.w.id]; const nw = clone(w);
+    nw.exercises.forEach(x => { if (D.byW[o.w.id].sets[x.id]) x.sets = clone(D.byW[o.w.id].sets[x.id]); });
+    nw.updatedAt = new Date().toISOString();
+    await DB.saveWorkout(G.email, nw); S.cache[G.email][o.w.id] = {...w, exercises: nw.exercises, updatedAt: nw.updatedAt}; }
+  G.manual = {}; G.drafting = false; toast(`${list.length} allenament${list.length === 1 ? "o aggiornato" : "i aggiornati"}`); drawProg();
+}
+function drawPgChart(el, a, occ, metric, draft){
+  if (!el || !occ.length) return;
+  const M = PG_METRICS[metric];
+  const P = occ.map(o => pgVal(metric, o.plan)), X = occ.map(o => o.done ? pgVal(metric, o.exec) : null), D = occ.map(o => { const d = draft.byW?.[o.w.id]; return d ? pgVal(metric, o.xs.flatMap(x => d.sets[x.id] || [])) : null; });
+  const vals = [...P, ...X, ...D].filter(v => v != null); if (!vals.length) { el.innerHTML = `<div class="faint" style="padding:20px 0;font-size:13px">Nessun dato per ${esc(M.l)} in queste sedute.</div>`; return; }
+  let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.15 || Math.max(1, hi * 0.1); lo = Math.max(0, lo - pad); hi = hi + pad;
+  { const raw = (hi - lo) / 4, p10 = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 5, 10].map(f => f * p10).find(v => v >= raw);
+    lo = Math.floor(lo / st) * st; hi = Math.ceil(hi / st) * st; }
+  const W = Math.max(520, el.clientWidth || 700), H = 230, pl = 44, pr = 12, pt = 14, pb = 40, iw = W - pl - pr, ih = H - pt - pb;
+  const band = iw / occ.length, x = k => pl + band * k + band / 2, y = v => pt + ih - (v - lo) / (hi - lo) * ih;
+  const ticks = []; { const raw = (hi - lo) / 4, p10 = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 5, 10].map(f => f * p10).find(v => v >= raw - 1e-9); for (let t = lo; t <= hi + 1e-9; t += st) ticks.push(t); }
+  const line = (arr, cls) => { let d = "", on = false; arr.forEach((v, k) => { if (v == null) { on = false; return; } d += `${on ? "L" : "M"}${x(k)},${y(v)} `; on = true; }); return d ? `<path class="${cls}" d="${d}"/>` : ""; };
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(M.l)}: previsto ed eseguito">`;
+  // fasce dei mesocicli
+  occ.forEach((o, k) => { const mz = mesoAt(a, o.date); if (mz) svg += `<rect x="${pl + band * k}" y="${pt}" width="${band}" height="${ih}" style="fill:${mz.color};opacity:.07"/>`; });
+  svg += `<g class="grid">${ticks.map(t => `<line x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}"/>`).join("")}</g>
+    <g class="axis">${ticks.map(t => `<text x="${pl-8}" y="${y(t)+4}" text-anchor="end">${fmt1(Math.round(t * 10) / 10)}</text>`).join("")}
+    ${occ.map((o, k) => `<text x="${x(k)}" y="${pt+ih+16}" text-anchor="middle" class="${o.date <= TODAY() && (occ[k+1]?.date || "9999") > TODAY() ? "cur" : ""}">S${weekNo(o.date)} ${DAYS[dayIdx(o.date)].toLowerCase()}</text><text x="${x(k)}" y="${pt+ih+29}" text-anchor="middle" style="font-size:10px">${parse(o.date).getDate()}/${parse(o.date).getMonth()+1}</text>`).join("")}</g>`;
+  const todayK = occ.findIndex(o => o.date > TODAY()); if (todayK > 0) svg += `<line x1="${pl + band * todayK}" x2="${pl + band * todayK}" y1="${pt}" y2="${pt+ih}" style="stroke:var(--ink);stroke-width:1;stroke-dasharray:2 3;opacity:.4"/><text x="${pl + band * todayK + 4}" y="${pt+10}" style="font-size:10px;fill:var(--muted)">oggi</text>`;
+  svg += line(P, "pgplan") + line(X, "pgexec");
+  // la bozza parte dall'ultimo punto eseguito
+  const dStart = draft.base ? occ.indexOf(draft.base) : -1;
+  if (D.some(v => v != null)) { const pts = D.map((v, k) => [k, v]).filter(([, v]) => v != null); if (dStart >= 0 && draft.bv != null) pts.unshift([dStart, draft.bv]);
+    svg += `<path class="pgdraft" d="${pts.map(([k, v], j) => `${j ? "L" : "M"}${x(k)},${y(v)}`).join(" ")}"/>`; }
+  P.forEach((v, k) => { if (v != null) svg += `<circle cx="${x(k)}" cy="${y(v)}" r="3.5" class="pgpd"/>`; });
+  X.forEach((v, k) => { if (v != null) svg += `<circle cx="${x(k)}" cy="${y(v)}" r="5" class="pgxd"/>`; });
+  D.forEach((v, k) => { if (v != null) svg += `<circle cx="${x(k)}" cy="${y(v)}" r="4.5" class="pgdd"/>`; });
+  el.innerHTML = svg + `</svg>`;
+}
 /* alternative che l'atleta può scegliere se non riesce a fare l'esercizio */
 function altsRowHtml(x, i, lib){
   const own = Array.isArray(x.alts), list = altsOf(x);
@@ -2598,6 +3059,35 @@ const ACT = {
   /* atleta */
   "a-swap"(t){ swapSheet(t.dataset.x); },
   "a-hist"(t){ histSheet(t.dataset.x); },
+  "pg-open"(){ pgOpen(); },
+  async "pg-mode"(t){ const G = S.prog; if (G.mode === "sess" && G.sess && psDirty(G, S.cache[G.email][G.sess.wid] || {}) && !(await confirmBox("Lasciare la seduta senza applicare le modifiche?", "Lascia", false))) return; G.sess = null; G.mode = t.dataset.v; drawProg(); },
+  async "ps-pick"(t){ const G = S.prog; if (G.sess && G.sess.wid !== t.dataset.id && psDirty(G, S.cache[G.email][G.sess.wid] || {}) && !(await confirmBox("Cambiare seduta senza applicare le modifiche a questa?", "Cambia", false))) return;
+    G.sess = null; G.psPop = null; G.wid = t.dataset.id; drawProg(); },
+  "ps-met"(t){ S.prog.sm = t.dataset.v; S.prog.psPop = null; drawProg(); },
+  "ps-ref"(t){ S.prog.psRef = t.dataset.v; drawProg(); },
+  "ps-reset"(){ S.prog.sess = null; S.prog.psPop = null; drawProg(); },
+  "ps-apply"(){ psApply(); },
+  "ps-type"(t){ const st = S.prog.sess.sets[t.dataset.x][+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
+  "ps-add"(t){ const a = S.prog.sess.sets[t.dataset.x]; a.push(clone(a[a.length - 1] || {})); drawProg(); },
+  "ps-rm"(t){ const a = S.prog.sess.sets[t.dataset.x]; if (a.length > 1) a.pop(); drawProg(); },
+  "ps-poptype"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; if (t.dataset.t) o.st.type = t.dataset.t; else delete o.st.type; drawProg(); },
+  "ps-popdup"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; G.sess.sets[o.x.id].splice(o.j + 1, 0, clone(o.st)); G.psPop = null; drawProg(); },
+  "ps-popdel"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; const a = G.sess.sets[o.x.id]; if (a.length > 1) a.splice(o.j, 1); else toast("L'esercizio deve avere almeno una serie"); G.psPop = null; drawProg(); },
+  "ps-popclose"(){ S.prog.psPop = null; drawProg(); },
+  async "pg-close"(){ const G = S.prog; if (G && (Object.keys(G.manual).length || (G.sess && psDirty(G, S.cache[G.email][G.sess.wid] || {}))) && !(await confirmBox("Chiudere senza applicare i ritocchi fatti a mano?", "Chiudi", false))) return;
+    S.prog = null; $("#modal").innerHTML = ""; renderView(); },
+  "pg-range"(t){ const G = S.prog; G.from = t.dataset.f; G.to = t.dataset.t; G.sel = null; G.sess = null; G.wid = null;
+    ensureWeeks(G.email, monday(G.from), Math.floor(daysBetween(monday(G.from), monday(G.to)) / 7) + 1).then(() => drawProg()); },
+  async "pg-sel"(t){ const G = S.prog; if (Object.keys(G.manual).length && !(await confirmBox("Cambiare esercizio perdendo i ritocchi fatti a mano nella bozza?", "Cambia", false))) return;
+    G.sel = {kind: t.dataset.k, key: t.dataset.v}; G.manual = {}; G.P.types = null; G.drafting = false; drawProg(); },
+  "pg-met"(t){ S.prog.metric = t.dataset.v; S.prog.P.step = null; S.prog.manual = {}; drawProg(); },
+  "pg-reset"(){ S.prog.P = {base: "exec", step: null, types: null}; S.prog.manual = {}; S.prog.drafting = false; drawProg(); },
+  "pg-draft"(){ S.prog.drafting = true; drawProg(); },
+  "pg-apply"(){ pgApply(); },
+  "pg-type-f"(t){ const P = S.prog.P, v = t.dataset.t; P.types = P.types.includes(v) ? P.types.filter(x => x !== v) : [...P.types, v]; drawProg(); },
+  "pg-settype"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x), st = sets[+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
+  "pg-addset"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x); sets.push(clone(sets[sets.length - 1] || {})); drawProg(); },
+  "pg-rmset"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x); if (sets.length > 1) sets.pop(); drawProg(); },
   "prog-tog"(t){ const E = S.editor; (E.progOpen ??= {})[t.dataset.x] = E.progOpen[t.dataset.x] === false; drawEditor(); },
   "prog-tab"(t){ const E = S.editor; (E.progTab ??= {})[t.dataset.x] = t.dataset.v; drawEditor(); },
   "prog-more"(t){ const E = S.editor; (E.progMore ??= {})[t.dataset.x] = !E.progMore[t.dataset.x]; drawEditor(); },
@@ -2678,6 +3168,10 @@ document.addEventListener("change", async e => {
   if (k === "x-opt") { const inp = $(`#x-${t.dataset.k}-new`); inp.hidden = t.value !== "__new"; if (!inp.hidden) inp.focus(); return; }
   if (k === "an-date") { let f = $("#an-from").value || anQ.from, to = $("#an-to").value || anQ.to; if (f > to) [f, to] = [to, f];
     if (daysBetween(f, to) > 7*104) { toast("Periodo massimo: 2 anni"); f = addDays(to, -7*104); } anQ.from = f; anQ.to = to; return renderView(); }
+  if (k === "pg-base") { S.prog.P.base = t.value; return drawProg(); }
+  if (k === "pg-step") { S.prog.P.step = +t.value; return drawProg(); }
+  if (k === "ps-edit") { S.prog.sess.sets[t.dataset.x][+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
+  if (k === "pg-edit") { const sets = pgManualSets(t.dataset.w, t.dataset.x); sets[+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "an-who") { anQ.who = t.value; anQ.sess = null; return renderView(); }
   if (k === "an-sess") { anQ.sess = t.value; return redrawSess(); }
   if (k === "cal-ath") { S.calAthlete = t.value; return renderView(); }

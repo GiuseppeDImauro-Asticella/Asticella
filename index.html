@@ -378,6 +378,33 @@ table.ht td.n{color:var(--muted);font-weight:600}
 #vid .vback:fullscreen{padding:0;background:#000}
 #vid .vfoot a{color:var(--accent);font-weight:600}
 body.noscroll{overflow:hidden}
+/* progressione nell'editor */
+.prog{border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.prog.empty{padding:7px 12px;font-size:12px}
+.prog-h{display:flex;align-items:center;gap:8px;width:100%;border:0;background:var(--surface2);padding:7px 12px;font-size:13px;text-align:left;flex-wrap:wrap}
+.prog-h .car{color:var(--muted);width:10px}
+.prog-h .trend{margin-left:auto;font-size:12px;color:var(--muted)}
+.prog-h .trend b{color:var(--ink)}
+.prog .pos{color:var(--ok);font-weight:700}.prog .neg{color:var(--bad);font-weight:700}
+.spk{flex:none}.spk polyline{fill:none;stroke:var(--accent);stroke-width:1.75;stroke-linejoin:round;stroke-linecap:round}.spk circle{fill:var(--accent)}
+table.progt{width:100%;border-collapse:collapse;font-size:12.5px}
+table.progt th{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 12px 4px}
+table.progt td{padding:6px 12px;border-top:1px solid var(--line);vertical-align:top}
+table.progt td.dt{white-space:nowrap;font-weight:600}table.progt td.dt span{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+table.progt td.pl{color:var(--muted);min-width:130px}
+.progt .exs{display:flex;flex-wrap:wrap;gap:4px 6px}.progt .exs.dim{opacity:.55}
+.progt .swx{font-size:11.5px;color:var(--warn);margin-bottom:3px}
+table.progt td.mt{white-space:nowrap;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}table.progt td.mt small{font-weight:500;color:var(--muted);margin-left:2px}
+.xs{background:var(--surface2);border-radius:6px;padding:1px 6px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.xs .rp{color:var(--muted)}.xs .rp.neg{color:var(--bad)}.xs.ext{outline:1px dashed var(--faint)}
+.prog-tabs{display:flex;gap:4px;padding:8px 12px 0;border-top:1px solid var(--line)}
+.prog-tabs button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--muted)}
+.prog-tabs button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.prog-empty{padding:10px 12px;font-size:12.5px}
+.progt th.r{text-align:right}
+.progt .pex{margin-bottom:3px;display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px}
+.prog-f{display:flex;align-items:center;gap:8px;padding:6px 12px 8px;border-top:1px solid var(--line);flex-wrap:wrap}
+.prog-f .leg{font-size:11px}
 /* cambio esercizio */
 .aex .h .swbtn{border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;flex:none;align-self:center}
 .aex .h .swbtn:hover{color:var(--ink);border-color:var(--faint)}
@@ -1860,6 +1887,9 @@ function openEditor(email, w, isNew=false, tpl=false){
   $("#modal").innerHTML = "";          // un editor nuovo parte dall'inizio
   S.editor = {email, w: clone(w), isNew, dirty: isNew, tpl};
   drawEditor();
+  /* per "Ultime volte" servono anche le settimane passate di questo atleta (ultimi ~4 mesi) */
+  if (email && !tpl) { const E = S.editor, from = addDays(monday(w.date || TODAY()), -7 * 16);
+    ensureWeeks(email, from, 17).then(() => { if (S.editor === E && !$("#confirm").innerHTML) drawEditor(); }).catch(e => console.error(e)); }
 }
 function drawEditor(){
   const E = S.editor; if (!E) { $("#modal").innerHTML = ""; return; }
@@ -1946,6 +1976,7 @@ function exEditorHtml(x, i, res, L){
     <div class="row"><span class="lbl">Serie</span><span class="stepper"><button data-act="set-minus" data-i="${i}" aria-label="Togli serie">−</button><span class="num">${x.sets.length}</span><button data-act="set-plus" data-i="${i}" aria-label="Aggiungi serie">+</button></span>
       <input class="in grow" style="min-width:200px" aria-label="Note esercizio" data-bind="exercises.${i}.notes" value="${esc(x.notes||"")}" placeholder="Nota per l'atleta su questo esercizio"></div>
     ${x.name ? altsRowHtml(x, i, lib) : ""}
+    ${progHtml(x, i)}
     ${res && res.some((r,j) => !(j >= x.sets.length && emptyRes(r))) ? `<button type="button" class="done-box edit" data-act="fix-res" data-i="${i}" title="Clicca per correggere"><b>Eseguito dall'atleta${S.editor.w.coachEditedAt ? ` <span class="faint" style="font-weight:500">· corretto da te</span>` : ""}</b><div class="done-sets">${res.map((r,j)=> j >= x.sets.length && emptyRes(r) ? "" : `<span><span class="faint">${j+1}${j >= x.sets.length ? " extra" : ""})</span> ${esc(resultLine(r, cols) || (r.done?"✓":"–"))}</span>`).join("")}</div><span class="fix">✎ Correggi</span></button>`
       : !S.editor.tpl && S.editor.w.date <= TODAY() && !S.editor.isNew ? `<div><button type="button" class="btn sm ghost" data-act="fix-res" data-i="${i}">✎ Inserisci i dati eseguiti</button></div>` : ""}
   </section>`;
@@ -1995,6 +2026,108 @@ document.addEventListener("fullscreenchange", () => { const w = $("#vid .vwrap")
   if (!document.fullscreenElement && w?.classList.contains("full")) toggleVideoFull(); });
 function closeVideo(){ try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch(e) {}
   $("#vid").innerHTML = ""; document.body.classList.remove("noscroll"); }   // svuotare il riquadro ferma anche il video
+/* ---------- PROGRESSIONE: le ultime volte di questo atleta su questo esercizio (previsto accanto a eseguito) ---------- */
+const fmt1 = v => fmtN(v, Number.isInteger(v) ? 0 : 1);
+/* massimale stimato (Epley con le ripetizioni "in riserva"): kg × (1 + (reps + RIR) / 30); RIR = 10 − RPE se c'è l'RPE */
+function e1rm(r){ const kg = numv(r.kg), reps = numv(r.reps); if (!kg || !reps || reps > 15) return null;
+  const q = setRpe(r); const rir = q ? Math.max(0, 10 - q.v) : 0; return kg * (1 + (reps + rir) / 30); }
+/* indicatore di progresso della seduta per quell'esercizio: massimale stimato, altezza, distanza, tempo migliore o ripetizioni totali */
+function sessMetric(sets, cols){
+  const done = sets.map(o => o.r); const best = (f, pick) => { const v = done.map(f).filter(x => x != null && x > 0); return v.length ? pick(...v) : null; };
+  if (cols.includes("kg") && cols.includes("reps")) { const v = best(e1rm, Math.max); if (v) return {v, l: "Massimale stimato", u: "kg", up: 1}; }
+  if (cols.includes("height")) { const v = best(r => numv(r.height), Math.max); if (v) return {v, l: "Altezza migliore", u: "cm", up: 1}; }
+  if (cols.includes("dist")) { const v = best(r => numv(r.dist), Math.max); if (v) return {v, l: "Distanza migliore", u: "m", up: 1}; }
+  if (cols.includes("vel")) { const v = best(r => numv(r.vel), Math.max); if (v) return {v, l: "Velocità migliore", u: "m/s", up: 1}; }
+  if (cols.includes("time") && !cols.includes("reps")) { const v = best(r => numv(r.time), Math.min); if (v) return {v, l: "Tempo migliore", u: "s", up: -1}; }
+  if (cols.includes("kg")) { const v = best(r => numv(r.kg), Math.max); if (v) return {v, l: "Kg massimi", u: "kg", up: 1}; }
+  const reps = done.reduce((t, r) => t + (numv(r.reps) || 0), 0); if (reps) return {v: reps, l: "Ripetizioni totali", u: "", up: 1};
+  return null;
+}
+function coachHistory(email, name, cur, limit = 6){
+  const out = [];
+  const ws = Object.values(S.cache[email] || {}).filter(w => w.id !== cur.id && w.results && effDate(w) < (cur.date || TODAY()))
+    .sort((a, b) => effDate(b).localeCompare(effDate(a)));
+  for (const w of ws) { if (out.length >= limit) break;
+    const x = (w.exercises || []).find(x => sameName(exName(w, x), name)) || (w.exercises || []).find(x => sameName(x.name, name)); if (!x) continue;
+    const sets = (w.results[x.id] || []).map((r, j) => ({r, s: x.sets[j] || {}, extra: j >= x.sets.length})).filter(o => o.r.done || !emptyRes(o.r));
+    const other = !sameName(exName(w, x), name);   // previsto questo esercizio, ma l'atleta l'ha cambiato con un altro
+    if (sets.length) out.push({w, x, date: effDate(w), sets, m: other ? null : sessMetric(sets, x.cols || []), swapped: !!swapOf(w, x), other, sw: swapOf(w, x)}); }
+  return out;
+}
+/* una serie eseguita, scritta corta: "5×80 @8,5"; in evidenza cosa è diverso dal previsto */
+function execSetHtml(o, cols){
+  const r = o.r, s = o.s, n = v => numv(v);
+  const diff = (c, better) => { const a = n(r[c]), b = n(s[c]); if (a == null || b == null || a === b) return ""; return (better ? a > b : a < b) ? "pos" : "neg"; };
+  const q = setRpe(r), pq = setRpe(s);
+  if (cols.includes("reps") && cols.includes("kg")) {
+    return `<span class="xs ${o.extra ? "ext" : ""}"><span class="${diff("reps", true)}">${esc(r.reps || "?")}</span>×<span class="${diff("kg", true)}">${esc(r.kg || "?")}</span>${q ? `<span class="rp ${pq && q.v - pq.v >= 1 ? "neg" : ""}"> @${fmt1(q.v)}${q.from === "rir" ? "*" : ""}</span>` : ""}</span>`; }
+  const t = resultLine(r, cols); return `<span class="xs ${o.extra ? "ext" : ""}">${esc(t || "✓")}</span>`;
+}
+function spark(vals, up){
+  if (vals.length < 2) return "";
+  const W = 80, H = 22, mn = Math.min(...vals), mx = Math.max(...vals), rg = mx - mn || 1;
+  const pts = vals.map((v, k) => [2 + k * (W - 4) / (vals.length - 1), H - 3 - (v - mn) / rg * (H - 6)]);
+  return `<svg class="spk" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts.map(p => p.join(",")).join(" ")}"/><circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="3"/></svg>`;
+}
+/* stesso pattern motorio: tutte le sedute con esercizi di quel pattern (o tra le alternative), misurate con lo "stimolo" */
+const isHard = r => { const q = setRpe(r); return q ? q.v >= 7 : null; };   // serie allenante: RPE ≥ 7 (o RIR ≤ 3)
+function patternHistory(email, x, cur, limit = 6){
+  const lib = libByName(x.name), pat = lib?.pattern; if (!pat) return null;
+  const alts = altsOf(x);
+  const match = n => { const l = libByName(n); return (l && l.pattern === pat) || alts.some(a => sameName(a, n)) || sameName(n, x.name); };
+  const out = [];
+  const ws = Object.values(S.cache[email] || {}).filter(w => w.id !== cur.id && w.results && effDate(w) < (cur.date || TODAY()))
+    .sort((a, b) => effDate(b).localeCompare(effDate(a)));
+  for (const w of ws) { if (out.length >= limit) break;
+    const items = (w.exercises || []).filter(y => match(exName(w, y))).map(y => ({y, name: exName(w, y), sets: (w.results[y.id] || []).filter(r => r.done || !emptyRes(r))})).filter(o => o.sets.length);
+    if (!items.length) continue;
+    const all = items.flatMap(o => o.sets), known = all.filter(r => isHard(r) != null), hard = known.filter(isHard).length;
+    const rp = all.map(r => setRpe(r)?.v).filter(v => v != null);
+    const reps = all.reduce((t, r) => t + (numv(r.reps) || 0), 0);
+    const hMax = Math.max(0, ...all.map(r => numv(r.height) || 0));
+    out.push({w, date: effDate(w), items, n: all.length, hard: known.length ? hard : null, reps, rpe: rp.length ? rp.reduce((t, v) => t + v, 0) / rp.length : null, hMax: hMax || null}); }
+  return {pat, list: out};
+}
+/* la serie "migliore" di un esercizio in una seduta, per riconoscerlo a colpo d'occhio */
+function topSetTxt(sets, cols){
+  if (cols.includes("kg") && cols.includes("reps")) { const b = sets.reduce((m, r) => { const v = e1rm(r) ?? 0; return v > m.v ? {v, r} : m; }, {v: -1, r: null}).r;
+    if (b) { const q = setRpe(b); return `${b.reps}×${b.kg}${q ? " @" + fmt1(q.v) : ""}`; } }
+  const m = sessMetric(sets.map(r => ({r})), cols); return m ? `${fmt1(Math.round(m.v * 100) / 100)} ${m.u}`.trim() : `${sets.length} serie`;
+}
+function progPatternHtml(x, P, more){
+  if (!P) return `<div class="prog-empty faint">Questo esercizio non ha il <b>pattern motorio</b> in libreria: aggiungilo per confrontarlo con gli esercizi simili.</div>`;
+  if (!P.list.length) return `<div class="prog-empty faint">Nessuna seduta precedente con esercizi del pattern «${esc(P.pat)}».</div>`;
+  const rows = (more ? P.list : P.list.slice(0, 3)).map(h => `<tr><td class="dt">${esc(fmtD(h.date))}<span>${esc(DAYS[dayIdx(h.date)])}</span></td>
+    <td>${h.items.map(o => `<div class="pex"><b>${esc(o.name)}</b> <span class="faint">${o.sets.length} serie · migliore</span> <span class="xs">${esc(topSetTxt(o.sets, o.y.cols || []))}</span></div>`).join("")}</td>
+    <td class="mt">${h.n}</td><td class="mt">${h.hard ?? "–"}</td><td class="mt">${h.reps || "–"}</td><td class="mt">${h.rpe != null ? fmtN(h.rpe, 1) : "–"}</td></tr>`).join("");
+  return `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Esercizi (${esc(P.pat)})</th><th class="r">Serie</th><th class="r" title="Serie con RPE ≥ 7 o RIR ≤ 3">Allenanti</th><th class="r">${P.list.some(q => q.hMax) ? "Contatti" : "Rip."}</th><th class="r">RPE medio</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function progHtml(x, i){
+  const E = S.editor; if (!E || E.tpl || !E.email || !x.name) return "";
+  const a = athByEmail(E.email); const H = coachHistory(E.email, x.name, E.w), P = patternHistory(E.email, x, E.w);
+  if (!H.length && !P?.list?.length) return `<div class="prog empty"><span class="faint">Nessuna volta precedente registrata da ${esc((a?.name || "").split(" ")[0])} per questo esercizio${P ? ` né per il pattern «${esc(P.pat)}»` : ""}.</span></div>`;
+  const tab = (E.progTab ??= {})[x.id] || (H.length ? "ex" : "pat");
+  const open = (E.progOpen ??= {})[x.id] !== false, more = E.progMore?.[x.id];
+  const ms = H.filter(h => h.m).map(h => h.m), last = ms[0], prev = ms.slice(1).find(m => m.l === last?.l);
+  const d = last && prev ? last.v - prev.v : null;
+  const good = d != null && d !== 0 ? (d * (last.up || 1) > 0) : null;
+  const rows = (more ? H : H.slice(0, 3)).map(h => { const cols = h.x.cols || [];
+    return `<tr><td class="dt">${esc(fmtD(h.date))}<span>${esc(DAYS[dayIdx(h.date)])}</span></td>
+      <td class="pl">${esc(summarize(h.x) || "–")}${h.swapped && !h.other ? `<div class="faint">previsto ${esc(h.x.name)}, fatto questo</div>` : ""}</td>
+      <td>${h.other ? `<div class="swx">↔ cambiato con <b>${esc(h.sw.name)}</b>${swapWhy(h.sw) ? ` · ${esc(swapWhy(h.sw))}` : ""}</div>` : ""}<div class="exs ${h.other ? "dim" : ""}">${h.sets.map(o => execSetHtml(o, cols)).join("")}</div></td>
+      <td class="mt">${h.m ? `${fmt1(Math.round(h.m.v * 10) / 10)}<small>${h.m.u}</small>` : "–"}</td></tr>`; }).join("");
+  return `<div class="prog ${open ? "" : "closed"}">
+    <button type="button" class="prog-h" data-act="prog-tog" data-x="${x.id}" aria-expanded="${open}"><span class="car">${open ? "▾" : "▸"}</span><b>Ultime volte</b><span class="faint">di ${esc((a?.name || "").split(" ")[0])}</span>
+      ${last ? `<span class="trend">${esc(last.l)} <b>${fmt1(Math.round(last.v * 10) / 10)} ${last.u}</b>${d ? ` <span class="${good ? "pos" : "neg"}">${d > 0 ? "▲" : "▼"} ${fmt1(Math.round(Math.abs(d) * 10) / 10)}</span>` : ""}</span>${spark(ms.slice().reverse().map(m => m.v))}` : ""}</button>
+    ${open ? `<div class="prog-tabs" role="tablist"><button type="button" role="tab" class="${tab === "ex" ? "on" : ""}" aria-selected="${tab === "ex"}" data-act="prog-tab" data-x="${x.id}" data-v="ex">Questo esercizio${H.length ? "" : " (mai fatto)"}</button><button type="button" role="tab" class="${tab === "pat" ? "on" : ""}" aria-selected="${tab === "pat"}" data-act="prog-tab" data-x="${x.id}" data-v="pat">Stesso pattern${P ? ` · ${esc(P.pat)}` : ""}</button></div>` : ""}
+    ${open && tab === "pat" ? progPatternHtml(x, P, more) + `<div class="prog-f">${P?.list?.length > 3 ? `<button type="button" class="btn sm ghost" data-act="prog-more" data-x="${x.id}">${more ? "Mostra meno" : `Mostra altre ${P.list.length - 3}`}</button>` : ""}<span class="grow"></span><span class="faint leg">Serie allenanti = RPE ≥ 7 o RIR ≤ 3. I kg di esercizi diversi non si confrontano: guarda serie, ripetizioni e RPE.</span></div>` : ""}
+    ${open && tab === "ex" && !H.length ? `<div class="prog-empty faint">${esc((a?.name || "").split(" ")[0])} non ha ancora fatto questo esercizio: guarda «Stesso pattern». Consiglio: la prima volta prescrivilo a RPE o RIR.</div>` : ""}
+    ${open && tab === "ex" && H.length ? `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Previsto</th><th>Eseguito${(x.cols || []).includes("kg") && (x.cols || []).includes("reps") ? ` <span class="faint" style="font-weight:500;text-transform:none;letter-spacing:0">(reps×kg @RPE)</span>` : ""}</th><th>${esc(last?.l || "")}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="prog-f">${H.length > 3 ? `<button type="button" class="btn sm ghost" data-act="prog-more" data-x="${x.id}">${more ? "Mostra meno" : `Mostra altre ${H.length - 3}`}</button>` : ""}<span class="grow"></span>
+        <span class="faint leg"><span class="pos">verde</span> = più del previsto · <span class="neg">rosso</span> = meno (o RPE più alto)${H.some(h => h.sets.some(o => setRpe(o.r)?.from === "rir")) ? " · * = da RIR" : ""}</span>
+        <button type="button" class="btn sm" data-act="prog-use" data-i="${i}" title="Copia nelle serie quello che l'atleta ha fatto l'ultima volta (poi lo modifichi tu)">↺ Parti dall'ultima volta</button></div>` : ""}
+  </div>`;
+}
 /* alternative che l'atleta può scegliere se non riesce a fare l'esercizio */
 function altsRowHtml(x, i, lib){
   const own = Array.isArray(x.alts), list = altsOf(x);
@@ -2463,6 +2596,13 @@ const ACT = {
   /* atleta */
   "a-swap"(t){ swapSheet(t.dataset.x); },
   "a-hist"(t){ histSheet(t.dataset.x); },
+  "prog-tog"(t){ const E = S.editor; (E.progOpen ??= {})[t.dataset.x] = E.progOpen[t.dataset.x] === false; drawEditor(); },
+  "prog-tab"(t){ const E = S.editor; (E.progTab ??= {})[t.dataset.x] = t.dataset.v; drawEditor(); },
+  "prog-more"(t){ const E = S.editor; (E.progMore ??= {})[t.dataset.x] = !E.progMore[t.dataset.x]; drawEditor(); },
+  "prog-use"(t){ const E = S.editor, x = E.w.exercises[+t.dataset.i]; const h = coachHistory(E.email, x.name, E.w).find(h => !h.other); if (!h) return toast("Nessuna volta precedente da cui partire");
+    const cols = x.cols;   // i parametri restano quelli dell'esercizio di oggi
+    x.sets = h.sets.map(o => { const n = {}; cols.forEach(c => { n[c] = (COLS[c].log && o.r[c]) ? o.r[c] : (o.s[c] || ""); }); if (o.s.type) n.type = o.s.type; return n; });
+    markDirty(); drawEditor(); toast(`Serie copiate da ${fmtD(h.date)}: ora modificale per la progressione`); },
   "hist-close"(){ closeHist(); },
   "modal-back"(t, e){ if (e.target === t) closeHist(); },
   video(t){ openVideo(t.dataset.u, t.dataset.t); },

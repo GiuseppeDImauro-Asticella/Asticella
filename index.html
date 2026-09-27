@@ -391,7 +391,8 @@ table.progt{width:100%;border-collapse:collapse;font-size:12.5px}
 table.progt th{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 12px 4px}
 table.progt td{padding:6px 12px;border-top:1px solid var(--line);vertical-align:top}
 table.progt td.dt{white-space:nowrap;font-weight:600}table.progt td.dt span{display:block;font-weight:400;font-size:11px;color:var(--muted)}
-table.progt td.pl{color:var(--muted);min-width:130px}
+table.progt .pl{color:var(--muted);font-size:11.5px;margin-bottom:3px}
+table.progt .pex + .pex{margin-top:6px}
 .progt .exs{display:flex;flex-wrap:wrap;gap:4px 6px}.progt .exs.dim{opacity:.55}
 .progt .swx{font-size:11.5px;color:var(--warn);margin-bottom:3px}
 table.progt td.mt{white-space:nowrap;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}table.progt td.mt small{font-weight:500;color:var(--muted);margin-left:2px}
@@ -402,7 +403,7 @@ table.progt td.mt{white-space:nowrap;font-weight:700;text-align:right;font-varia
 .prog-tabs button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .prog-empty{padding:10px 12px;font-size:12.5px}
 .progt th.r{text-align:right}
-.progt .pex{margin-bottom:3px;display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px}
+.progt .pex > div:first-child{font-size:12px;margin-bottom:3px}
 .prog-f{display:flex;align-items:center;gap:8px;padding:6px 12px 8px;border-top:1px solid var(--line);flex-wrap:wrap}
 .prog-f .leg{font-size:11px}
 /* cambio esercizio */
@@ -2071,6 +2072,13 @@ function spark(vals, up){
 }
 /* stesso pattern motorio: tutte le sedute con esercizi di quel pattern (o tra le alternative), misurate con lo "stimolo" */
 const isHard = r => { const q = setRpe(r); return q ? q.v >= 7 : null; };   // serie allenante: RPE ≥ 7 (o RIR ≤ 3)
+/* "stimolo" di un gruppo di serie eseguite: serie, allenanti, ripetizioni (o contatti), RPE medio */
+function stimStats(rs){
+  const known = rs.filter(r => isHard(r) != null), rp = rs.map(r => setRpe(r)?.v).filter(v => v != null);
+  return {n: rs.length, hard: known.length ? known.filter(isHard).length : null, reps: rs.reduce((t, r) => t + (numv(r.reps) || 0), 0), rpe: rp.length ? rp.reduce((t, v) => t + v, 0) / rp.length : null};
+}
+const stimTds = st => `<td class="mt">${st.n}</td><td class="mt">${st.hard ?? "–"}</td><td class="mt">${st.reps || "–"}</td><td class="mt">${st.rpe != null ? fmtN(st.rpe, 1) : "–"}</td>`;
+const stimThs = contacts => `<th class="r">Serie</th><th class="r" title="Serie con RPE ≥ 7 o RIR ≤ 3">Allenanti</th><th class="r">${contacts ? "Contatti" : "Rip."}</th><th class="r">RPE medio</th>`;
 function patternHistory(email, x, cur, limit = 6){
   const lib = libByName(x.name), pat = lib?.pattern; if (!pat) return null;
   const alts = altsOf(x);
@@ -2079,28 +2087,21 @@ function patternHistory(email, x, cur, limit = 6){
   const ws = Object.values(S.cache[email] || {}).filter(w => w.id !== cur.id && w.results && effDate(w) < (cur.date || TODAY()))
     .sort((a, b) => effDate(b).localeCompare(effDate(a)));
   for (const w of ws) { if (out.length >= limit) break;
-    const items = (w.exercises || []).filter(y => match(exName(w, y))).map(y => ({y, name: exName(w, y), sets: (w.results[y.id] || []).filter(r => r.done || !emptyRes(r))})).filter(o => o.sets.length);
+    const items = (w.exercises || []).filter(y => match(exName(w, y))).map(y => ({y, name: exName(w, y), sw: swapOf(w, y),
+      sets: (w.results[y.id] || []).map((r, j) => ({r, s: y.sets[j] || {}, extra: j >= y.sets.length})).filter(o => o.r.done || !emptyRes(o.r))})).filter(o => o.sets.length);
     if (!items.length) continue;
-    const all = items.flatMap(o => o.sets), known = all.filter(r => isHard(r) != null), hard = known.filter(isHard).length;
-    const rp = all.map(r => setRpe(r)?.v).filter(v => v != null);
-    const reps = all.reduce((t, r) => t + (numv(r.reps) || 0), 0);
-    const hMax = Math.max(0, ...all.map(r => numv(r.height) || 0));
-    out.push({w, date: effDate(w), items, n: all.length, hard: known.length ? hard : null, reps, rpe: rp.length ? rp.reduce((t, v) => t + v, 0) / rp.length : null, hMax: hMax || null}); }
+    const all = items.flatMap(o => o.sets.map(q => q.r));
+    out.push({w, date: effDate(w), items, st: stimStats(all), jumps: items.some(o => (o.y.cols || []).includes("height"))}); }
   return {pat, list: out};
-}
-/* la serie "migliore" di un esercizio in una seduta, per riconoscerlo a colpo d'occhio */
-function topSetTxt(sets, cols){
-  if (cols.includes("kg") && cols.includes("reps")) { const b = sets.reduce((m, r) => { const v = e1rm(r) ?? 0; return v > m.v ? {v, r} : m; }, {v: -1, r: null}).r;
-    if (b) { const q = setRpe(b); return `${b.reps}×${b.kg}${q ? " @" + fmt1(q.v) : ""}`; } }
-  const m = sessMetric(sets.map(r => ({r})), cols); return m ? `${fmt1(Math.round(m.v * 100) / 100)} ${m.u}`.trim() : `${sets.length} serie`;
 }
 function progPatternHtml(x, P, more){
   if (!P) return `<div class="prog-empty faint">Questo esercizio non ha il <b>pattern motorio</b> in libreria: aggiungilo per confrontarlo con gli esercizi simili.</div>`;
   if (!P.list.length) return `<div class="prog-empty faint">Nessuna seduta precedente con esercizi del pattern «${esc(P.pat)}».</div>`;
   const rows = (more ? P.list : P.list.slice(0, 3)).map(h => `<tr><td class="dt">${esc(fmtD(h.date))}<span>${esc(DAYS[dayIdx(h.date)])}</span></td>
-    <td>${h.items.map(o => `<div class="pex"><b>${esc(o.name)}</b> <span class="faint">${o.sets.length} serie · migliore</span> <span class="xs">${esc(topSetTxt(o.sets, o.y.cols || []))}</span></div>`).join("")}</td>
-    <td class="mt">${h.n}</td><td class="mt">${h.hard ?? "–"}</td><td class="mt">${h.reps || "–"}</td><td class="mt">${h.rpe != null ? fmtN(h.rpe, 1) : "–"}</td></tr>`).join("");
-  return `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Esercizi (${esc(P.pat)})</th><th class="r">Serie</th><th class="r" title="Serie con RPE ≥ 7 o RIR ≤ 3">Allenanti</th><th class="r">${P.list.some(q => q.hMax) ? "Contatti" : "Rip."}</th><th class="r">RPE medio</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <td>${h.items.map(o => `<div class="pex"><div><b>${esc(o.name)}</b>${o.sw ? ` <span class="faint">(al posto di ${esc(o.y.name)})</span>` : ""} <span class="faint">· previsto ${esc(summarize(o.y) || "–")}</span></div>
+      <div class="exs">${o.sets.map(q => execSetHtml(q, o.y.cols || [])).join("")}</div></div>`).join("")}</td>
+    ${stimTds(h.st)}</tr>`).join("");
+  return `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Esercizi (${esc(P.pat)}): previsto → eseguito</th>${stimThs(P.list.some(q => q.jumps))}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function progHtml(x, i){
   const E = S.editor; if (!E || E.tpl || !E.email || !x.name) return "";
@@ -2113,8 +2114,9 @@ function progHtml(x, i){
   const good = d != null && d !== 0 ? (d * (last.up || 1) > 0) : null;
   const rows = (more ? H : H.slice(0, 3)).map(h => { const cols = h.x.cols || [];
     return `<tr><td class="dt">${esc(fmtD(h.date))}<span>${esc(DAYS[dayIdx(h.date)])}</span></td>
-      <td class="pl">${esc(summarize(h.x) || "–")}${h.swapped && !h.other ? `<div class="faint">previsto ${esc(h.x.name)}, fatto questo</div>` : ""}</td>
-      <td>${h.other ? `<div class="swx">↔ cambiato con <b>${esc(h.sw.name)}</b>${swapWhy(h.sw) ? ` · ${esc(swapWhy(h.sw))}` : ""}</div>` : ""}<div class="exs ${h.other ? "dim" : ""}">${h.sets.map(o => execSetHtml(o, cols)).join("")}</div></td>
+      <td><div class="pl">previsto ${esc(summarize(h.x) || "–")}${h.swapped && !h.other ? ` · <i>era previsto ${esc(h.x.name)}</i>` : ""}</div>
+        ${h.other ? `<div class="swx">↔ cambiato con <b>${esc(h.sw.name)}</b>${swapWhy(h.sw) ? ` · ${esc(swapWhy(h.sw))}` : ""}</div>` : ""}<div class="exs ${h.other ? "dim" : ""}">${h.sets.map(o => execSetHtml(o, cols)).join("")}</div></td>
+      ${h.other ? `<td class="mt" colspan="4"></td>` : stimTds(stimStats(h.sets.map(o => o.r)))}
       <td class="mt">${h.m ? `${fmt1(Math.round(h.m.v * 10) / 10)}<small>${h.m.u}</small>` : "–"}</td></tr>`; }).join("");
   return `<div class="prog ${open ? "" : "closed"}">
     <button type="button" class="prog-h" data-act="prog-tog" data-x="${x.id}" aria-expanded="${open}"><span class="car">${open ? "▾" : "▸"}</span><b>Ultime volte</b><span class="faint">di ${esc((a?.name || "").split(" ")[0])}</span>
@@ -2122,7 +2124,7 @@ function progHtml(x, i){
     ${open ? `<div class="prog-tabs" role="tablist"><button type="button" role="tab" class="${tab === "ex" ? "on" : ""}" aria-selected="${tab === "ex"}" data-act="prog-tab" data-x="${x.id}" data-v="ex">Questo esercizio${H.length ? "" : " (mai fatto)"}</button><button type="button" role="tab" class="${tab === "pat" ? "on" : ""}" aria-selected="${tab === "pat"}" data-act="prog-tab" data-x="${x.id}" data-v="pat">Stesso pattern${P ? ` · ${esc(P.pat)}` : ""}</button></div>` : ""}
     ${open && tab === "pat" ? progPatternHtml(x, P, more) + `<div class="prog-f">${P?.list?.length > 3 ? `<button type="button" class="btn sm ghost" data-act="prog-more" data-x="${x.id}">${more ? "Mostra meno" : `Mostra altre ${P.list.length - 3}`}</button>` : ""}<span class="grow"></span><span class="faint leg">Serie allenanti = RPE ≥ 7 o RIR ≤ 3. I kg di esercizi diversi non si confrontano: guarda serie, ripetizioni e RPE.</span></div>` : ""}
     ${open && tab === "ex" && !H.length ? `<div class="prog-empty faint">${esc((a?.name || "").split(" ")[0])} non ha ancora fatto questo esercizio: guarda «Stesso pattern». Consiglio: la prima volta prescrivilo a RPE o RIR.</div>` : ""}
-    ${open && tab === "ex" && H.length ? `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Previsto</th><th>Eseguito${(x.cols || []).includes("kg") && (x.cols || []).includes("reps") ? ` <span class="faint" style="font-weight:500;text-transform:none;letter-spacing:0">(reps×kg @RPE)</span>` : ""}</th><th>${esc(last?.l || "")}</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${open && tab === "ex" && H.length ? `<div class="scroll-x"><table class="progt"><thead><tr><th>Quando</th><th>Previsto → eseguito${(x.cols || []).includes("kg") && (x.cols || []).includes("reps") ? ` <span class="faint" style="font-weight:500;text-transform:none;letter-spacing:0">(reps×kg @RPE)</span>` : ""}</th>${stimThs((x.cols || []).includes("height"))}<th class="r">${esc(last?.l || "")}</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="prog-f">${H.length > 3 ? `<button type="button" class="btn sm ghost" data-act="prog-more" data-x="${x.id}">${more ? "Mostra meno" : `Mostra altre ${H.length - 3}`}</button>` : ""}<span class="grow"></span>
         <span class="faint leg"><span class="pos">verde</span> = più del previsto · <span class="neg">rosso</span> = meno (o RPE più alto)${H.some(h => h.sets.some(o => setRpe(o.r)?.from === "rir")) ? " · * = da RIR" : ""}</span>
         <button type="button" class="btn sm" data-act="prog-use" data-i="${i}" title="Copia nelle serie quello che l'atleta ha fatto l'ultima volta (poi lo modifichi tu)">↺ Parti dall'ultima volta</button></div>` : ""}

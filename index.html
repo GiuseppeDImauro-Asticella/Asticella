@@ -564,6 +564,12 @@ table.tt tr + tr td{border-top:1px solid var(--line)}
 .lt th.roh{color:var(--faint);font-weight:500}
 .ro.mini{display:inline-flex;height:18px;min-width:22px;font-size:11px;border:1.5px dashed var(--line);border-radius:5px;padding:0 3px;color:var(--muted);margin-right:2px}
 .rmx{width:26px;height:26px;border-radius:50%;border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);background:var(--bad-soft);color:var(--bad);font-size:12px;font-weight:700;padding:0;line-height:1}
+.pmlist{display:flex;flex-direction:column;gap:4px;margin:-2px 0 4px 26px;border-left:2px solid var(--line);padding-left:10px;font-size:12.5px;color:var(--muted);line-height:1.5}
+.pmlist.off{opacity:.45}
+.pmrow{display:flex;gap:4px;align-items:center}
+.pmrow .pm-ov{width:58px;flex:none;text-align:center;padding:4px 6px}
+.pmrow .pm-od{flex:1;padding:4px 8px;min-width:0}
+.pmrow .btn.icon{padding:3px 6px}
 .lt .pick{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-width:44px;height:42px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);font-size:17px;font-weight:600}
 .lt .pick.pk-empty span{color:var(--faint);font-weight:500}
 .lt .pick::after{content:"";position:absolute;right:5px;bottom:5px;border:4px solid transparent;border-top-color:var(--faint);border-bottom:0}
@@ -734,8 +740,8 @@ const BASE_COLS = {
   reps:  {l:"Reps",       u:"",    log:1},
   kg:    {l:"Kg",         u:"kg",  log:1},
   pct:   {l:"%1RM",       u:"%",   log:0},
-  rpe:   {l:"RPE",        u:"",    log:1},
-  rir:   {l:"RIR",        u:"",    log:1},
+  rpe:   {l:"RPE",        u:"",    log:1, pick:1},   // pick: l'atleta lo sceglie da un menu (PICK_OPTS)
+  rir:   {l:"RIR",        u:"",    log:1, pick:1},
   vel:   {l:"Vel. media", u:"m/s", log:1},
   time:  {l:"Tempo",      u:"s",   log:1},
   dist:  {l:"Distanza",   u:"m",   log:1},
@@ -754,20 +760,23 @@ const pickable = () => COL_KEYS.filter(k => !COLS_REAL[k].archived);
 function applyParams(list){
   Object.keys(COLS_REAL).forEach(k => { if (k in BASE_COLS) COLS_REAL[k] = {...BASE_COLS[k]}; else delete COLS_REAL[k]; });
   (list || []).forEach(p => { if (p.key in BASE_COLS) {   // parametro di base modificato dal coach: cambia nome, unità, chi lo compila, nascosto (la chiave resta, i calcoli non cambiano)
-      COLS_REAL[p.key] = {...BASE_COLS[p.key], l: p.label || BASE_COLS[p.key].l, u: p.unit ?? BASE_COLS[p.key].u, log: p.log ? 1 : 0, txt: p.txt == null ? (BASE_COLS[p.key].txt || 0) : (p.txt ? 1 : 0), archived: !!p.archived}; return; }
-    COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, archived: !!(p.archived || p.deleted), deleted: !!p.deleted, custom: 1}; });
+      COLS_REAL[p.key] = {...BASE_COLS[p.key], l: p.label || BASE_COLS[p.key].l, u: p.unit ?? BASE_COLS[p.key].u, log: p.log ? 1 : 0, txt: p.txt == null ? (BASE_COLS[p.key].txt || 0) : (p.txt ? 1 : 0), pick: p.pick == null ? (BASE_COLS[p.key].pick || 0) : (p.pick ? 1 : 0), opts: Array.isArray(p.opts) && p.opts.length ? p.opts : null, archived: !!p.archived}; return; }
+    COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, pick: p.pick ? 1 : 0, opts: Array.isArray(p.opts) && p.opts.length ? p.opts : null, archived: !!(p.archived || p.deleted), deleted: !!p.deleted, custom: 1}; });
   COL_KEYS = Object.keys(COLS_REAL);
 }
 const RPE_LABELS = {1:"Molto facile",2:"Facile",3:"Moderato",4:"Un po' duro",5:"Duro",6:"",7:"Molto duro",8:"",9:"",10:"Massimale"};
 /* RPE e RIR della serie: l'atleta li sceglie da un menu (stessa scala di fine allenamento per l'RPE) */
-const PICK_OPTS = {
-  rpe: Array.from({length: 10}, (_, i) => { const v = 10 - i; return {v: String(v), s: String(v), l: `${v}${RPE_LABELS[v] ? " · " + RPE_LABELS[v] : ""}`}; }),
-  rir: [["0", "0", "nessuna in più (cedimento)"], ["1", "1", "1 ripetizione in riserva"], ["2", "2", "2 ripetizioni in riserva"], ["3", "3", "3 ripetizioni in riserva"], ["4", "4", "4 ripetizioni in riserva"], ["5", "5+", "5 o più in riserva"]]
-    .map(([v, sh, d]) => ({v, s: sh, l: `${sh} · ${d}`})),
+const PICK_OPTS = {   // elenchi di partenza; il coach può cambiarli (Esercizi → Parametri → Modifica), salvati in COLS[c].opts
+  rpe: Array.from({length: 10}, (_, i) => { const v = 10 - i; return {v: String(v), d: RPE_LABELS[v] || ""}; }),
+  rir: [["0", "", "nessuna in più (cedimento)"], ["1", "", "1 ripetizione in riserva"], ["2", "", "2 ripetizioni in riserva"], ["3", "", "3 ripetizioni in riserva"], ["4", "", "4 ripetizioni in riserva"], ["5", "5+", "5 o più in riserva"]]
+    .map(([v, sh, d]) => ({v, s: sh, d})),
 };
+/* voci del menu: v = valore salvato (numero), s = come si vede nella casella, l = come si legge nel menu */
+function pickOpts(c){ const src = (COLS[c]?.opts?.length ? COLS[c].opts : PICK_OPTS[c]) || [];
+  return src.map(o => { const sh = o.s || String(o.v).replace(".", ","); return {v: String(o.v), s: sh, d: o.d || "", l: sh + (o.d ? " · " + o.d : "")}; }); }
 /* casella con menu: si vede solo il numero, toccandola si apre il menu del telefono con le spiegazioni */
 function pickCell(c, xid, j, val, plan){
-  const opts = PICK_OPTS[c].slice(); const v = String(val ?? "");
+  const opts = pickOpts(c); const v = String(val ?? "");
   if (v && !opts.some(o => o.v === v)) opts.unshift({v, s: v, l: v});   // valore già scritto in altro modo (es. 8,5): resta visibile
   const cur = opts.find(o => o.v === v);
   return `<label class="pick ${cur ? "" : "pk-empty"}"><span>${esc(cur ? cur.s : (plan || "–"))}</span><select aria-label="${esc(COLS[c].l)} serie ${j+1}" data-r="${xid}|${j}|${c}" data-ph="${esc(plan || "–")}">
@@ -1915,13 +1924,15 @@ function paramsPanel(){
   const changed = k => (S.params || []).some(p => p.key === k);
   return `<div class="form"><h3>Parametri</h3>
     <div class="note">I parametri che scegli per un esercizio (es. Reps · Kg · RPE) diventano le colonne della tabella. «L'atleta lo compila» = lo registra lui a ogni serie; gli altri sono solo indicazioni tue.</div>
-    <div class="plist">${base.map(k => { const d = COLS_REAL[k]; return `<div class="prow ${d.archived ? "off" : ""}"><span>${esc(d.l)}${d.u && d.u !== "%" && d.u.toLowerCase() !== d.l.toLowerCase() ? ` <span class="faint">${esc(d.u)}</span>` : ""}${d.archived ? ' <span class="tag">nascosto</span>' : changed(k) ? ` <span class="tag" title="Originale: ${esc(BASE_COLS[k].l)}">modificato</span>` : ""}${d.h ? `<br><span class="faint" style="font-size:11px">${esc(d.h)}</span>` : ""}</span><span class="faint">${d.log ? "l'atleta lo compila" : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${k}">Modifica</button></div>`; }).join("")}
-      ${custom.map(p => `<div class="prow ${p.archived ? "off" : ""}"><span><b>${esc(p.label)}</b>${p.unit ? ` <span class="faint">${esc(p.unit)}</span>` : ""}${p.archived ? ' <span class="tag">nascosto</span>' : ""}</span><span class="faint">${p.log ? "l'atleta lo compila" : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${p.key}">Modifica</button></div>`).join("")}</div>
+    <div class="plist">${base.map(k => { const d = COLS_REAL[k]; return `<div class="prow ${d.archived ? "off" : ""}"><span>${esc(d.l)}${d.u && d.u !== "%" && d.u.toLowerCase() !== d.l.toLowerCase() ? ` <span class="faint">${esc(d.u)}</span>` : ""}${d.archived ? ' <span class="tag">nascosto</span>' : changed(k) ? ` <span class="tag" title="Originale: ${esc(BASE_COLS[k].l)}">modificato</span>` : ""}${d.h ? `<br><span class="faint" style="font-size:11px">${esc(d.h)}</span>` : ""}</span><span class="faint">${d.log ? (d.pick ? "l'atleta lo sceglie da menu" : "l'atleta lo compila") : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${k}">Modifica</button></div>`; }).join("")}
+      ${custom.map(p => `<div class="prow ${p.archived ? "off" : ""}"><span><b>${esc(p.label)}</b>${p.unit ? ` <span class="faint">${esc(p.unit)}</span>` : ""}${p.archived ? ' <span class="tag">nascosto</span>' : ""}</span><span class="faint">${p.log ? (p.pick ? "l'atleta lo sceglie da menu" : "l'atleta lo compila") : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${p.key}">Modifica</button></div>`).join("")}</div>
     <button class="btn" data-act="param-new">+ Nuovo parametro</button></div>`;
 }
 function paramDialog(p, onDone){
   const isNew = !p; p = p || {label:"", unit:"", log:1, txt:0};
   const isBase = !isNew && p.key in BASE_COLS, orig = isBase ? BASE_COLS[p.key] : null;
+  if (isBase && p.pick == null) p.pick = orig.pick || 0;
+  const needNum = isBase && !orig.txt;   // parametri di base usati nei calcoli: le voci del menu devono essere numeri
   $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="pm-form"><header><h2>${isNew ? "Nuovo parametro" : "Modifica parametro"}</h2></header><div class="body">
     <div class="row"><div class="field grow"><label class="lbl" for="pm-l">Nome</label><input class="in" id="pm-l" value="${esc(p.label)}" placeholder="es. Potenza, Contatto a terra, Angolo" required></div>
       <div class="field" style="width:110px"><label class="lbl" for="pm-u">Unità</label><input class="in" id="pm-u" value="${esc(p.unit||"")}" placeholder="es. W, ms"></div></div>
@@ -1929,12 +1940,36 @@ function paramDialog(p, onDone){
       <label class="row"><input type="radio" name="pm-log" value="1" ${p.log ? "checked" : ""}> L'atleta registra il valore a ogni serie</label>
       <label class="row"><input type="radio" name="pm-log" value="0" ${p.log ? "" : "checked"}> Solo tu, come indicazione (l'atleta lo legge)</label></div>
     ${isBase && p.key === "side" ? "" : `<div class="field"><span class="lbl">Tipo di valore</span>
-      <label class="row"><input type="radio" name="pm-t" value="0" ${p.txt ? "" : "checked"}> Numero (tastierino numerico sul telefono)</label>
-      <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt ? "checked" : ""}> Testo libero${isBase ? ` <span class="faint" style="font-size:12px">(es. per scrivere 2'30)</span>` : ""}</label></div>`}
+      <label class="row"><input type="radio" name="pm-t" value="m" ${p.pick ? "checked" : ""}> Menu: l'atleta sceglie da un elenco</label>
+        <div class="pmlist" id="pm-list"></div>
+      <label class="row"><input type="radio" name="pm-t" value="0" ${p.txt || p.pick ? "" : "checked"}> Numero (tastierino numerico sul telefono)</label>
+      <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt && !p.pick ? "checked" : ""}> Testo libero${isBase ? ` <span class="faint" style="font-size:12px">(es. per scrivere 2'30)</span>` : ""}</label></div>`}
     ${isBase ? `<div class="note">Parametro di base (originale: <b>${esc(orig.l)}</b>${orig.u ? " · " + esc(orig.u) : ""}). Puoi cambiarlo come vuoi: l'app continua a usarlo nei calcoli (volume, massimale stimato, RPE…). Non si può eliminare, ma puoi nasconderlo.</div>` : ""}
     ${isNew ? "" : `<label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="pm-arch" ${p.archived ? "checked" : ""} style="margin-top:3px"><span>Nascondilo dagli elenchi (gli allenamenti che lo usano restano uguali)</span></label>`}
     </div><footer>${isNew ? "" : isBase ? ((S.params || []).some(x => x.key === p.key) ? `<button type="button" class="btn ghost" id="pm-reset">↺ Ripristina originale</button>` : "") : `<button type="button" class="btn ghost danger" id="pm-del">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
   $("#pm-no").onclick = () => $("#confirm").innerHTML = "";
+  /* elenco del menu: modificabile — valore + descrizione (per i parametri di base usati nei calcoli il valore dev'essere un numero) */
+  const pl = $("#pm-list"); let opts = null;
+  if (pl) { const def = (PICK_OPTS[p.key] || []).map(o => ({s: o.s || o.v, d: o.d || ""}));
+    opts = (Array.isArray(p.opts) && p.opts.length ? p.opts : PICK_OPTS[p.key] || []).map(o => ({s: o.s || (needNum ? String(o.v).replace(".", ",") : String(o.v)), d: o.d || ""}));
+    if (!opts.length) opts = [{s: "", d: ""}, {s: "", d: ""}];
+    const readL = () => pl.querySelectorAll(".pmrow").forEach((r, k) => { opts[k] = {s: r.querySelector(".pm-ov").value.trim(), d: r.querySelector(".pm-od").value.trim()}; });
+    const drawL = () => { const menu = $("input[name=pm-t]:checked")?.value === "m";
+      pl.innerHTML = menu ? `${opts.map((o, k) => `<div class="pmrow"><input class="in pm-ov" value="${esc(o.s)}" aria-label="Valore ${k+1}" ${needNum ? `inputmode="decimal"` : `placeholder="valore" style="width:96px"`}><input class="in pm-od" value="${esc(o.d)}" placeholder="descrizione (facoltativa)" aria-label="Descrizione ${k+1}">
+          <button type="button" class="btn ghost icon sm" data-k="${k}" data-pm="up" aria-label="Sposta su" ${k ? "" : "disabled"}>↑</button><button type="button" class="btn ghost icon sm danger" data-k="${k}" data-pm="rm" aria-label="Togli">✕</button></div>`).join("")}
+        <div class="row" style="gap:6px;margin-top:4px"><button type="button" class="btn sm" data-pm="add">+ valore</button>${def.length && JSON.stringify(opts) !== JSON.stringify(def) ? `<button type="button" class="btn sm ghost" data-pm="def">↺ Elenco originale</button>` : ""}
+          <span class="faint" style="font-size:11.5px">${needNum ? `Il valore deve essere un numero (anche 8,5; "5+" vale 5): serve per calcoli e grafici.` : "Il valore è quello che si salva e si vede nella casella (numero o parola, es. 3 oppure Erba); la descrizione compare solo nel menu."}</span></div>`
+        : opts.filter(o => o.s).map(o => `<span>${esc(o.s)}${o.d ? " · " + esc(o.d) : ""}</span>`).join("");
+      pl.classList.toggle("off", !menu); };
+    pl.addEventListener("click", e => { const b = e.target.closest("[data-pm]"); if (!b) return; readL(); const k = +b.dataset.k;
+      if (b.dataset.pm === "rm") { if (opts.length <= 2) return toast("Servono almeno 2 valori"); opts.splice(k, 1); }
+      if (b.dataset.pm === "up") [opts[k - 1], opts[k]] = [opts[k], opts[k - 1]];
+      if (b.dataset.pm === "add") opts.push({s: "", d: ""});
+      if (b.dataset.pm === "def") opts = def.map(o => ({...o}));
+      drawL(); if (b.dataset.pm === "add") pl.querySelector(".pmrow:last-of-type .pm-ov")?.focus(); });
+    pl.addEventListener("input", readL);
+    $("#pm-form").addEventListener("change", e => { if (e.target.name === "pm-t") { readL(); drawL(); } });
+    drawL(); }
   const rs = $("#pm-reset");
   if (rs) rs.onclick = async () => { const list = (S.params || []).filter(x => x.key !== p.key);
     await DB.saveSettings({params: list}); S.params = list; applyParams(list); $("#confirm").innerHTML = ""; toast(`«${orig.l}» come in origine`); if (onDone) onDone(p.key); else renderView(); };
@@ -1949,6 +1984,17 @@ function paramDialog(p, onDone){
     const np = {key: p.key || ("c_" + (label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12) || "p") + uid().slice(-4)),
       label, unit: $("#pm-u").value.trim(), log: document.querySelector("input[name=pm-log]:checked").value === "1",
       txt: $("input[name=pm-t]:checked") ? $("input[name=pm-t]:checked").value === "1" : !!p.txt, archived: !!$("#pm-arch")?.checked};
+    if (pl) { np.pick = $("input[name=pm-t]:checked")?.value === "m";
+      if (np.pick) pl.querySelectorAll(".pmrow").forEach((r, k) => { opts[k] = {s: r.querySelector(".pm-ov").value.trim(), d: r.querySelector(".pm-od").value.trim()}; });
+      if (np.pick && opts.some(o => !o.s && o.d)) return toast("Nell'elenco c'è una descrizione senza valore");
+      const list = opts.filter(o => o.s).map(o => { if (!needNum) return {v: o.s, d: o.d};
+        const n = numv(o.s.replace("+", "")); return n == null ? null : {v: String(n), ...(o.s !== String(n).replace(".", ",") ? {s: o.s} : {}), d: o.d}; });
+      if (np.pick) {
+        if (list.some(o => !o)) return toast("Ogni valore dell'elenco deve essere un numero (es. 8 o 8,5)");
+        if (new Set(list.map(o => String(o.v).toLowerCase())).size !== list.length) return toast("Nell'elenco c'è un valore ripetuto");
+        if (list.length < 2) return toast("Servono almeno 2 valori nell'elenco"); }
+      const isDef = PICK_OPTS[p.key] && JSON.stringify(list) === JSON.stringify(PICK_OPTS[p.key].map(o => ({v: o.v, ...(o.s ? {s: o.s} : {}), d: o.d})));
+      np.opts = isDef || !list.length || list.some(o => !o) ? (np.pick ? null : (p.opts || null)) : list; }
     if (isBase) np.base = true;
     const list = (S.params || []).filter(x => x.key !== np.key); list.push(np);
     await DB.saveSettings({params: list}); S.params = list; applyParams(list);
@@ -3166,7 +3212,7 @@ function athExHtml(w, x, label, res){
     if (!COLS[c].log) return `<td><div class="ro" title="Indicazione del coach: non va compilata">${esc(s[c] || "–")}</div></td>`;
     if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
       return `<td><span class="side-in" title="${s.side ? "Programmato: "+esc(s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} serie ${j+1}">${k}</button>`).join("")}</span></td>`; }
-    if (PICK_OPTS[c]) return `<td>${pickCell(c, x.id, j, rr[c], s[c])}</td>`;
+    if (COLS[c].pick && pickOpts(c).length) return `<td>${pickCell(c, x.id, j, rr[c], s[c])}</td>`;
     return `<td><input inputmode="${COLS[c].txt ? "text" : "decimal"}" aria-label="${esc(COLS[c].l)} serie ${j+1}" data-r="${x.id}|${j}|${c}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c]||"–")}"></td>`;
   };
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
@@ -3400,7 +3446,7 @@ const ACT = {
     S.exercises.sort((a,b) => a.name.localeCompare(b.name)); fillDatalist(); toast(`${todo.length} esercizi aggiunti`); renderView(); },
   "param-new"(){ paramDialog(null); },
   "param-edit"(t){ const k = t.dataset.k; const p = (S.params||[]).find(x => x.key === k)
-      || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: BASE_COLS[k].txt || 0, archived: false} : null);
+      || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: BASE_COLS[k].txt || 0, pick: BASE_COLS[k].pick || 0, archived: false} : null);
     if (p) paramDialog(clone(p)); },
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); setTimeout(()=>$("#x-name")?.focus(), 20); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); },

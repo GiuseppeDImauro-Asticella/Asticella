@@ -258,6 +258,17 @@ table.list{width:100%;border-collapse:collapse}
 .ssg{border:2px solid var(--accent);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--accent-soft)}
 .ssg-h{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.04em;color:var(--accent);padding:0 4px;display:flex;gap:8px;align-items:baseline}
 .ssg-h span{font-family:var(--sans);font-weight:500;font-size:12px;letter-spacing:0;color:var(--muted)}
+.ssg-h{flex-wrap:wrap}.ssg-h .grpkind{margin-left:auto;align-self:center}
+.seg.sm button{padding:3px 9px;font-size:12px}
+.ssg.circ{border-color:var(--s3);background:color-mix(in srgb,var(--s3) 9%,var(--surface))}
+.ssg.circ .ssg-h{color:var(--s3)}
+.ssg.circ .grpkind button.on,.circset .seg button.on{background:color-mix(in srgb,var(--s3) 16%,var(--surface));color:var(--s3)}
+.circset{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:2px 4px 6px;font-size:13px}
+.circset .cf{display:inline-flex;align-items:center;gap:6px}
+.circset .cf .lbl{margin:0}
+.circset .cin{width:56px;padding:4px 6px;text-align:center}.circset .cin.w{width:80px}
+.circset .stepper button{width:26px;height:26px}
+.sets td.n.gn{font-weight:700;color:var(--s3);white-space:nowrap}
 .sslink{display:flex;justify-content:center;margin:-6px 0}
 .sslink .btn{border-style:dashed;color:var(--muted);font-weight:500}
 .sslink .btn.on{border-style:solid;color:var(--accent);background:var(--surface)}
@@ -327,6 +338,9 @@ button.done-box:hover .fix{color:var(--ink)}
 .api .lc{position:relative;align-self:stretch;display:flex;justify-content:center}
 .api .lab{position:relative;z-index:1;min-width:32px;height:24px;padding:0 4px;border-radius:7px;background:color-mix(in srgb,var(--bc) 13%,var(--surface));color:var(--bc);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;letter-spacing:.02em}
 .api.link .lc::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:24px;bottom:-12px;width:2px;border-radius:2px;background:color-mix(in srgb,var(--bc) 50%,transparent)}
+.apgrp{border:1px dashed color-mix(in srgb,var(--bc) 45%,transparent);border-radius:12px;padding:5px 8px 8px 6px;margin:0 -7px}
+.apgrp .aplan{margin:0}
+.apgh{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--bc);margin:0 0 6px 2px}
 .api .nm{font-weight:600;font-size:15px;color:var(--ink);line-height:1.25;padding-top:2px}
 .api .sc{font-size:13px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
 .api .sst{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--bc);vertical-align:2px}
@@ -344,6 +358,35 @@ button.done-box:hover .fix{color:var(--ink)}
 .aex .h{display:flex;gap:8px;align-items:baseline}
 .aex .h .b{font-family:var(--display);font-weight:700;color:var(--accent);font-size:18px}
 .aex.ssbox{border:2px solid var(--accent)}
+.aex.circbox{border:2px solid var(--s3)}
+.aex.circbox .sshead{color:var(--s3)}
+.mtag{display:inline-block;margin:1px 0 2px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:5px;padding:1px 6px;white-space:nowrap}
+td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;margin-top:3px}
+.mtag.circ{background:color-mix(in srgb,var(--s3) 14%,var(--surface));color:var(--s3)}.mtag.ss{background:var(--accent-soft);color:var(--accent)}
+.aex .chow{font-size:13px;line-height:1.4;background:color-mix(in srgb,var(--s3) 10%,var(--surface));border-radius:8px;padding:8px 10px;color:var(--ink)}
+.aex.circbox .h .b,.crow .cnm b{color:var(--s3) !important}
+.aex .cscheme{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.clogwrap{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
+.cgiro{display:flex;flex-direction:column;gap:6px}
+.cgh{font-family:var(--display);font-weight:700;font-size:16px;color:var(--s3);letter-spacing:.03em}
+.crow{display:grid;grid-template-columns:minmax(0,1fr) 42px;grid-template-areas:"nm ck" "fs ck";gap:4px 8px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--surface2)}
+.crow.ok{background:var(--ok-soft)}
+.crow .cnm{grid-area:nm;font-size:13.5px;font-weight:600}
+.crow .cfs{grid-area:fs;display:flex;flex-wrap:wrap;gap:6px}
+.crow .ck{grid-area:ck}
+.crow.ok .ck{background:var(--ok);border-color:var(--ok)}.crow.ok .ck svg{stroke:#fff}
+.cfl{display:flex;flex-direction:column;gap:2px}.cfl .fl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.cfl input,.cfl .pick,.cfl .ro{width:72px !important;min-width:0;height:38px !important}
+.crow.ok input,.crow.ok .pick{background:var(--surface);border-color:transparent}
+.crounds{display:flex;flex-wrap:wrap;gap:8px}
+.cround-ck{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:700;font-size:15px}
+.cround-ck svg{width:18px;height:18px;stroke:var(--faint)}
+.cround-ck.on{background:var(--ok);border-color:var(--ok);color:#fff}.cround-ck.on svg{stroke:#fff}
+.clog{display:flex;flex-direction:column;gap:12px}.clog.amrap{flex-direction:row;flex-wrap:wrap;gap:12px}
+.crow2{display:flex;flex-wrap:wrap;gap:12px}
+.cfld{display:flex;flex-direction:column;gap:4px}.cfld .lbl{margin:0}
+.cfld .lt input,.cfld .lt .pick{width:80px}
+.cnote2{font-size:12px;width:100%}
 .aex .sshead{font-family:var(--display);font-weight:700;color:var(--accent);font-size:16px;letter-spacing:.04em}
 .aex .sshead span{display:block;font-family:var(--sans);font-weight:500;font-size:12px;letter-spacing:0;color:var(--muted)}
 .aex .sub{display:flex;flex-direction:column;gap:8px}
@@ -537,6 +580,7 @@ table.tt tr + tr td{border-top:1px solid var(--line)}
 .rchips{display:flex;flex-wrap:wrap;gap:6px}
 .rchips button{border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 12px;font-size:13px;font-weight:600}
 .rchips button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.wcard li.ctag,.tpl li.ctag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--s3)}
 .wcard li .swn{font-style:italic} .wcard li .swn s{color:var(--faint)}
 .aplan .sc.swl{color:var(--warn,#b7791f);font-style:italic}
 .altrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
@@ -1184,6 +1228,61 @@ function mesoAt(a, date){
 const BLOCK_COLORS = ["#2650D6","#8A3FD1","#0E7C86","#C2570C","#C0266D","#4D7A12","#5B6476"];
 const blockColor = lbl => { const c = String(lbl||"").trim().toUpperCase().charCodeAt(0); return `var(--blk${c >= 65 && c <= 90 ? (c-65) % 6 : 6})`; };
 /* schema leggibile per l'atleta: "4 set × 5 reps · 80 kg · RPE 8" */
+/* ---------- CIRCUITI ----------
+   un gruppo (come la superserie: esercizi uniti con ss=true) diventa circuito se il primo esercizio ha x.circ =
+   {fmt: "giri"|"tempo"|"amrap"|"emom", rest, work, pause, min, log: "full"|"light"}.
+   Giri = numero di serie di ogni esercizio (serie 1 = giro 1…): i valori possono cambiare giro per giro.
+   AMRAP: una sola riga "per giro". Dati del circuito (RPE, tempo, giri completati) in results[lead.id + "~c"][0]. */
+const CIRC_FMT = {giri: {l: "A giri"}, tempo: {l: "A tempo"}, amrap: {l: "AMRAP"}, emom: {l: "EMOM"}};
+const circOfGroup = (exs, g) => exs[g[0]]?.circ && (g.length > 1 || exs[g[0]].circ.solo) ? exs[g[0]].circ : null;   // solo: circuito di un solo esercizio (es. AMRAP 5′ max burpees)
+const amrapReps = c => c?.fmt === "amrap" && c.count === "reps";
+/* metodo con cui è stato fatto un esercizio (per Dati, Ultime volte, cronologia): "Circuito B · 3 giri", "Superserie A"… */
+function methodOf(w, x){ const exs = w?.exercises || [], i = exs.indexOf(x); if (i < 0) return null; const g = ssGroups(exs).find(g => g.includes(i)); if (!g) return null;
+  const c = circOfGroup(exs, g), lead = exs[g[0]], n = lead.sets.length;
+  if (c) return {k: "circ", l: circTitle(c, lead.block || "") + (c.fmt === "giri" || c.fmt === "tempo" ? ` · ${n} ${n === 1 ? "giro" : "giri"}` : c.fmt === "emom" ? ` · ${n * g.length}′` : amrapReps(c) ? " · max ripetizioni" : "")};
+  return g.length > 1 ? {k: "ss", l: `Superserie ${lead.block || ""}`.trim()} : null; }
+const methodTag = m => m ? `<span class="mtag ${m.k}">${esc(m.l)}</span>` : "";
+function circGroupOf(exs, i){ const g = ssGroups(exs).find(g => g.includes(i)); return g && circOfGroup(exs, g) ? g : null; }
+function circSync(exs, g, n){ g.forEach(i => { const x = exs[i]; x.sets = x.sets || [];
+  while (x.sets.length < n) x.sets.push(clone(x.sets[x.sets.length - 1] || Object.fromEntries((x.cols || []).map(c => [c, ""]))));
+  if (x.sets.length > n) x.sets.length = n; }); }
+function circTitle(c, blk){ const b = blk ? " " + blk : "";
+  return c.fmt === "amrap" ? `AMRAP${b}${c.min ? " · " + c.min + "′" : ""}` : c.fmt === "emom" ? `EMOM${b}` : c.fmt === "tempo" ? `Circuito a tempo${b}` : `Circuito${b}`; }
+const circTag = (c, n, k) => c.fmt === "amrap" ? `AMRAP${c.min ? " " + c.min + "′" : ""}${amrapReps(c) ? " max rip." : ""}` : c.fmt === "emom" ? `EMOM ${n * k}′` : `circuito${c.fmt === "tempo" ? " a tempo" : ""} · ${n} ${n === 1 ? "giro" : "giri"}`;
+/* come si esegue il circuito, spiegato all'atleta (PDF e app) */
+function circHow(c, n, labs){ const seq = labs.join(" → "), NG = n === 1 ? "1 giro" : `${n} giri`;
+  if (amrapReps(c)) return labs.length > 1 ? `Hai ${c.min || "?"} minuti: fai più ripetizioni possibili, alternando ${seq} come preferisci (riposa solo se serve). Alla fine scrivi le ripetizioni totali di ogni esercizio.`
+    : `Hai ${c.min || "?"} minuti: fai più ripetizioni possibili (riposa solo se serve). Alla fine scrivi le ripetizioni totali.`;
+  if (c.fmt === "amrap") return `Hai ${c.min || "?"} minuti: ripeti il giro ${seq} più volte che puoi, senza pause programmate (riposa solo se serve). Alla fine segna i giri completati e le ripetizioni del giro non finito.`;
+  if (c.fmt === "emom") return `Fai partire il cronometro: all'inizio di ogni minuto esegui l'esercizio indicato e recupera fino allo scadere del minuto. Minuto 1 ${labs[0]}, minuto 2 ${labs[1] || labs[0]}${labs[2] ? `, minuto 3 ${labs[2]}` : ""}${labs.length > 3 ? "…" : ""}, poi si ricomincia: ${NG} = ${n * labs.length} minuti.`;
+  if (c.fmt === "tempo") return `Ogni esercizio dura ${c.work || "?"} secondi: lavora per tutto il tempo, poi ${c.pause || "0"} secondi di pausa e passa al successivo (${seq}). Finito l'ultimo${c.rest ? ` recupera ${c.rest} e` : ""} ricomincia: ${NG} in tutto.`;
+  return `Esegui gli esercizi uno dopo l'altro (${seq}) senza pausa, solo il tempo di cambiare. Finito l'ultimo${c.rest ? ` recupera ${c.rest} e` : ""} ricomincia dal primo: ${NG} in tutto.`; }
+function circDesc(c, n, labs){ const seq = labs.join(" → ");
+  if (amrapReps(c)) return `${c.min ? c.min + " minuti" : "Tempo fisso"}: più ripetizioni possibili${labs.length > 1 ? " di " + seq : ""}`;
+  if (c.fmt === "amrap") return `${c.min ? c.min + " minuti" : "Tempo fisso"}: più giri possibili di ${seq}`;
+  if (c.fmt === "emom") return `a ogni minuto un esercizio (${seq}) · ${n} ${n === 1 ? "giro" : "giri"} = ${n * labs.length} minuti`;
+  if (c.fmt === "tempo") return `${n} ${n === 1 ? "giro" : "giri"} · ${c.work || "?"}″ di lavoro / ${c.pause || "0"}″ di pausa per esercizio${c.rest ? ` · recupero ${c.rest} tra i giri` : ""}`;
+  return `${n} ${n === 1 ? "giro" : "giri"}: ${seq}${c.rest ? `, poi recupero ${c.rest}` : ", poi si riparte"}`; }
+/* valori "per giro" di un esercizio del circuito: "10 reps · 20 kg" oppure "12/10/8 reps" se cambiano */
+function circScheme(x, maxReps){ const sets = x.sets || [], cols = x.cols || []; if (!sets.length) return "";
+  const vals = c => sets.every(s => (s[c]||"") === (sets[0][c]||"")) ? (sets[0][c]||"") : sets.map(s => s[c]||"–").join("/");
+  const out = []; cols.filter(c => c !== "side").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g, "")) return;
+    const u = COLS[c]?.u; if (c === "reps" && maxReps) return; out.push(c === "reps" ? `${v} reps` : c === "rest" ? `rec. ${v}` : u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c]?.l || c} ${v}`); });
+  if (maxReps) out.unshift("max ripetizioni");
+  return out.join(" · "); }
+/* valori previsti da registrare quando si spunta un giro (solo numeri o testi semplici, non intervalli tipo 8-10) */
+const circLogVals = (x, s) => Object.fromEntries((x.cols || []).filter(c => COLS[c]?.log && s?.[c] && !/[-–/]/.test(s[c])).map(c => [c, s[c]]));
+/* AMRAP: dai giri completati (+ ripetizioni in più) ricavo le serie di ogni esercizio, così analisi e cronologia funzionano */
+function circAmrapApply(w, exs, g){
+  const lead = exs[g[0]], cr = (w.results?.[lead.id + "~c"] || [])[0] || {};
+  const R = Math.max(0, Math.floor(numv(cr.rounds) || 0)); let E = Math.max(0, Math.floor(numv(cr.reps) || 0));
+  w.results ??= {};
+  if (amrapReps(lead.circ)) { g.forEach(i => { const x = exs[i], t = Math.floor(numv(cr["t_" + x.id]) || 0), lv = circLogVals(x, x.sets[0] || {}); delete lv.reps;
+      w.results[x.id] = t > 0 ? [{done: true, ...lv, reps: String(t)}] : []; }); return; }
+  g.forEach(i => { const x = exs[i], s = x.sets[0] || {}; const rows = Array.from({length: R}, () => ({done: true, ...circLogVals(x, s)}));
+    if (E > 0) { const pr = numv(s.reps); if ((x.cols || []).includes("reps") && pr) { const take = Math.min(E, pr); rows.push({done: true, ...circLogVals(x, s), reps: String(take)}); E -= take; } else E = 0; }
+    w.results[x.id] = rows; });
+}
 function schemeText(x){
   const sets = x.sets || []; if (!sets.length) return "";
   const cols = x.cols || [];
@@ -1198,17 +1297,20 @@ function schemeText(x){
 }
 function miniListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
-  const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0]}));
+  const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0], c: circOfGroup(exs, g)}));
   return `<ol>${exs.map((x,i) => { const g = inGroup[i]; const link = g.size > 1 && g.k < g.size - 1;
-    return `<li class="${link ? "link" : ""}" style="--bc:${blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? 'title="Superserie"' : ""}><span class="b">${esc(L[i])}</span>${(sw => sw ? `<span class="swn" title="Cambiato dall'atleta: previsto ${esc(x.name)}${swapWhy(sw) ? " · "+esc(swapWhy(sw)) : ""}"><s>${esc(x.name)}</s> ↔ ${esc(sw.name)}</span>` : `<span>${esc(x.name||"—")}</span>`)(swapOf(w, x))}<span class="s">${esc(summarize(x))}</span></li>`; }).join("")}</ol>`;
+    return `${g.c && g.k === 0 ? `<li class="ctag" style="--bc:var(--s3)"><span></span><span>${esc(circTag(g.c, exs[g.lead].sets.length, g.size))}</span></li>` : ""}<li class="${link ? "link" : ""}" style="--bc:${g.c ? "var(--s3)" : blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? `title="${g.c ? "Circuito" : "Superserie"}"` : ""}><span class="b">${esc(L[i])}</span>${(sw => sw ? `<span class="swn" title="Cambiato dall'atleta: previsto ${esc(x.name)}${swapWhy(sw) ? " · "+esc(swapWhy(sw)) : ""}"><s>${esc(x.name)}</s> ↔ ${esc(sw.name)}</span>` : `<span>${esc(x.name||"—")}</span>`)(swapOf(w, x))}<span class="s">${esc(summarize(x))}</span></li>`; }).join("")}</ol>`;
 }
 function planListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
-  const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0]}));
-  return `<ul class="aplan">${exs.map((x,i) => { const g = inGroup[i]; const col = blockColor(exs[g.lead].block || L[i]);
-    const link = g.size > 1 && g.k < g.size - 1;
-    return `<li class="api ${link ? "link" : ""}" style="--bc:${col}"><div class="lc"><span class="lab">${esc(L[i] || "•")}</span></div>
-      <div><div class="nm">${esc(exName(w, x))}${g.size > 1 && g.k === 0 ? `<span class="sst">superserie</span>` : ""}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${esc(schemeText(x))}</div></div></li>`; }).join("")}</ul>`;
+  const item = (x, i, col, link, c) => `<li class="api ${link ? "link" : ""}" style="--bc:${col}"><div class="lc"><span class="lab">${esc(L[i] || "•")}</span></div>
+      <div><div class="nm">${esc(exName(w, x))}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${esc(c ? (c.fmt === "amrap" && !amrapReps(c) ? "per giro: " : "") + circScheme(x, amrapReps(c)) : schemeText(x))}</div></div></li>`;
+  /* superserie e circuiti: un riquadro che raccoglie gli esercizi collegati, con il nome del metodo in alto */
+  return `<ul class="aplan">${ssGroups(exs).map(g => { const c = circOfGroup(exs, g), lead = exs[g[0]];
+    if (g.length === 1 && !c) return item(lead, g[0], blockColor(lead.block || L[g[0]]), false, null);
+    const col = c ? "var(--s3)" : blockColor(lead.block || L[g[0]]);
+    const head = c ? circTag(c, lead.sets.length, g.length) : `superserie · alterna ${g.map(i => L[i]).join(" → ")}`;
+    return `<li class="apgrp" style="--bc:${col}"><div class="apgh">${esc(head)}</div><ul class="aplan">${g.map((i, k) => item(exs[i], i, col, k < g.length - 1, c)).join("")}</ul></li>`; }).join("")}</ul>`;
 }
 /* profili "senza accesso" (squadre o atleti che non usano l'app): hanno un codice al posto dell'email,
    con dominio .local, dove non arriva nessuna email di conferma → nessuno può entrare con quel profilo */
@@ -2042,7 +2144,7 @@ async function collectRows(){
   const ath = activeAthletes().filter(a => dataQ.who === "all" || a.email === dataQ.who);
   const ws = monday(dataQ.from), n = Math.ceil((daysBetween(ws, dataQ.to)+1)/7);
   await Promise.all(ath.map(a => ensureWeeks(a.email, ws, n)));
-  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
+  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Metodo","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
     ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta"];
   const rows = [];
   ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>effDate(x).localeCompare(effDate(y))).forEach(w => {
@@ -2057,7 +2159,7 @@ async function collectRows(){
         const s = x.sets[i] || {}, r = res[i] || {};
         if (i >= x.sets.length && emptyRes(res[i])) continue;
         rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, KINDS[kindOf(w)].l, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
-          mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
+          mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], methodOf(w, x)?.l || "", done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
           ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.athleteNote||""]);
       }
     });
@@ -2127,7 +2229,7 @@ function drawEditorInner(){
         : w.date <= TODAY() ? `<div><button type="button" class="btn sm" data-act="fix-sess">✎ Segna com'è andata al posto dell'atleta</button></div>` : ""}
       ${(() => { const L = exLabels(w.exercises); return ssGroups(w.exercises).map(g => {
         const body = g.map(i => (i > 0 ? ssLinkHtml(w.exercises, i, L) : "") + exEditorHtml(w.exercises[i], i, res[w.exercises[i].id], L)).join("");
-        return g.length > 1 ? `<div class="ssg"><div class="ssg-h">Superserie ${esc(w.exercises[g[0]].block||"")}<span>l'atleta alterna ${g.map(i => esc(L[i])).join(" → ")} e recupera alla fine del giro</span></div>${body}</div>` : body; }).join(""); })()}
+        return g.length > 1 || circOfGroup(w.exercises, g) ? `<div class="ssg ${circOfGroup(w.exercises, g) ? "circ" : ""}">${groupHeadHtml(w.exercises, g, L)}${body}</div>` : body; }).join(""); })()}
       <div class="row"><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
     </div>
     <footer>${E.isNew?"":`<button class="btn ghost danger" data-act="ed-del">Elimina</button><button class="btn ghost" data-act="ed-copy">Copia in altre date / atleti…</button>`}<button class="btn ghost" data-act="ed-totpl">Salva in Allenamenti</button><button class="btn ghost" data-act="ed-pdf" title="Crea un PDF da salvare o mandare (solo il programma, senza la parte che compila l'atleta)">Genera PDF</button>
@@ -2138,7 +2240,7 @@ function drawEditorInner(){
 function exBlocksHtml(w, res){
   const L = exLabels(w.exercises); return ssGroups(w.exercises).map(g => {
     const body = g.map(i => (i > 0 ? ssLinkHtml(w.exercises, i, L) : "") + exEditorHtml(w.exercises[i], i, res[w.exercises[i].id], L)).join("");
-    return g.length > 1 ? `<div class="ssg"><div class="ssg-h">Superserie ${esc(w.exercises[g[0]].block||"")}<span>l'atleta alterna ${g.map(i => esc(L[i])).join(" → ")} e recupera alla fine del giro</span></div>${body}</div>` : body; }).join("");
+    return g.length > 1 || circOfGroup(w.exercises, g) ? `<div class="ssg ${circOfGroup(w.exercises, g) ? "circ" : ""}">${groupHeadHtml(w.exercises, g, L)}${body}</div>` : body; }).join("");
 }
 function drawTplEditor(){
   const E = S.editor, w = E.w;
@@ -2156,12 +2258,33 @@ function drawTplEditor(){
       <button class="btn" data-act="ed-close">Chiudi</button><button class="btn" data-act="ed-save">Salva</button><button class="btn pri" data-act="tpl-save-assign">Salva e assegna…</button></footer>
   </div></div>`;
 }
+function groupHeadHtml(exs, g, L){
+  const lead = exs[g[0]], c = circOfGroup(exs, g), i0 = g[0], blk = esc(lead.block || "");
+  const kind = g.length === 1 ? `<button type="button" class="btn sm ghost grpkind" data-act="grp-kind" data-i="${i0}" data-v="ss" title="Torna un esercizio normale">✕ Togli circuito</button>`
+    : `<div class="seg sm grpkind"><button type="button" class="${c ? "" : "on"}" data-act="grp-kind" data-i="${i0}" data-v="ss">Superserie</button><button type="button" class="${c ? "on" : ""}" data-act="grp-kind" data-i="${i0}" data-v="circ">Circuito</button></div>`;
+  if (!c) return `<div class="ssg-h">Superserie ${blk}<span>l'atleta alterna ${g.map(i => esc(L[i])).join(" → ")} e recupera alla fine del giro</span>${kind}</div>`;
+  const n = lead.sets.length, bind = k => `data-bind="exercises.${i0}.circ.${k}"`;
+  return `<div class="ssg-h">${esc(circTitle(c, lead.block || ""))}<span>${esc(circDesc(c, n, g.map(i => L[i])))}</span>${kind}</div>
+    <div class="circset">
+      <div class="seg sm">${Object.entries(CIRC_FMT).map(([k, f]) => `<button type="button" class="${c.fmt === k ? "on" : ""}" data-act="circ-fmt" data-i="${i0}" data-v="${k}">${f.l}</button>`).join("")}</div>
+      ${c.fmt !== "amrap" ? `<span class="cf"><span class="lbl">Giri</span><span class="stepper"><button type="button" data-act="circ-rounds" data-i="${i0}" data-d="-1" aria-label="Un giro in meno">−</button><span class="num">${n}</span><button type="button" data-act="circ-rounds" data-i="${i0}" data-d="1" aria-label="Un giro in più">+</button></span></span>` : ""}
+      ${c.fmt === "tempo" ? `<span class="cf"><span class="lbl">Lavoro</span><input class="in cin" ${bind("work")} value="${esc(c.work || "")}" inputmode="numeric" aria-label="Secondi di lavoro">″</span><span class="cf"><span class="lbl">Pausa</span><input class="in cin" ${bind("pause")} value="${esc(c.pause || "")}" inputmode="numeric" aria-label="Secondi di pausa">″</span>` : ""}
+      ${c.fmt === "amrap" ? `<span class="cf"><span class="lbl">Durata</span><input class="in cin" ${bind("min")} value="${esc(c.min || "")}" inputmode="numeric" aria-label="Minuti"> min</span>
+        <span class="cf"><span class="lbl">Conta</span><span class="seg sm"><button type="button" class="${amrapReps(c) ? "" : "on"}" data-act="circ-count" data-i="${i0}" data-v="rounds" title="Più giri possibili: l'atleta scrive giri completati + ripetizioni in più">Giri</button><button type="button" class="${amrapReps(c) ? "on" : ""}" data-act="circ-count" data-i="${i0}" data-v="reps" title="Più ripetizioni possibili: l'atleta scrive le ripetizioni totali di ogni esercizio">Ripetizioni</button></span></span>` : ""}
+      ${c.fmt === "giri" || c.fmt === "tempo" ? `<span class="cf"><span class="lbl">Recupero tra i giri</span><input class="in cin w" ${bind("rest")} value="${esc(c.rest || "")}" placeholder="es. 2'" aria-label="Recupero tra i giri"></span>` : ""}
+      ${c.fmt !== "amrap" ? `<span class="cf"><span class="lbl">L'atleta registra</span><span class="seg sm"><button type="button" class="${c.log !== "light" ? "on" : ""}" data-act="circ-log" data-i="${i0}" data-v="full" title="Per ogni giro, i dati di ogni esercizio (reps, kg…)">Ogni esercizio</button><button type="button" class="${c.log === "light" ? "on" : ""}" data-act="circ-log" data-i="${i0}" data-v="light" title="Spunta i giri fatti e dà un RPE al circuito (le serie si registrano con i valori previsti)">Solo giri + RPE</button></span></span>`
+        : amrapReps(c) ? `<span class="faint" style="font-size:12px">L'atleta scrive le ripetizioni totali di ogni esercizio e l'RPE. Qui sotto lascia vuote le ripetizioni (= max) e scrivi il resto (es. kg).</span>`
+        : `<span class="faint" style="font-size:12px">L'atleta scrive i giri completati (+ ripetizioni in più) e l'RPE del circuito. Qui sotto: le ripetizioni di ogni esercizio per giro.</span>`}
+    </div>`;
+}
 function ssLinkHtml(exs, i, L){
   const x = exs[i];
-  return `<div class="sslink"><button class="btn sm ${x.ss?"on":""}" data-act="ex-ss" data-i="${i}">${x.ss ? `Superserie con ${esc(L[i-1])} · separa` : `+ Unisci in superserie con ${esc(L[i-1] || "l'esercizio sopra")}`}</button></div>`;
+  const cg = circGroupOf(exs, i - 1), inC = cg && cg.includes(i - 1) && (x.ss || true) && circOfGroup(exs, cg);
+  return `<div class="sslink"><button class="btn sm ${x.ss?"on":""}" data-act="ex-ss" data-i="${i}">${x.ss ? `${inC ? "Nel circuito" : "Superserie"} con ${esc(L[i-1])} · separa` : inC ? `+ Aggiungi al circuito ${esc(exs[cg[0]].block || "")}` : `+ Unisci in superserie o circuito con ${esc(L[i-1] || "l'esercizio sopra")}`}</button></div>`;
 }
 function exEditorHtml(x, i, res, L){
   const cols = x.cols || [];
+  const cg = S.editor ? circGroupOf(S.editor.w.exercises, i) : null, cc = cg ? S.editor.w.exercises[cg[0]].circ : null;   // esercizio dentro un circuito: righe = giri
   const avail = pickable().filter(c => !cols.includes(c));
   const lib = libByName(x.name);
   return `<section class="ex">
@@ -2176,14 +2299,14 @@ function exEditorHtml(x, i, res, L){
     ${lib ? "" : x.name ? `<div class="faint" style="font-size:12px">Non è nella libreria: <button class="btn sm ghost" data-act="ex-tolib" data-i="${i}">Aggiungilo</button></div>` : ""}
     <div class="cols">${cols.map((c,k) => `<span class="c"><button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="-1" aria-label="Sposta ${COLS[c].l} a sinistra" ${k===0?"disabled":""}>‹</button>${COLS[c].l}<button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="1" aria-label="Sposta ${COLS[c].l} a destra" ${k===cols.length-1?"disabled":""}>›</button><button data-act="col-rm" data-i="${i}" data-c="${c}" aria-label="Togli ${COLS[c].l}">×</button></span>`).join("")}
       ${avail.length ? `<select aria-label="Aggiungi parametro" data-change="col-add" data-i="${i}"><option value="">+ parametro</option>${avail.map(c=>`<option value="${c}">${esc(COLS[c].l)}</option>`).join("")}<option value="__new">+ Nuovo parametro…</option></select>` : ""}</div>
-    <div class="scroll-x"><table class="sets"><thead><tr><th></th><th title="Tipo di serie: clicca per cambiare (Ramping, Work, Back-off, Down)">Tipo</th>${cols.map(c=>`<th>${COLS[c].l}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
-      ${x.sets.map((s,j) => `<tr><td class="n">${j+1}</td><td><button type="button" class="tbtn ${s.type?"has":""}" data-act="set-type" data-i="${i}" data-j="${j}" title="${s.type ? SET_TYPES[s.type].l+" · clicca per cambiare" : "Nessun tipo · clicca per scegliere"}" aria-label="Tipo serie ${j+1}">${s.type ? typeBadge(s.type) : "—"}</button></td>${cols.map(c=> c === "side"
+    <div class="scroll-x"><table class="sets"><thead><tr><th>${cc ? (cc.fmt === "amrap" ? "" : "Giro") : ""}</th>${cc ? "" : `<th title="Tipo di serie: clicca per cambiare (Ramping, Work, Back-off, Down)">Tipo</th>`}${cols.map(c=>`<th>${COLS[c].l}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
+      ${x.sets.map((s,j) => `<tr><td class="n ${cc ? "gn" : ""}">${cc ? (cc.fmt === "amrap" ? (amrapReps(cc) ? "" : "per giro") : j+1) : j+1}</td>${cc ? "" : `<td><button type="button" class="tbtn ${s.type?"has":""}" data-act="set-type" data-i="${i}" data-j="${j}" title="${s.type ? SET_TYPES[s.type].l+" · clicca per cambiare" : "Nessun tipo · clicca per scegliere"}" aria-label="Tipo serie ${j+1}">${s.type ? typeBadge(s.type) : "—"}</button></td>`}${cols.map(c=> c === "side"
           ? `<td><select aria-label="Lato serie ${j+1}" data-bind="exercises.${i}.sets.${j}.side">${[...new Set([...SIDES, s.side||""])].map(v => `<option value="${esc(v)}" ${(s.side||"")===v?"selected":""}>${v ? esc(v) : "—"}</option>`).join("")}</select></td>`
-          : `<td><input aria-label="${COLS[c].l} serie ${j+1}" data-bind="exercises.${i}.sets.${j}.${c}" value="${esc(s[c]||"")}"></td>`).join("")}
-        <td class="ra"><button class="btn ghost sm" data-act="set-dup" data-i="${i}" data-j="${j}" title="Duplica serie" aria-label="Duplica serie ${j+1}">${ICON.dup}</button><button class="btn ghost sm" data-act="set-rm" data-i="${i}" data-j="${j}" title="Elimina serie">✕</button></td></tr>`).join("")}
+          : `<td><input aria-label="${COLS[c].l} serie ${j+1}" data-bind="exercises.${i}.sets.${j}.${c}" value="${esc(s[c]||"")}" ${c === "reps" && amrapReps(cc) ? `placeholder="max"` : ""}></td>`).join("")}
+        <td class="ra">${cc ? "" : `<button class="btn ghost sm" data-act="set-dup" data-i="${i}" data-j="${j}" title="Duplica serie" aria-label="Duplica serie ${j+1}">${ICON.dup}</button><button class="btn ghost sm" data-act="set-rm" data-i="${i}" data-j="${j}" title="Elimina serie">✕</button>`}</td></tr>`).join("")}
     </tbody></table></div>
     ${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}
-    <div class="row"><span class="lbl">Serie</span><span class="stepper"><button data-act="set-minus" data-i="${i}" aria-label="Togli serie">−</button><span class="num">${x.sets.length}</span><button data-act="set-plus" data-i="${i}" aria-label="Aggiungi serie">+</button></span>
+    <div class="row">${!cc && S.editor && ssGroups(S.editor.w.exercises).find(g => g.includes(i))?.length === 1 ? `<button type="button" class="btn sm ghost" data-act="ex-solo-circ" data-i="${i}" title="Per un circuito di un solo esercizio: AMRAP (es. 5′ max burpees), EMOM, a tempo…">⟳ Circuito / AMRAP</button>` : ""}${cc ? "" : `<span class="lbl">Serie</span><span class="stepper"><button data-act="set-minus" data-i="${i}" aria-label="Togli serie">−</button><span class="num">${x.sets.length}</span><button data-act="set-plus" data-i="${i}" aria-label="Aggiungi serie">+</button></span>`}
       <input class="in grow" style="min-width:200px" aria-label="Note esercizio" data-bind="exercises.${i}.notes" value="${esc(x.notes||"")}" placeholder="Nota per l'atleta su questo esercizio"></div>
     ${x.name ? altsRowHtml(x, i, lib) : ""}
     ${progHtml(x, i)}
@@ -2329,7 +2452,7 @@ function progGrid(rows, extraCol, contacts){
       ${extraCol ? `<div class="mx"><small>${esc(extraCol === "Massimale stimato" ? "Mass. stim." : extraCol)}</small> ${r.m ? `${fmt1(Math.round(r.m.v * 10) / 10)} <small>${r.m.u}</small>` : "–"}</div>` : ""}</td>`; };
   const body = rows.map(r => `<tr class="${r.first ? "first" : ""} ${r.dim ? "dim" : ""}">
       ${r.first ? `<td class="dt" rowspan="${r.span}">${esc(fmtD(r.date))}<span>${esc(DAYS[dayIdx(r.date)])}</span></td>` : ""}
-      <td class="rh">${r.label ? `<b>${esc(r.label)}</b>` : ""}${r.note ? `<div class="swx">${r.note}</div>` : ""}<div class="pl" title="${esc(r.plan || "")}" data-tip="${r.plan ? "Previsto: " + esc(r.plan) : ""}">prev. ${esc(r.plan || "–")}</div></td>
+      <td class="rh">${r.label ? `<b>${esc(r.label)}</b>` : ""}${methodTag(r.meth)}${r.note ? `<div class="swx">${r.note}</div>` : ""}<div class="pl" title="${esc(r.plan || "")}" data-tip="${r.plan ? "Previsto: " + esc(r.plan) : ""}">prev. ${esc(r.plan || "–")}</div></td>
       ${Array.from({length: N}, (_, k) => r.sets[k] ? progCell(r.sets[k], r.cols) : `<td class="pc empty"></td>`).join("")}
       ${r.first ? stim(r) : ""}</tr>`).join("");
   return `<div class="scroll-x pgwrap"><table class="progt grid"><thead><tr><th class="dt">Quando</th><th class="rh">${N > 4 ? `<span class="faint" style="font-weight:500;text-transform:none;letter-spacing:0">${N} serie · scorri →</span>` : ""}</th>${Array.from({length: N}, (_, k) => `<th class="c">Serie ${k + 1}</th>`).join("")}<th class="r st">Stimolo</th></tr></thead><tbody>${body}</tbody></table></div>`;
@@ -2339,7 +2462,7 @@ function progPatternHtml(x, P, more){
   if (!P.list.length) return `<div class="prog-empty faint">Nessuna seduta precedente con esercizi del pattern «${esc(P.pat)}».</div>`;
   const rows = [];
   (more ? P.list : P.list.slice(0, 3)).forEach(h => h.items.forEach((o, k) => rows.push({first: k === 0, span: h.items.length, date: h.date, label: o.name,
-    note: o.sw ? `↔ al posto di ${esc(o.y.name)}` : "", plan: summarize(o.y), sets: o.sets, cols: o.y.cols || [], stats: h.st})));
+    note: o.sw ? `↔ al posto di ${esc(o.y.name)}` : "", plan: summarize(o.y), sets: o.sets, cols: o.y.cols || [], stats: h.st, meth: methodOf(h.w, o.y)})));
   return progGrid(rows, null, P.list.some(q => q.jumps));
 }
 function progHtml(x, i){
@@ -2353,7 +2476,7 @@ function progHtml(x, i){
   const good = d != null && d !== 0 ? (d * (last.up || 1) > 0) : null;
   const gridRows = (more ? H : H.slice(0, 3)).map(h => ({first: true, span: 1, date: h.date, label: "", dim: h.other,
     note: h.other ? `<span title="${esc(swapWhy(h.sw) || "")}" data-tip="${esc(swapWhy(h.sw) ? "Motivo: " + swapWhy(h.sw) : "")}">↔ fatto ${esc(h.sw.name)}</span>` : h.swapped ? `era previsto ${esc(h.x.name)}` : "",
-    plan: summarize(h.x), sets: h.sets, cols: h.x.cols || [], stats: h.other ? null : stimStats(h.sets.map(o => o.r)), m: h.m}));
+    plan: summarize(h.x), sets: h.sets, cols: h.x.cols || [], stats: h.other ? null : stimStats(h.sets.map(o => o.r)), m: h.m, meth: methodOf(h.w, h.x)}));
   /* riga riassuntiva (riquadro chiuso): l'ultima volta in una riga */
   const L0 = H.find(h => !h.other), P0 = P?.list?.[0];
   const sumTxt = L0 ? (() => { const st = stimStats(L0.sets.map(o => o.r)); return `<b>${esc(fmtD(L0.date))}</b> · ${st.n} serie${st.hard != null ? ` (${st.hard} allenanti)` : ""}${st.rpe != null ? ` · RPE ${fmtN(st.rpe, 1)}` : ""}`; })()
@@ -3024,10 +3147,32 @@ async function workoutPdf(sig){
       doc.line(x0, ya, x0, yb); if (p === b1.p) doc.line(x0, b1.y, M, b1.y); if (p === b2.p) doc.line(x0, b2.y, M, b2.y); }
     doc.setPage(doc.getNumberOfPages()); doc.setLineWidth(0.3); };
   ssGroups(exs).forEach(g => { const badges = [];
-    if (g.length > 1) { room(22); const col = hexRgb(blockHex(exs[g[0]].block || L[g[0]]));
-      txt(`SUPERSERIE ${exs[g[0]].block || ""}`.trim(), M, y, {b: 1, sz: 9.5, c: col});
-      txt(`alterna ${g.map(i => L[i]).join(" -> ")}: una serie di ognuno, poi recupero`, M + doc.getTextWidth(pdfT(`SUPERSERIE ${exs[g[0]].block || ""} `)) + 2, y, {sz: 9, c: MUTED}); y += 7; }
-    g.forEach((i, k) => { const x = exs[i], lib = libByName(x.name), cols = x.cols || [], col = hexRgb(blockHex(exs[g[0]].block || L[i]));
+    if (g.length > 1 || circOfGroup(exs, g)) { room(22); const col = hexRgb(blockHex(exs[g[0]].block || L[g[0]]));
+      const gc = circOfGroup(exs, g);
+      if (gc) {   // circuito: fascia verde ben visibile con titolo grande e lo schema in "pillole"
+        const GR = hexRgb("#1baf7a"), n = exs[g[0]].sets.length, labs = g.map(i => L[i]), NG = n === 1 ? "giro" : "giri";
+        const facts = amrapReps(gc) ? [`${gc.min || "?"} minuti`, "più ripetizioni possibili", ...(labs.length > 1 ? [`esercizi: ${labs.join(", ")}`] : [])]
+          : gc.fmt === "amrap" ? [`${gc.min || "?"} minuti`, "più giri possibili", `ordine: ${labs.join(" -> ")}`]
+          : gc.fmt === "emom" ? [`${n * g.length} minuti`, "ogni minuto un esercizio", `${n} ${NG}`, `ordine: ${labs.join(" -> ")}`]
+          : [`${n} ${NG}`, ...(gc.fmt === "tempo" ? [`${gc.work || "?"}" lavoro / ${gc.pause || "0"}" pausa per esercizio`] : []), `ordine: ${labs.join(" -> ")}`, ...(gc.rest ? [`recupero ${gc.rest} tra i giri`] : [])];
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
+        const pills = []; let px = M + 5, prow = 0; facts.forEach(f => { const pw = doc.getTextWidth(pdfT(f)) + 6; if (px + pw > PW - M - 3) { prow++; px = M + 5; } pills.push({f, x: px, row: prow, w: pw}); px += pw + 2.5; });
+        const ttl = circTitle(gc, exs[g[0]].block || "").toUpperCase(); doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+        const tw = doc.getTextWidth(pdfT(ttl)), ex0 = M + 5 + tw + 6, how = wrap(circHow(gc, n, labs), PW - M - 4 - ex0, 9);
+        const top = Math.max(7, how.length * 4.1 + 2.5), h = top + 6 + (prow + 1) * 6.5; room(h + 14);
+        doc.setFillColor(...GR.map(v => Math.round(v + (255 - v) * 0.88))); doc.roundedRect(M, y - 4, CW, h, 2.5, 2.5, "F");
+        doc.setFillColor(...GR); doc.rect(M, y - 4, 1.6, h, "F");
+        txt(ttl, M + 5, y + 3, {b: 1, sz: 14, c: GR});
+        doc.setDrawColor(...GR); doc.setLineWidth(0.3); doc.line(ex0 - 3, y - 1.5, ex0 - 3, y - 1.5 + Math.max(4.5, how.length * 4.1));
+        how.forEach((ln, q) => txt(ln, ex0, y + 0.9 + q * 4.1, {sz: 9, c: [19, 90, 64]}));
+        pills.forEach(q => { const py = y + top - 0.5 + q.row * 6.5; doc.setDrawColor(...GR); doc.setFillColor(255, 255, 255); doc.setLineWidth(0.35);
+          doc.roundedRect(q.x, py, q.w, 5, 2.5, 2.5, "FD"); txt(q.f, q.x + 3, py + 3.55, {b: 1, sz: 8.5, c: [19, 90, 64]}); });
+        doc.setLineWidth(0.3); y += h + 4;
+      } else {
+        const gt = `Superserie ${exs[g[0]].block || ""}`.trim().toUpperCase();
+        txt(gt, M, y, {b: 1, sz: 9.5, c: col}); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+        txt(`alterna ${g.map(i => L[i]).join(" -> ")}: una serie di ognuno, poi recupero`, M + doc.getTextWidth(pdfT(gt + " ")) + 2, y, {sz: 9, c: MUTED}); y += 7; } }
+    g.forEach((i, k) => { const x = exs[i], lib = libByName(x.name), cols = x.cols || [], col = circOfGroup(exs, g) ? hexRgb("#1baf7a") : hexRgb(blockHex(exs[g[0]].block || L[i]));
       room(30);
       // etichetta del blocco + nome
       const lab = pdfT(L[i] || "•"); doc.setFont("helvetica", "bold"); doc.setFontSize(10); const bw = Math.max(8, doc.getTextWidth(lab) + 4);
@@ -3044,12 +3189,12 @@ async function workoutPdf(sig){
         doc.setFillColor(...ACC); doc.triangle(vx + 2.6, vy + 1.4, vx + 2.6, vy + 3.8, vx + 4.6, vy + 2.6, "F");
         txt("Video", vx + 5.6, vy + 3.7, {b: 1, sz: 8.5, c: ACC}); doc.link(vx, vy, 15, 5.2, {url: lib.video}); doc.setLineWidth(0.3); }
       y += (nl.length - 1) * 5.2 + 5.2;
-      const sc = schemeText(x); if (sc) { txt(sc, M, y, {sz: 9.5, c: MUTED}); y += 3; }
+      const sc = circOfGroup(exs, g) ? (circOfGroup(exs, g).fmt === "amrap" && !amrapReps(circOfGroup(exs, g)) ? "per giro: " : "") + circScheme(x, amrapReps(circOfGroup(exs, g))) : schemeText(x); if (sc) { txt(sc, M, y, {sz: 9.5, c: MUTED}); y += 3; }
       // tabella delle serie (solo il programma)
       const hasT = x.sets.some(s => s.type); x.sets.forEach(s => s.type && typesUsed.add(s.type));
       if (cols.length && x.sets.length) {
-        const head = ["Serie", ...(hasT ? ["Tipo"] : []), ...cols.map(c => { const u = COLS[c]?.u; return pdfT(COLS[c]?.l || c) + (u && u !== "%" && u.toLowerCase() !== (COLS[c]?.l || "").toLowerCase() ? ` (${u})` : ""); })];
-        const body = x.sets.map((s, j) => [String(j + 1), ...(hasT ? [s.type || ""] : []), ...cols.map(c => pdfT(s[c] || "-"))]);
+        const gcx = circOfGroup(exs, g); const head = [gcx ? (amrapReps(gcx) ? "" : gcx.fmt === "amrap" ? "Per giro" : "Giro") : "Serie", ...(hasT ? ["Tipo"] : []), ...cols.map(c => { const u = COLS[c]?.u; return pdfT(COLS[c]?.l || c) + (u && u !== "%" && u.toLowerCase() !== (COLS[c]?.l || "").toLowerCase() ? ` (${u})` : ""); })];
+        const body = x.sets.map((s, j) => [gcx?.fmt === "amrap" ? "" : String(j + 1), ...(hasT ? [s.type || ""] : []), ...cols.map(c => pdfT(s[c] || "-"))]);
         doc.autoTable({startY: y + 1, head: [head], body, margin: {left: M, right: M}, theme: "grid", tableWidth: Math.min(CW, 14 + (hasT ? 10 : 0) + cols.length * 26),
           styles: {font: "helvetica", fontSize: 9.5, cellPadding: {top: 1.6, bottom: 1.6, left: 2, right: 2}, halign: "center", lineColor: LINE, lineWidth: 0.2, textColor: INK},
           headStyles: {fillColor: [242, 244, 247], textColor: MUTED, fontStyle: "bold", fontSize: 8.5},
@@ -3063,7 +3208,7 @@ async function workoutPdf(sig){
       const alts = altsOf(x).filter(n => n && !sameName(n, x.name)); if (alts.length) para("Se non puoi farlo:", alts.join(", "), {c: MUTED});
       y += k < g.length - 1 ? 3 : 5;
       if (k === g.length - 1) { doc.setDrawColor(...LINE); doc.line(M, y - 3, PW - M, y - 3); y += 2; } });
-    for (let k = 1; k < badges.length; k++) bracket(badges[k - 1], badges[k], hexRgb(blockHex(exs[g[0]].block || L[g[0]])));
+    for (let k = 1; k < badges.length; k++) bracket(badges[k - 1], badges[k], circOfGroup(exs, g) ? hexRgb("#1baf7a") : hexRgb(blockHex(exs[g[0]].block || L[g[0]])));
   });
   if (!exs.length) { txt("Nessun esercizio.", M, y, {c: MUTED}); y += 6; }
   if (typesUsed.size) { room(8); txt([...TYPE_ORDER].filter(t => typesUsed.has(t)).map(t => `${t} = ${SET_TYPES[t].l}`).join("   ·   "), M, y, {sz: 8.5, c: MUTED}); y += 5; }
@@ -3169,7 +3314,7 @@ async function histSheet(xid){
   const draw = loading => { if (histOpen !== xid) return;
     const H = historyFor(name, w);
     const body = H.map(h => { const cols = (h.x.cols || []).filter(c => COLS[c].log && h.sets.some(o => o.r[c]));
-      return `<div class="hsess"><div class="hh"><b>${esc(fmtLong(h.date))}</b><span>${esc(h.w.title || "Allenamento")}${h.swapped ? " · al posto di " + esc(h.x.name) : ""}</span></div>
+      return `<div class="hsess"><div class="hh"><b>${esc(fmtLong(h.date))}</b><span>${esc(h.w.title || "Allenamento")}${h.swapped ? " · al posto di " + esc(h.x.name) : ""}</span>${methodTag(methodOf(h.w, h.x))}</div>
         ${cols.length ? `<div class="scroll-x"><table class="ht"><thead><tr><th></th>${cols.map(c => `<th>${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}</tr></thead><tbody>
           ${h.sets.map((o, k) => `<tr><td class="n">${o.extra ? "+" : k + 1}${o.type ? " " + typeBadge(o.type) : ""}</td>${cols.map(c => `<td>${o.r[c] ? esc(o.r[c]) : "–"}</td>`).join("")}</tr>`).join("")}
         </tbody></table></div>` : `<div class="faint" style="font-size:13px">${h.sets.length} serie fatte ✓</div>`}</div>`; }).join("");
@@ -3193,6 +3338,7 @@ function renderWorkout(){
     ${w.notes ? `<div class="cnote">${esc(w.notes)}</div>` : ""}
     ${(() => { const L = exLabels(w.exercises); return ssGroups(w.exercises).map(g => {
       const inner = g.map(i => athExHtml(w, w.exercises[i], L[i], res)).join("");
+      if (circOfGroup(w.exercises, g)) return athCircHtml(w, g, L, res);
       return g.length > 1
         ? `<section class="aex ssbox"><div class="sshead">Superserie ${esc(w.exercises[g[0]].block||"")}<span>Alterna ${g.map(i => esc(L[i])).join(" → ")}: una serie di ognuno, poi recupero.</span></div>${inner}</section>`
         : `<section class="aex">${inner}</section>`; }).join(""); })()}
@@ -3200,7 +3346,7 @@ function renderWorkout(){
   </div>
   <div class="bottombar"><button class="btn pri" data-act="a-finish">${st==="done"?"Modifica RPE e durata":"Termina allenamento"}</button></div>`;
 }
-function athExHtml(w, x, label, res){
+function athExHtml(w, x, label, res, compact){
   const logCols = x.cols.filter(c => COLS[c].log);
   const infoCols = x.cols.filter(c => !COLS[c].log);
   const r = res[x.id] || [];
@@ -3219,17 +3365,42 @@ function athExHtml(w, x, label, res){
   return `<div class="sub">
     <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(name)}</span>${sw ? "" : `<button class="swbtn" data-act="a-swap" data-x="${x.id}" title="Non riesci a farlo? Cambialo con un'alternativa">↔ Cambia</button>`}</div>
     ${sw ? `<div class="swinfo"><span>↔ Al posto di <b>${esc(x.name)}</b>${swapWhy(sw) ? ` · ${esc(swapWhy(sw))}` : ""}</span><button class="btn sm ghost" data-act="a-unswap" data-x="${x.id}">Annulla cambio</button></div>` : ""}
-    ${sideHint ? `<div class="info">Lato programmato: ${esc(sideHint)} · segna quello che hai fatto</div>` : ""}
+    ${sideHint && compact !== "light" ? `<div class="info">Lato programmato: ${esc(sideHint)} · segna quello che hai fatto</div>` : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${lib?.notes ? `<div class="info faint">${esc(lib.notes)}</div>` : ""}
     ${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}">▶ Guarda il video</button>` : `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>`) : ""}
-    ${x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${compact ? `<div class="sc cscheme">${esc(compact === "amrap" ? "per giro: " : "")}${esc(circScheme(x, compact === "amrapreps") || "")}</div>` : x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
         return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${x.cols.map(c => cell(c, j, s, rr)).join("")}
           <td class="ckc"><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}
     </tbody></table></div>${infoCols.length ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
-    <div class="histrow"><button class="histbtn" data-act="a-hist" data-x="${x.id}">Vedi cronologia <span class="arr" aria-hidden="true">›</span></button>${last ? `<span class="faint">ultima volta ${esc(fmtD(last.date))}</span>` : ""}</div>
+    ${compact ? "" : `<div class="histrow"><button class="histbtn" data-act="a-hist" data-x="${x.id}">Vedi cronologia <span class="arr" aria-hidden="true">›</span></button>${last ? `<span class="faint">ultima volta ${esc(fmtD(last.date))}</span>` : ""}</div>`}
   </div>`;
+}
+/* circuito lato atleta: in alto gli esercizi (nome, note, video, valori per giro), sotto la registrazione giro per giro */
+function athCircHtml(w, g, L, res){
+  const exs = w.exercises, lead = exs[g[0]], c = lead.circ, n = lead.sets.length, key = lead.id + "~c", cr = (res[key] || [])[0] || {};
+  const info = g.map(i => athExHtml(w, exs[i], L[i], res, amrapReps(c) ? "amrapreps" : c.fmt === "amrap" ? "amrap" : c.log === "light" ? "light" : "circ")).join("");
+  const rpeBox = `<div class="cfld"><span class="lbl">RPE del circuito</span><div class="lt">${pickCell("rpe", key, 0, cr.rpe, "")}</div></div>`;
+  let log;
+  if (amrapReps(c)) log = `<div class="clog amrap">${g.map(i => { const x = exs[i]; return `<div class="cfld"><span class="lbl">${esc(L[i] || "")} ${esc(exName(w, x))} · ripetizioni totali</span><div class="lt"><input inputmode="numeric" data-r="${key}|0|t_${x.id}" value="${esc(cr["t_" + x.id] || "")}" placeholder="0" aria-label="Ripetizioni totali ${esc(exName(w, x))}"></div></div>`; }).join("")}${rpeBox}</div>`;
+  else if (c.fmt === "amrap") log = `<div class="clog amrap"><div class="cfld"><span class="lbl">Giri completati</span><div class="lt"><input inputmode="numeric" data-r="${key}|0|rounds" value="${esc(cr.rounds || "")}" placeholder="0" aria-label="Giri completati"></div></div>
+      <div class="cfld"><span class="lbl">+ ripetizioni</span><div class="lt"><input inputmode="numeric" data-r="${key}|0|reps" value="${esc(cr.reps || "")}" placeholder="0" aria-label="Ripetizioni in più del giro non finito"></div></div>${rpeBox}
+      <div class="faint cnote2">Es. 5 giri + 8 ripetizioni: hai finito 5 giri interi e nel sesto hai fatto 8 ripetizioni.</div></div>`;
+  else if (c.log === "light") log = `<div class="clog"><div class="crounds">${Array.from({length: n}, (_, j) => { const done = g.every(i => (res[exs[i].id] || [])[j]?.done);
+      return `<button class="cround-ck ${done ? "on" : ""}" data-act="c-round" data-g="${lead.id}" data-j="${j}" aria-pressed="${done}">${ICON.check}<span>Giro ${j + 1}</span></button>`; }).join("")}</div>
+      <div class="crow2">${rpeBox}<div class="cfld"><span class="lbl">Tempo totale</span><div class="lt"><input data-r="${key}|0|time" value="${esc(cr.time || "")}" placeholder="es. 12'30" aria-label="Tempo totale" style="width:96px"></div></div></div></div>`;
+  else log = Array.from({length: n}, (_, j) => `<div class="cgiro"><div class="cgh">Giro ${j + 1}${c.fmt === "emom" ? ` <span class="faint">· minuti ${j * g.length + 1}–${(j + 1) * g.length}</span>` : ""}</div>
+      ${g.map(i => { const x = exs[i], s = x.sets[j] || {}, rr = (res[x.id] || [])[j] || {};
+        const flds = (x.cols || []).map(cc => { const lab = `<span class="fl">${esc(COLS[cc].l)}${COLS[cc].u && COLS[cc].u !== "%" && COLS[cc].u.toLowerCase() !== COLS[cc].l.toLowerCase() ? " " + esc(COLS[cc].u) : ""}</span>`;
+          if (!COLS[cc].log) return `<div class="cfl">${lab}<div class="ro">${esc(s[cc] || "–")}</div></div>`;
+          if (cc === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
+            return `<div class="cfl">${lab}<span class="side-in">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}">${k}</button>`).join("")}</span></div>`; }
+          if (COLS[cc].pick && pickOpts(cc).length) return `<div class="cfl">${lab}${pickCell(cc, x.id, j, rr[cc], s[cc])}</div>`;
+          return `<div class="cfl">${lab}<input inputmode="${COLS[cc].txt ? "text" : "decimal"}" aria-label="${esc(COLS[cc].l)} giro ${j+1}" data-r="${x.id}|${j}|${cc}" value="${esc(rr[cc]||"")}" placeholder="${esc(s[cc]||"–")}"></div>`; }).join("");
+        return `<div class="crow ${rr.done ? "ok" : ""}"><div class="cnm"><b style="color:${blockColor(lead.block || L[i])}">${esc(L[i])}</b> ${esc(exName(w, x))}</div><div class="lt cfs">${flds}</div>
+          <button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="${esc(L[i])} giro ${j+1} fatto">${ICON.check}</button></div>`; }).join("")}</div>`).join("");
+  return `<section class="aex circbox" style="--bc:var(--s3)"><div class="sshead">${esc(circTitle(c, lead.block || ""))}<span>${esc(circDesc(c, n, g.map(i => L[i])))}</span></div><div class="chow">${esc(circHow(c, n, g.map(i => L[i])))}</div>${info}<div class="clogwrap">${log}</div></section>`;
 }
 function athleteWorkout(){ return S.user ? S.cache[S.user.email]?.[S.ath.open] : null; }
 function scheduleSave(){
@@ -3414,11 +3585,25 @@ const ACT = {
     const ins = document.querySelectorAll(".ex .nm"); ins[ins.length-1]?.focus(); },
   "ex-up"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; unlinkAround(a, i); unlinkAround(a, i-1); [a[i-1], a[i]] = [a[i], a[i-1]]; markDirty(); drawEditor(); },
   "ex-down"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; unlinkAround(a, i); unlinkAround(a, i+1); [a[i+1], a[i]] = [a[i], a[i+1]]; markDirty(); drawEditor(); },
-  "ex-rm"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; if (a[i+1]?.ss && !a[i].ss) { a[i+1].ss = false; a[i+1].block = a[i].block; } a.splice(i, 1); markDirty(); drawEditor(); },
+  "ex-rm"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; if (a[i+1]?.ss && !a[i].ss) { a[i+1].ss = false; a[i+1].block = a[i].block; if (a[i].circ) a[i+1].circ = a[i].circ; } a.splice(i, 1); markDirty(); drawEditor(); },
   "ex-ss"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; const x = a[i];
     if (x.ss) { x.ss = false; x.block = nextBlock(a, i); }
-    else { x.ss = true; let k = i-1; while (k > 0 && a[k].ss) k--; x.block = a[k].block || "A"; }
+    else { x.ss = true; delete x.circ; let k = i-1; while (k > 0 && a[k].ss) k--; x.block = a[k].block || "A";
+      const g = circGroupOf(a, i); if (g) circSync(a, g, a[g[0]].sets.length); }   // entra in un circuito: stessi giri degli altri
     markDirty(); drawEditor(); },
+  "grp-kind"(t){ const a = S.editor.w.exercises, i = +t.dataset.i, g = ssGroups(a).find(g => g[0] === i); if (!g) return;
+    if (t.dataset.v === "circ") { a[i].circ ??= {fmt: "giri", log: "full", rest: "", work: "40", pause: "20", min: "12"}; delete a[i].circ.solo; circSync(a, g, Math.max(...g.map(k => a[k].sets.length))); }
+    else delete a[i].circ;
+    markDirty(); drawEditor(); },
+  "circ-fmt"(t){ const a = S.editor.w.exercises, i = +t.dataset.i, g = ssGroups(a).find(g => g[0] === i), c = a[i].circ; if (!g || !c) return;
+    const was = c.fmt; c.fmt = t.dataset.v; if (c.fmt === "amrap") circSync(a, g, 1); else if (was === "amrap") circSync(a, g, 3);
+    markDirty(); drawEditor(); },
+  "circ-count"(t){ const c = S.editor.w.exercises[+t.dataset.i].circ; if (c) { c.count = t.dataset.v; markDirty(); drawEditor(); } },
+  "ex-solo-circ"(t){ const x = S.editor.w.exercises[+t.dataset.i]; x.circ = {fmt: "amrap", count: "reps", min: "5", log: "full", rest: "", work: "40", pause: "20", solo: true};
+    x.sets = [x.sets[0] || Object.fromEntries((x.cols || []).map(c => [c, ""]))]; markDirty(); drawEditor(); },
+  "circ-log"(t){ const c = S.editor.w.exercises[+t.dataset.i].circ; if (c) { c.log = t.dataset.v; markDirty(); drawEditor(); } },
+  "circ-rounds"(t){ const a = S.editor.w.exercises, i = +t.dataset.i, g = ssGroups(a).find(g => g[0] === i); if (!g) return;
+    circSync(a, g, Math.min(30, Math.max(1, a[i].sets.length + +t.dataset.d))); markDirty(); drawEditor(); },
   "col-mv"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const k = +t.dataset.k, d = +t.dataset.d; const c = x.cols; if (!c[k+d]) return; [c[k], c[k+d]] = [c[k+d], c[k]]; markDirty(); drawEditor(); },
   "ex-tolib"(t){ const i = +t.dataset.i, x = S.editor.w.exercises[i];
     S.exDlg = {i}; S.exEdit = {isNew: true, name: x.name.trim(), category: "", pattern: "", cols: [...x.cols], alts: [], video: "", notes: ""};
@@ -3526,6 +3711,10 @@ const ACT = {
     const row = r[j]; row.done = !row.done;
     if (row.done) x.cols.filter(c => COLS[c].log).forEach(c => { if (!row[c] && x.sets[j]?.[c] && !/[-–/]/.test(x.sets[j][c])) row[c] = x.sets[j][c]; });
     scheduleSave(); const y = scrollY; renderWorkout(); scrollTo(0, y); },
+  "c-round"(t){ const w = athleteWorkout(); const exs = w.exercises, g = ssGroups(exs).find(g => exs[g[0]].id === t.dataset.g); if (!g) return; const j = +t.dataset.j;
+    w.results ??= {}; const on = !g.every(i => (w.results[exs[i].id] || [])[j]?.done);
+    g.forEach(i => { const x = exs[i], r = (w.results[x.id] ??= []); while (r.length <= j) r.push({}); r[j] = on ? {done: true, ...circLogVals(x, x.sets[j])} : {}; });
+    scheduleSave(); const y = scrollY; renderWorkout(); scrollTo(0, y); },
   "a-side"(t){ const w = athleteWorkout(); w.results ??= {}; const r = (w.results[t.dataset.x] ??= []); const j = +t.dataset.j;
     while (r.length <= j) r.push({}); const cur = new Set((r[j].side || "").split("+").filter(Boolean)); const v = t.dataset.v;
     cur.has(v) ? cur.delete(v) : cur.add(v); r[j].side = ["Dx","Sx"].filter(k => cur.has(k)).join("+");
@@ -3575,7 +3764,9 @@ document.addEventListener("input", e => {
   if (t.dataset.r && t.tagName === "SELECT") { const o = t.selectedOptions[0], box = t.closest(".pick");   // menu RPE/RIR: aggiorno il numero mostrato
     box.querySelector("span").textContent = t.value ? (o.dataset.s || t.value) : t.dataset.ph; box.classList.toggle("pk-empty", !t.value); }
   if (t.dataset.r) { const [xid, j, c] = t.dataset.r.split("|"); const w = athleteWorkout(); w.results ??= {}; const r = (w.results[xid] ??= []);
-    while (r.length <= +j) r.push({}); r[+j][c] = COLS[c].txt ? t.value : t.value.replace(",", "."); scheduleSave(); return; }
+    while (r.length <= +j) r.push({}); r[+j][c] = (COLS[c]?.txt || c === "time" && xid.endsWith("~c")) ? t.value : t.value.replace(",", ".");
+    if (xid.endsWith("~c")) { const g = ssGroups(w.exercises).find(g => w.exercises[g[0]].id + "~c" === xid); if (g && w.exercises[g[0]].circ?.fmt === "amrap") circAmrapApply(w, w.exercises, g); }
+    scheduleSave(); return; }
   if (t.dataset.input === "tpl-q") { S.tplQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#tpl-q"); q.focus(); q.setSelectionRange(pos,pos); return; }
   if (t.dataset.input === "ex-q") { S.exQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#ex-q"); q.focus(); q.setSelectionRange(pos,pos); }
 });

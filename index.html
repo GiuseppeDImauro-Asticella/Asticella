@@ -746,8 +746,10 @@ const COLS = new Proxy(COLS_REAL, {get: (t, k) => t[k] ?? (typeof k === "string"
 let COL_KEYS = Object.keys(COLS_REAL);
 const pickable = () => COL_KEYS.filter(k => !COLS_REAL[k].archived);
 function applyParams(list){
-  Object.keys(COLS_REAL).forEach(k => { if (!(k in BASE_COLS)) delete COLS_REAL[k]; });
-  (list || []).forEach(p => { COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, archived: !!(p.archived || p.deleted), deleted: !!p.deleted, custom: 1}; });
+  Object.keys(COLS_REAL).forEach(k => { if (k in BASE_COLS) COLS_REAL[k] = {...BASE_COLS[k]}; else delete COLS_REAL[k]; });
+  (list || []).forEach(p => { if (p.key in BASE_COLS) {   // parametro di base modificato dal coach: cambia nome, unità, chi lo compila, nascosto (la chiave resta, i calcoli non cambiano)
+      COLS_REAL[p.key] = {...BASE_COLS[p.key], l: p.label || BASE_COLS[p.key].l, u: p.unit ?? BASE_COLS[p.key].u, log: p.log ? 1 : 0, archived: !!p.archived}; return; }
+    COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, archived: !!(p.archived || p.deleted), deleted: !!p.deleted, custom: 1}; });
   COL_KEYS = Object.keys(COLS_REAL);
 }
 const RPE_LABELS = {1:"Molto facile",2:"Facile",3:"Moderato",4:"Un po' duro",5:"Duro",6:"",7:"Molto duro",8:"",9:"",10:"Massimale"};
@@ -1121,16 +1123,18 @@ const SIDES = ["", "Dx", "Sx", "Dx+Sx"];
 const SET_TYPES = {R:{l:"Ramping set", s:"Ramp"}, W:{l:"Work set", s:"Work"}, B:{l:"Back-off set", s:"Back-off"}, D:{l:"Down set", s:"Down"}};
 const TYPE_ORDER = ["", "R", "W", "B", "D"];
 /* tipo di seduta: lo sceglie il coach nell'allenamento; se non l'ha indicato lo deduco dagli esercizi */
-const KINDS = {pesi:{l:"Pesi"}, campo:{l:"Campo"}, tecnica:{l:"Tecnica"}, partita:{l:"Partita"}};
+const KINDS = {pesi:{l:"Pesi"}, campo:{l:"Campo"}, tecnica:{l:"Tecnica"}, partita:{l:"Partita"}, correttivi:{l:"Correttivi - Prevenzione"}};
 const KIND_KEYS = Object.keys(KINDS);
 const kindColor = k => `var(--s${KIND_KEYS.indexOf(k) + 1})`;
 function guessKind(w){
-  const n = {pesi:0, campo:0, tecnica:0};
+  const n = {pesi:0, campo:0, tecnica:0, correttivi:0};
   (w.exercises || []).forEach(x => { const lib = libByName(x.name) || {}; const c = (lib.category || "").toLowerCase();
     const k = /tecnica/.test(c) ? "tecnica" : /forza|potenza|ipertrofia/.test(c) ? "pesi" : /pliometria|velocit|sprint|salt|campo|agilit/.test(c) ? "campo"
-      : /core|prevenzione|mobilit|riscaldamento/.test(c) ? null : (x.cols || []).includes("kg") ? "pesi" : "campo";
+      : /prevenzione|correttiv|rehab|riabilit|mobilit/.test(c) ? "correttivi" : /core|riscaldamento/.test(c) ? null : (x.cols || []).includes("kg") ? "pesi" : "campo";
     if (k) n[k] += Math.max(1, (x.sets || []).length); });
-  const best = Object.entries(n).sort((a, b) => b[1] - a[1])[0]; return best[1] ? best[0] : "campo";
+  /* correttivi/prevenzione solo se sono la maggior parte delle serie: qualche esercizio di prevenzione in fondo non cambia il tipo */
+  const tot = Object.values(n).reduce((t, v) => t + v, 0); if (n.correttivi && n.correttivi * 2 > tot) return "correttivi";
+  const best = Object.entries(n).filter(([k]) => k !== "correttivi").sort((a, b) => b[1] - a[1])[0]; return best[1] ? best[0] : n.correttivi ? "correttivi" : "campo";
 }
 const kindOf = w => KINDS[w?.kind] ? w.kind : guessKind(w || {});
 const typeBadge = (t, extra="") => t && SET_TYPES[t] ? `<span class="stb t-${t}" title="${SET_TYPES[t].l}" ${extra}>${t}</span>` : "";
@@ -1887,27 +1891,32 @@ function drawSessionChart(el, w){
 
 /* ---------- parametri: elenco e creazione ---------- */
 function paramsPanel(){
-  const base = Object.keys(BASE_COLS), custom = (S.params || []).filter(p => !p.deleted);
+  const base = Object.keys(BASE_COLS), custom = (S.params || []).filter(p => !p.deleted && !(p.key in BASE_COLS));
+  const changed = k => (S.params || []).some(p => p.key === k);
   return `<div class="form"><h3>Parametri</h3>
     <div class="note">I parametri che scegli per un esercizio (es. Reps · Kg · RPE) diventano le colonne della tabella. «L'atleta lo compila» = lo registra lui a ogni serie; gli altri sono solo indicazioni tue.</div>
-    <div class="plist">${base.map(k => `<div class="prow"><span>${esc(BASE_COLS[k].l)}${BASE_COLS[k].u && BASE_COLS[k].u !== "%" ? ` <span class="faint">${BASE_COLS[k].u}</span>` : ""}${BASE_COLS[k].h ? `<br><span class="faint" style="font-size:11px">${esc(BASE_COLS[k].h)}</span>` : ""}</span><span class="faint">${BASE_COLS[k].log ? "l'atleta lo compila" : "solo indicazione"}</span></div>`).join("")}
+    <div class="plist">${base.map(k => { const d = COLS_REAL[k]; return `<div class="prow ${d.archived ? "off" : ""}"><span>${esc(d.l)}${d.u && d.u !== "%" && d.u.toLowerCase() !== d.l.toLowerCase() ? ` <span class="faint">${esc(d.u)}</span>` : ""}${d.archived ? ' <span class="tag">nascosto</span>' : changed(k) ? ` <span class="tag" title="Originale: ${esc(BASE_COLS[k].l)}">modificato</span>` : ""}${d.h ? `<br><span class="faint" style="font-size:11px">${esc(d.h)}</span>` : ""}</span><span class="faint">${d.log ? "l'atleta lo compila" : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${k}">Modifica</button></div>`; }).join("")}
       ${custom.map(p => `<div class="prow ${p.archived ? "off" : ""}"><span><b>${esc(p.label)}</b>${p.unit ? ` <span class="faint">${esc(p.unit)}</span>` : ""}${p.archived ? ' <span class="tag">nascosto</span>' : ""}</span><span class="faint">${p.log ? "l'atleta lo compila" : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${p.key}">Modifica</button></div>`).join("")}</div>
     <button class="btn" data-act="param-new">+ Nuovo parametro</button></div>`;
 }
 function paramDialog(p, onDone){
   const isNew = !p; p = p || {label:"", unit:"", log:1, txt:0};
+  const isBase = !isNew && p.key in BASE_COLS, orig = isBase ? BASE_COLS[p.key] : null;
   $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="pm-form"><header><h2>${isNew ? "Nuovo parametro" : "Modifica parametro"}</h2></header><div class="body">
     <div class="row"><div class="field grow"><label class="lbl" for="pm-l">Nome</label><input class="in" id="pm-l" value="${esc(p.label)}" placeholder="es. Potenza, Contatto a terra, Angolo" required></div>
       <div class="field" style="width:110px"><label class="lbl" for="pm-u">Unità</label><input class="in" id="pm-u" value="${esc(p.unit||"")}" placeholder="es. W, ms"></div></div>
     <div class="field"><span class="lbl">Chi lo compila</span>
       <label class="row"><input type="radio" name="pm-log" value="1" ${p.log ? "checked" : ""}> L'atleta registra il valore a ogni serie</label>
       <label class="row"><input type="radio" name="pm-log" value="0" ${p.log ? "" : "checked"}> Solo tu, come indicazione (l'atleta lo legge)</label></div>
-    <div class="field"><span class="lbl">Tipo di valore</span>
+    ${isBase ? `<div class="note">Parametro di base (originale: <b>${esc(orig.l)}</b>${orig.u ? " · " + esc(orig.u) : ""}). Puoi cambiare nome, unità e chi lo compila: l'app continua a usarlo nei calcoli (volume, massimale stimato, RPE…). Non si può eliminare, ma puoi nasconderlo.</div>` : `<div class="field"><span class="lbl">Tipo di valore</span>
       <label class="row"><input type="radio" name="pm-t" value="0" ${p.txt ? "" : "checked"}> Numero (tastierino numerico sul telefono)</label>
-      <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt ? "checked" : ""}> Testo libero</label></div>
-    ${isNew ? "" : `<label class="row"><input type="checkbox" id="pm-arch" ${p.archived ? "checked" : ""}> Nascondilo dagli elenchi (gli allenamenti che lo usano restano uguali)</label>`}
-    </div><footer>${isNew ? "" : `<button type="button" class="btn ghost danger" id="pm-del">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
+      <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt ? "checked" : ""}> Testo libero</label></div>`}
+    ${isNew ? "" : `<label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="pm-arch" ${p.archived ? "checked" : ""} style="margin-top:3px"><span>Nascondilo dagli elenchi (gli allenamenti che lo usano restano uguali)</span></label>`}
+    </div><footer>${isNew ? "" : isBase ? ((S.params || []).some(x => x.key === p.key) ? `<button type="button" class="btn ghost" id="pm-reset">↺ Ripristina originale</button>` : "") : `<button type="button" class="btn ghost danger" id="pm-del">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
   $("#pm-no").onclick = () => $("#confirm").innerHTML = "";
+  const rs = $("#pm-reset");
+  if (rs) rs.onclick = async () => { const list = (S.params || []).filter(x => x.key !== p.key);
+    await DB.saveSettings({params: list}); S.params = list; applyParams(list); $("#confirm").innerHTML = ""; toast(`«${orig.l}» come in origine`); if (onDone) onDone(p.key); else renderView(); };
   const del = $("#pm-del");
   if (del) del.onclick = async () => { $("#confirm").innerHTML = "";
     if (!(await confirmBox(`Eliminare il parametro «${p.label}»? Sparisce dagli elenchi, dalla libreria esercizi e dagli Allenamenti salvati. Negli allenamenti già assegnati i valori inseriti restano leggibili.`, "Elimina"))) return;
@@ -1918,7 +1927,8 @@ function paramDialog(p, onDone){
     if (clash) return toast(`Esiste già un parametro «${clash[1].l}»`);
     const np = {key: p.key || ("c_" + (label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12) || "p") + uid().slice(-4)),
       label, unit: $("#pm-u").value.trim(), log: document.querySelector("input[name=pm-log]:checked").value === "1",
-      txt: document.querySelector("input[name=pm-t]:checked").value === "1", archived: !!$("#pm-arch")?.checked};
+      txt: isBase ? false : document.querySelector("input[name=pm-t]:checked").value === "1", archived: !!$("#pm-arch")?.checked};
+    if (isBase) np.base = true;
     const list = (S.params || []).filter(x => x.key !== np.key); list.push(np);
     await DB.saveSettings({params: list}); S.params = list; applyParams(list);
     $("#confirm").innerHTML = ""; toast(isNew ? `Parametro «${label}» creato` : "Parametro salvato");
@@ -1938,7 +1948,7 @@ async function deleteParam(key){
 
 /* ---------- categorie e pattern: scelti da elenco ---------- */
 const DEF_OPTS = {
-  cat: ["Forza","Potenza","Pliometria","Velocità","Tecnica salto","Core","Mobilità","Riscaldamento","Prevenzione","Condizionamento"],
+  cat: ["Forza","Potenza","Pliometria","Velocità","Tecnica salto","Core","Mobilità","Riscaldamento","Prevenzione","Correttivi","Condizionamento"],
   pat: ["Squat","Hinge","Monopodalico","Spinta orizzontale","Spinta verticale","Tirata orizzontale","Tirata verticale","Olimpico","Salto","Sprint","Salto in alto","Anti-estensione","Anti-rotazione","Anti-flessione laterale","Trasporto"],
 };
 const OPT_FIELD = {cat: "category", pat: "pattern"};
@@ -3367,7 +3377,9 @@ const ACT = {
     for (const [name, category, pattern, cols] of todo) { const x = {id: uid(), name, category, pattern, cols, video:"", notes:""}; await DB.saveExercise(x); S.exercises.push(x); }
     S.exercises.sort((a,b) => a.name.localeCompare(b.name)); fillDatalist(); toast(`${todo.length} esercizi aggiunti`); renderView(); },
   "param-new"(){ paramDialog(null); },
-  "param-edit"(t){ const p = (S.params||[]).find(x => x.key === t.dataset.k); if (p) paramDialog(clone(p)); },
+  "param-edit"(t){ const k = t.dataset.k; const p = (S.params||[]).find(x => x.key === k)
+      || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: 0, archived: false} : null);
+    if (p) paramDialog(clone(p)); },
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); setTimeout(()=>$("#x-name")?.focus(), 20); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },

@@ -551,7 +551,7 @@ table.tt tr + tr td{border-top:1px solid var(--line)}
 /* tanti parametri: la tabella scorre di lato dentro il riquadro, numero serie e spunta restano fermi */
 .ltwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .lt.many{width:max-content;min-width:100%}
-.lt.many input,.lt.many .ro{width:64px}
+.lt.many input,.lt.many .ro,.lt.many .pick{width:64px}
 .lt td.n,.lt th:first-child{position:sticky;left:0;z-index:2;background:var(--surface)}
 .lt td.ckc,.lt th:last-child{position:sticky;right:0;z-index:2;background:var(--surface)}
 .lt.many td.ckc,.lt.many th:last-child{box-shadow:-8px 0 8px -6px rgba(0,0,0,.18);padding-left:6px}
@@ -564,6 +564,12 @@ table.tt tr + tr td{border-top:1px solid var(--line)}
 .lt th.roh{color:var(--faint);font-weight:500}
 .ro.mini{display:inline-flex;height:18px;min-width:22px;font-size:11px;border:1.5px dashed var(--line);border-radius:5px;padding:0 3px;color:var(--muted);margin-right:2px}
 .rmx{width:26px;height:26px;border-radius:50%;border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);background:var(--bad-soft);color:var(--bad);font-size:12px;font-weight:700;padding:0;line-height:1}
+.lt .pick{position:relative;display:flex;align-items:center;justify-content:center;width:100%;min-width:44px;height:42px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);font-size:17px;font-weight:600}
+.lt .pick.pk-empty span{color:var(--faint);font-weight:500}
+.lt .pick::after{content:"";position:absolute;right:5px;bottom:5px;border:4px solid transparent;border-top-color:var(--faint);border-bottom:0}
+.lt .pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;cursor:pointer}
+.lt .pick:focus-within{border-color:var(--accent);background:var(--surface)}
+.lt tr.ok .pick{background:var(--ok-soft);border-color:transparent}
 .lt input{width:100%;min-width:44px;height:42px;text-align:center;border:1px solid var(--line);border-radius:9px;background:var(--surface2);font-size:17px;font-weight:600}
 .lt input::placeholder{color:var(--faint);font-weight:500}
 .lt input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
@@ -735,9 +741,9 @@ const BASE_COLS = {
   dist:  {l:"Distanza",   u:"m",   log:1},
   height:{l:"Altezza",    u:"cm",  log:1},
   steps: {l:"Passi",      u:"",    log:1},
-  tut:   {l:"Tempo esec.",u:"",    log:0, h:"cadenza della ripetizione, es. 3-1-1-0 = 3 s in discesa, 1 s di pausa, 1 s in salita, 0 di pausa"},
+  tut:   {l:"Tempo esec.",u:"",    log:0, txt:1, h:"cadenza della ripetizione, es. 3-1-1-0 = 3 s in discesa, 1 s di pausa, 1 s in salita, 0 di pausa"},
   side:  {l:"Lato",       u:"",    log:1},
-  rest:  {l:"Recupero",   u:"",    log:0},
+  rest:  {l:"Recupero",   u:"",    log:0, txt:1},   // testo: si scrive 2'30, 90", 3'…
 };
 /* COLS = parametri di base + quelli creati dal coach (chiave "c_…", salvati in settings/app).
    Un parametro sconosciuto (es. impostazioni non ancora caricate) non fa mai bloccare l'app. */
@@ -748,11 +754,25 @@ const pickable = () => COL_KEYS.filter(k => !COLS_REAL[k].archived);
 function applyParams(list){
   Object.keys(COLS_REAL).forEach(k => { if (k in BASE_COLS) COLS_REAL[k] = {...BASE_COLS[k]}; else delete COLS_REAL[k]; });
   (list || []).forEach(p => { if (p.key in BASE_COLS) {   // parametro di base modificato dal coach: cambia nome, unità, chi lo compila, nascosto (la chiave resta, i calcoli non cambiano)
-      COLS_REAL[p.key] = {...BASE_COLS[p.key], l: p.label || BASE_COLS[p.key].l, u: p.unit ?? BASE_COLS[p.key].u, log: p.log ? 1 : 0, archived: !!p.archived}; return; }
+      COLS_REAL[p.key] = {...BASE_COLS[p.key], l: p.label || BASE_COLS[p.key].l, u: p.unit ?? BASE_COLS[p.key].u, log: p.log ? 1 : 0, txt: p.txt == null ? (BASE_COLS[p.key].txt || 0) : (p.txt ? 1 : 0), archived: !!p.archived}; return; }
     COLS_REAL[p.key] = {l: p.label, u: p.unit || "", log: p.log ? 1 : 0, txt: p.txt ? 1 : 0, archived: !!(p.archived || p.deleted), deleted: !!p.deleted, custom: 1}; });
   COL_KEYS = Object.keys(COLS_REAL);
 }
 const RPE_LABELS = {1:"Molto facile",2:"Facile",3:"Moderato",4:"Un po' duro",5:"Duro",6:"",7:"Molto duro",8:"",9:"",10:"Massimale"};
+/* RPE e RIR della serie: l'atleta li sceglie da un menu (stessa scala di fine allenamento per l'RPE) */
+const PICK_OPTS = {
+  rpe: Array.from({length: 10}, (_, i) => { const v = 10 - i; return {v: String(v), s: String(v), l: `${v}${RPE_LABELS[v] ? " · " + RPE_LABELS[v] : ""}`}; }),
+  rir: [["0", "0", "nessuna in più (cedimento)"], ["1", "1", "1 ripetizione in riserva"], ["2", "2", "2 ripetizioni in riserva"], ["3", "3", "3 ripetizioni in riserva"], ["4", "4", "4 ripetizioni in riserva"], ["5", "5+", "5 o più in riserva"]]
+    .map(([v, sh, d]) => ({v, s: sh, l: `${sh} · ${d}`})),
+};
+/* casella con menu: si vede solo il numero, toccandola si apre il menu del telefono con le spiegazioni */
+function pickCell(c, xid, j, val, plan){
+  const opts = PICK_OPTS[c].slice(); const v = String(val ?? "");
+  if (v && !opts.some(o => o.v === v)) opts.unshift({v, s: v, l: v});   // valore già scritto in altro modo (es. 8,5): resta visibile
+  const cur = opts.find(o => o.v === v);
+  return `<label class="pick ${cur ? "" : "pk-empty"}"><span>${esc(cur ? cur.s : (plan || "–"))}</span><select aria-label="${esc(COLS[c].l)} serie ${j+1}" data-r="${xid}|${j}|${c}" data-ph="${esc(plan || "–")}">
+    <option value="" ${cur ? "" : "selected"}>${plan ? `Previsto: ${esc(plan)}` : "— scegli —"}</option>${opts.map(o => `<option value="${esc(o.v)}" data-s="${esc(o.s)}" ${o === cur ? "selected" : ""}>${esc(o.l)}</option>`).join("")}</select></label>`;
+}
 
 /* ---------- utilità ---------- */
 const $ = (s, r=document) => r.querySelector(s);
@@ -1908,9 +1928,10 @@ function paramDialog(p, onDone){
     <div class="field"><span class="lbl">Chi lo compila</span>
       <label class="row"><input type="radio" name="pm-log" value="1" ${p.log ? "checked" : ""}> L'atleta registra il valore a ogni serie</label>
       <label class="row"><input type="radio" name="pm-log" value="0" ${p.log ? "" : "checked"}> Solo tu, come indicazione (l'atleta lo legge)</label></div>
-    ${isBase ? `<div class="note">Parametro di base (originale: <b>${esc(orig.l)}</b>${orig.u ? " · " + esc(orig.u) : ""}). Puoi cambiare nome, unità e chi lo compila: l'app continua a usarlo nei calcoli (volume, massimale stimato, RPE…). Non si può eliminare, ma puoi nasconderlo.</div>` : `<div class="field"><span class="lbl">Tipo di valore</span>
+    ${isBase && p.key === "side" ? "" : `<div class="field"><span class="lbl">Tipo di valore</span>
       <label class="row"><input type="radio" name="pm-t" value="0" ${p.txt ? "" : "checked"}> Numero (tastierino numerico sul telefono)</label>
-      <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt ? "checked" : ""}> Testo libero</label></div>`}
+      <label class="row"><input type="radio" name="pm-t" value="1" ${p.txt ? "checked" : ""}> Testo libero${isBase ? ` <span class="faint" style="font-size:12px">(es. per scrivere 2'30)</span>` : ""}</label></div>`}
+    ${isBase ? `<div class="note">Parametro di base (originale: <b>${esc(orig.l)}</b>${orig.u ? " · " + esc(orig.u) : ""}). Puoi cambiarlo come vuoi: l'app continua a usarlo nei calcoli (volume, massimale stimato, RPE…). Non si può eliminare, ma puoi nasconderlo.</div>` : ""}
     ${isNew ? "" : `<label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="pm-arch" ${p.archived ? "checked" : ""} style="margin-top:3px"><span>Nascondilo dagli elenchi (gli allenamenti che lo usano restano uguali)</span></label>`}
     </div><footer>${isNew ? "" : isBase ? ((S.params || []).some(x => x.key === p.key) ? `<button type="button" class="btn ghost" id="pm-reset">↺ Ripristina originale</button>` : "") : `<button type="button" class="btn ghost danger" id="pm-del">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
   $("#pm-no").onclick = () => $("#confirm").innerHTML = "";
@@ -1927,7 +1948,7 @@ function paramDialog(p, onDone){
     if (clash) return toast(`Esiste già un parametro «${clash[1].l}»`);
     const np = {key: p.key || ("c_" + (label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 12) || "p") + uid().slice(-4)),
       label, unit: $("#pm-u").value.trim(), log: document.querySelector("input[name=pm-log]:checked").value === "1",
-      txt: isBase ? false : document.querySelector("input[name=pm-t]:checked").value === "1", archived: !!$("#pm-arch")?.checked};
+      txt: $("input[name=pm-t]:checked") ? $("input[name=pm-t]:checked").value === "1" : !!p.txt, archived: !!$("#pm-arch")?.checked};
     if (isBase) np.base = true;
     const list = (S.params || []).filter(x => x.key !== np.key); list.push(np);
     await DB.saveSettings({params: list}); S.params = list; applyParams(list);
@@ -2816,7 +2837,7 @@ function fixResults(i){
       ${rows.map((r,j) => { const p = x.sets[j] || {}; return `<tr><td class="faint">${j+1}${j >= x.sets.length ? "<br><small>extra</small>" : ""}</td>
         ${cols.map(c => c === "side"
           ? `<td><select data-fx="${j}|side" aria-label="Lato serie ${j+1}">${[...new Set([...SIDES, r.side||""])].map(v => `<option value="${esc(v)}" ${(r.side||"")===v?"selected":""}>${v ? esc(v) : "—"}</option>`).join("")}</select></td>`
-          : `<td><input data-fx="${j}|${c}" inputmode="decimal" value="${esc(r[c]||"")}" placeholder="${esc(p[c]||"–")}" aria-label="${COLS[c].l} serie ${j+1}"></td>`).join("")}
+          : `<td><input data-fx="${j}|${c}" inputmode="${COLS[c].txt ? "text" : "decimal"}" value="${esc(r[c]||"")}" placeholder="${esc(p[c]||"–")}" aria-label="${COLS[c].l} serie ${j+1}"></td>`).join("")}
         <td style="text-align:center"><input type="checkbox" data-fx="${j}|done" ${r.done?"checked":""} aria-label="Serie ${j+1} fatta" style="width:18px;height:18px"></td>
         <td>${j >= x.sets.length ? `<button type="button" class="btn sm ghost danger" data-fxrm="${j}" aria-label="Togli serie ${j+1}">✕</button>` : ""}</td></tr>`; }).join("")}
       </tbody></table></div><button type="button" class="btn sm" id="fx-add" style="align-self:flex-start">+ Serie</button>`
@@ -2824,7 +2845,7 @@ function fixResults(i){
       </div><footer><span class="grow"></span><button type="button" class="btn" id="fx-no">Annulla</button><button class="btn pri">Salva correzioni</button></footer></form></div>`;
     const f = $("#fix-form");
     const read = () => f.querySelectorAll("[data-fx]").forEach(el => { const [j, c] = el.dataset.fx.split("|"); rows[+j] ??= {};
-      rows[+j][c] = el.type === "checkbox" ? el.checked : el.value.trim().replace(",", "."); });
+      rows[+j][c] = el.type === "checkbox" ? el.checked : COLS[c]?.txt ? el.value.trim() : el.value.trim().replace(",", "."); });
     f.querySelectorAll("[data-fxrm]").forEach(b => b.onclick = () => { read(); rows.splice(+b.dataset.fxrm, 1); draw(); });
     const add = $("#fx-add"); if (add) add.onclick = () => { read(); rows.push({}); draw(); };
     $("#fx-no").onclick = () => $("#confirm").innerHTML = "";
@@ -3145,6 +3166,7 @@ function athExHtml(w, x, label, res){
     if (!COLS[c].log) return `<td><div class="ro" title="Indicazione del coach: non va compilata">${esc(s[c] || "–")}</div></td>`;
     if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
       return `<td><span class="side-in" title="${s.side ? "Programmato: "+esc(s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} serie ${j+1}">${k}</button>`).join("")}</span></td>`; }
+    if (PICK_OPTS[c]) return `<td>${pickCell(c, x.id, j, rr[c], s[c])}</td>`;
     return `<td><input inputmode="${COLS[c].txt ? "text" : "decimal"}" aria-label="${esc(COLS[c].l)} serie ${j+1}" data-r="${x.id}|${j}|${c}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c]||"–")}"></td>`;
   };
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
@@ -3378,7 +3400,7 @@ const ACT = {
     S.exercises.sort((a,b) => a.name.localeCompare(b.name)); fillDatalist(); toast(`${todo.length} esercizi aggiunti`); renderView(); },
   "param-new"(){ paramDialog(null); },
   "param-edit"(t){ const k = t.dataset.k; const p = (S.params||[]).find(x => x.key === k)
-      || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: 0, archived: false} : null);
+      || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: BASE_COLS[k].txt || 0, archived: false} : null);
     if (p) paramDialog(clone(p)); },
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); setTimeout(()=>$("#x-name")?.focus(), 20); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); },
@@ -3504,6 +3526,8 @@ document.addEventListener("input", e => {
   if (e.target.tagName === "SELECT" && e.target.dataset.bind && S.editor) { setPath(S.editor.w, e.target.dataset.bind, e.target.value); markDirty(); return; }
   const t = e.target;
   if (t.dataset.bind && S.editor) { let v = t.value; if (/^exercises\.\d+\.block$/.test(t.dataset.bind) && S.editor.w.exercises[+t.dataset.bind.split(".")[1]+1]?.ss) v = v.replace(/\d+$/, ""); setPath(S.editor.w, t.dataset.bind, v); markDirty(); return; }
+  if (t.dataset.r && t.tagName === "SELECT") { const o = t.selectedOptions[0], box = t.closest(".pick");   // menu RPE/RIR: aggiorno il numero mostrato
+    box.querySelector("span").textContent = t.value ? (o.dataset.s || t.value) : t.dataset.ph; box.classList.toggle("pk-empty", !t.value); }
   if (t.dataset.r) { const [xid, j, c] = t.dataset.r.split("|"); const w = athleteWorkout(); w.results ??= {}; const r = (w.results[xid] ??= []);
     while (r.length <= +j) r.push({}); r[+j][c] = COLS[c].txt ? t.value : t.value.replace(",", "."); scheduleSave(); return; }
   if (t.dataset.input === "tpl-q") { S.tplQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#tpl-q"); q.focus(); q.setSelectionRange(pos,pos); return; }

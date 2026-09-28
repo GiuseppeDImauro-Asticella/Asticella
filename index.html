@@ -174,6 +174,9 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .mesochip{display:inline-block;margin-top:6px;padding:5px 10px;border-radius:8px;background:color-mix(in srgb,var(--mc) 14%,var(--surface));border-left:3px solid var(--mc);font-size:13px}
 .mesochip b{color:var(--mc);white-space:nowrap;margin-right:8px}
 .cal .cell.drop{background:var(--accent-soft)}
+.wcard.insb{box-shadow:0 -4px 0 -1px var(--accent)}
+.cal .cell.inse::after{content:"";display:block;height:3px;border-radius:2px;background:var(--accent)}
+.wcard.dragging{opacity:.45}
 .cal .cell.drop.cp{background:color-mix(in srgb,var(--ok) 14%,var(--surface));outline:2px dashed var(--ok);outline-offset:-3px}
 .wcard.sel{outline:2.5px solid var(--accent);outline-offset:1px;box-shadow:0 0 0 5px var(--accent-soft)}
 .calsel{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12px;color:var(--muted);margin:0 0 8px;min-height:30px}
@@ -880,7 +883,7 @@ const ICON = {
 /* =====================================================================
    DATI — due "motori": DEMO (browser) e FIREBASE (online)
    ===================================================================== */
-const COACH_FIELDS = ["id","date","title","notes","kind","exercises","createdAt","updatedAt","doneDate"];
+const COACH_FIELDS = ["id","date","title","notes","kind","exercises","createdAt","updatedAt","doneDate","order"];
 const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt","doneDate","swaps"];
 
 function LocalDB(){
@@ -1144,7 +1147,8 @@ async function ensureWeeks(email, ws, n, force=false){
   if (!wasSlow) need.forEach(w => set.add(w));
 }
 const effDate = w => w.doneDate || w.date;     // giorno in cui è stato svolto davvero (se diverso da quello previsto)
-const wOn = (email, date) => Object.values(S.cache[email] || {}).filter(w => effDate(w) === date).sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"") || (a.title||"").localeCompare(b.title||""));
+const wOn = (email, date) => Object.values(S.cache[email] || {}).filter(w => effDate(w) === date)   // ordine nel giorno: quello scelto dal coach (order), poi data di creazione
+  .sort((a,b) => (a.order ?? 1e9) - (b.order ?? 1e9) || (a.createdAt||"").localeCompare(b.createdAt||"") || (a.title||"").localeCompare(b.title||""));
 const wIn = (email, from, to) => Object.values(S.cache[email] || {}).filter(w => effDate(w) >= from && effDate(w) <= to);
 const activeAthletes = () => S.athletes.filter(a => !a.archived).sort((a,b)=>a.name.localeCompare(b.name));
 const groups = () => [...new Set(S.athletes.map(a => a.group).filter(Boolean))].sort();
@@ -2194,6 +2198,21 @@ function newExercise(name=""){
   return {id: uid(), block:"", name, notes:"", cols, sets:[Object.fromEntries(cols.map(c=>[c,""]))]};
 }
 function unlinkAround(a, i){ const x = a[i]; if (!x) return; if (x.ss) { x.ss = false; } if (a[i+1]?.ss) { a[i+1].ss = false; a[i+1].block = a[i+1].block || x.block; } }
+/* sposta un esercizio di una posizione: dentro una superserie/circuito cambia solo l'ordine nel gruppo;
+   dal bordo del gruppo esce e resta subito fuori; un esercizio singolo "salta" il gruppo o l'esercizio vicino intero */
+function moveEx(a, i, d){
+  const G = ssGroups(a).map(g => g.map(k => a[k])), x = a[i], gi = G.findIndex(g => g.includes(x)), g = G[gi], k = g.indexOf(x);
+  if (g.length > 1 && g[k + d]) [g[k], g[k + d]] = [g[k + d], g[k]];
+  else if (g.length > 1) { g.splice(k, 1); if (x.circ) { g[0].circ = x.circ; delete x.circ; } G.splice(d < 0 ? gi : gi + 1, 0, [x]); }   // esce dal gruppo: le impostazioni del circuito restano al gruppo
+  else { const t = gi + d; if (t < 0 || t >= G.length) return; [G[gi], G[t]] = [G[t], G[gi]]; }
+  const flat = [];
+  G.forEach(g => { if (!g.length) return; const meta = g.find(y => y.circ)?.circ, blk = g.find(y => !y.ss)?.block ?? g[0].block;
+    g.forEach((y, j) => { y.ss = j > 0; if (j > 0) delete y.circ; y.block = blk; }); if (meta) g[0].circ = meta; flat.push(...g); });
+  a.splice(0, a.length, ...flat); relabel(a);
+}
+/* lettere dei blocchi sempre in ordine (A, B, C…) — solo se sono lettere singole; se hai scritto etichette tue non le tocco */
+function relabel(a){ const G = ssGroups(a); if (!G.every(g => /^[A-Za-z]?$/.test((a[g[0]].block || "").trim()))) return;
+  G.forEach((g, n) => { const b = n < 26 ? String.fromCharCode(65 + n) : "Z"; g.forEach(k => a[k].block = b); }); }
 function nextBlock(exs, skip=-1){ const used = ssGroups(exs).map(g => g[0]).filter(i => i !== skip).map(i => (exs[i].block||"").charAt(0).toUpperCase()).filter(Boolean).sort(); const last = used[used.length-1]; return last ? String.fromCharCode(last.charCodeAt(0)+1) : "A"; }
 function openEditor(email, w, isNew=false, tpl=false){
   $("#modal").innerHTML = "";          // un editor nuovo parte dall'inizio
@@ -2291,6 +2310,7 @@ function exEditorHtml(x, i, res, L){
     <div class="ex-head">
       ${x.ss && i > 0 ? `<input class="in blk" style="--bc:${blockColor(L[i])}" aria-label="Blocco" value="${esc(L[i])}" disabled title="In superserie: la lettera è quella del primo esercizio">` : `<input class="in blk" style="--bc:${blockColor(L[i] || x.block)}" aria-label="Blocco" data-bind="exercises.${i}.block" value="${esc(L[i]||"")}" maxlength="3" placeholder="A">`}
       <input class="in nm grow" aria-label="Esercizio" list="exlib" data-bind="exercises.${i}.name" data-change="ex-name" data-i="${i}" value="${esc(x.name||"")}" placeholder="Scrivi o scegli un esercizio">
+      ${S.editor && !S.editor.tpl && S.editor.email ? `<button class="btn ghost icon" data-act="ex-xfer" data-i="${i}" title="Sposta o copia in un altro allenamento" aria-label="Sposta o copia in un altro allenamento">⇄</button>` : ""}
       <button class="btn ghost icon" data-act="ex-up" data-i="${i}" aria-label="Sposta su" ${i===0?"disabled":""}>↑</button>
       <button class="btn ghost icon" data-act="ex-down" data-i="${i}" aria-label="Sposta giù" ${i===S.editor.w.exercises.length-1?"disabled":""}>↓</button>
       <button class="btn ghost icon danger" data-act="ex-rm" data-i="${i}" aria-label="Rimuovi esercizio">✕</button>
@@ -3231,6 +3251,57 @@ async function deliverFile(blob, name, title){
   setTimeout(() => URL.revokeObjectURL(a.href), 10000); toast("PDF scaricato: lo trovi nei Download");
 }
 /* ---------- dialogo copia ---------- */
+/* ---------- sposta / copia un esercizio (o il suo gruppo) in un altro allenamento dell'atleta ---------- */
+function removeExIdx(a, idxs){ idxs.slice().sort((x, y) => y - x).forEach(i => { if (a[i+1]?.ss && !a[i].ss) { a[i+1].ss = false; a[i+1].block = a[i].block; if (a[i].circ) a[i+1].circ = a[i].circ; } a.splice(i, 1); }); relabel(a); }
+async function exXferDialog(i){
+  const E = S.editor, w = E.w, a = E.w.exercises, x = a[i], em = E.email, L = exLabels(a);
+  const g = ssGroups(a).find(g => g.includes(i)), grp = g.length > 1 ? g : null, gName = grp ? (circOfGroup(a, g) ? circTitle(circOfGroup(a, g), a[g[0]].block || "") : `Superserie ${a[g[0]].block || ""}`) : "";
+  const st = {mode: "copy", date: w.date, target: "", all: false, title: ""};
+  const draw = async () => {
+    await ensureWeeks(em, monday(st.date), 1);
+    const list = wOn(em, st.date).filter(q => q.id !== w.id);
+    if (st.target !== "__new" && !list.some(q => q.id === st.target)) st.target = list[0]?.id || "__new";
+    $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="xf-form" style="max-width:520px"><header><h2>Sposta o copia «${esc(x.name || "esercizio")}»</h2></header><div class="body">
+      <div class="seg" role="radiogroup"><button type="button" class="${st.mode === "copy" ? "on" : ""}" data-m="copy">Copia</button><button type="button" class="${st.mode === "move" ? "on" : ""}" data-m="move">Sposta</button></div>
+      ${grp ? `<label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="xf-all" ${st.all ? "checked" : ""} style="margin-top:3px"><span>Tutto il gruppo «${esc(gName)}» (${grp.map(k => esc(L[k])).join(", ")})<br><span class="faint" style="font-size:12px">${st.all ? "" : `Senza spunta va solo ${esc(L[i])}, come esercizio singolo.`}</span></span></label>` : ""}
+      <div class="field"><label class="lbl" for="xf-date">Nel giorno</label><input class="in" type="date" id="xf-date" value="${st.date}" style="max-width:200px"></div>
+      <div class="field"><span class="lbl">Nell'allenamento</span><div class="wopts">
+        ${list.map(q => `<button type="button" class="wopt ${st.target === q.id ? "on" : ""}" data-t="${q.id}"><i></i><span><b>${esc(q.title || "Allenamento")}</b><small>${(q.exercises || []).length} esercizi${q.status === "done" ? " · già svolto" : ""}</small></span></button>`).join("")}
+        <button type="button" class="wopt ${st.target === "__new" ? "on" : ""}" data-t="__new"><i></i><span><b>Nuovo allenamento in quel giorno</b><small>${list.length ? "" : "quel giorno non c'è niente"}</small></span></button></div>
+        ${st.target === "__new" ? `<input class="in" id="xf-title" value="${esc(st.title)}" placeholder="Titolo (es. Complementari)" style="margin-top:6px">` : ""}</div>
+      <div class="faint" style="font-size:12px">Va in fondo all'allenamento scelto; le lettere si rimettono in ordine.${st.mode === "move" ? " Da questo allenamento viene tolto (con i dati già registrati, se ci sono)." : ""}</div>
+      </div><footer><span class="grow"></span><button type="button" class="btn" id="xf-no">Annulla</button><button class="btn pri">${st.mode === "copy" ? "Copia" : "Sposta"}</button></footer></form></div>`;
+    const f = $("#xf-form");
+    f.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { keep(); st.mode = b.dataset.m; draw(); });
+    f.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { keep(); st.target = b.dataset.t; draw(); });
+    $("#xf-all")?.addEventListener("change", ev => { keep(); st.all = ev.target.checked; draw(); });
+    $("#xf-date").onchange = ev => { keep(); if (ev.target.value) { st.date = ev.target.value; st.target = ""; draw(); } };
+    $("#xf-no").onclick = () => $("#confirm").innerHTML = "";
+    f.onsubmit = async ev => { ev.preventDefault(); keep(); await doXfer(); };
+  };
+  const keep = () => { const t = $("#xf-title"); if (t) st.title = t.value; };
+  const doXfer = async () => {
+    const idxs = st.all && grp ? grp.slice() : [i];
+    if (st.mode === "move" && E.isNew) return toast("Salva prima questo allenamento, poi potrai spostare l'esercizio");
+    if (st.mode === "move" && E.dirty) { if (!(await confirmBox("Per spostarlo salvo anche le altre modifiche di questo allenamento. Procedo?", "Salva e sposta", false))) return; }
+    let tw = st.target === "__new" ? null : S.cache[em]?.[st.target];
+    const moved = idxs.map(k => a[k]);
+    const items = st.mode === "copy" ? moved.map(y => { const c = clone(y); c.id = uid(); return c; }) : moved.map(y => clone(y));
+    if (!(st.all && grp)) { items[0].ss = false; delete items[0].circ; }   // da solo: esercizio singolo
+    const isNew = !tw;
+    if (isNew) tw = {id: uid(), date: st.date, title: (st.title || "").trim() || "Allenamento", notes: "", exercises: [], status: "todo", results: {}, createdAt: new Date().toISOString()};
+    const nw = clone(tw); nw.exercises = [...(nw.exercises || []), ...items]; relabel(nw.exercises); nw.updatedAt = new Date().toISOString();
+    if (st.mode === "move") { nw.results ??= {}; moved.forEach(y => { if (w.results?.[y.id]) nw.results[y.id] = clone(w.results[y.id]); }); }
+    if (isNew) await DB.createWorkout(em, nw); else { await DB.saveWorkout(em, nw); if (st.mode === "move" && Object.keys(nw.results || {}).length) await DB.saveResults(em, nw.id, {results: nw.results}); }
+    S.cache[em][nw.id] = {...(S.cache[em][nw.id] || {}), ...nw};
+    if (st.mode === "move") { removeExIdx(a, idxs); moved.forEach(y => { if (w.results) delete w.results[y.id]; }); await DB.saveWorkout(em, w);
+      if (w.results) await DB.saveResults(em, w.id, {results: w.results});
+      S.cache[em][w.id] = {...(S.cache[em][w.id] || {}), ...clone(w)}; E.dirty = false; }
+    $("#confirm").innerHTML = ""; drawEditor(); refreshCoach();
+    toast(`${st.mode === "copy" ? "Copiato" : "Spostato"} in «${nw.title}» · ${fmtLong(st.date)}`);
+  };
+  draw();
+}
 function copyDialog({title, date, dateLabel, preselect, onCopy}){
   const gs = groups(); const ath = activeAthletes();
   const byG = [...gs, ""].map(g => [g, ath.filter(a => (a.group||"") === g)]).filter(([,l]) => l.length);
@@ -3583,14 +3654,15 @@ const ACT = {
       onCopy: async (d, emails) => { const n = await copyWorkouts([w], w.date, d, emails); closeEditor(true); return n; }}); },
   "ed-add-ex"(){ const w = S.editor.w; const x = newExercise(); x.block = nextBlock(w.exercises); w.exercises.push(x); markDirty(); drawEditor();
     const ins = document.querySelectorAll(".ex .nm"); ins[ins.length-1]?.focus(); },
-  "ex-up"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; unlinkAround(a, i); unlinkAround(a, i-1); [a[i-1], a[i]] = [a[i], a[i-1]]; markDirty(); drawEditor(); },
-  "ex-down"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; unlinkAround(a, i); unlinkAround(a, i+1); [a[i+1], a[i]] = [a[i], a[i+1]]; markDirty(); drawEditor(); },
-  "ex-rm"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; if (a[i+1]?.ss && !a[i].ss) { a[i+1].ss = false; a[i+1].block = a[i].block; if (a[i].circ) a[i+1].circ = a[i].circ; } a.splice(i, 1); markDirty(); drawEditor(); },
+  "ex-xfer"(t){ exXferDialog(+t.dataset.i); },
+  "ex-up"(t){ moveEx(S.editor.w.exercises, +t.dataset.i, -1); markDirty(); drawEditor(); },
+  "ex-down"(t){ moveEx(S.editor.w.exercises, +t.dataset.i, 1); markDirty(); drawEditor(); },
+  "ex-rm"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; if (a[i+1]?.ss && !a[i].ss) { a[i+1].ss = false; a[i+1].block = a[i].block; if (a[i].circ) a[i+1].circ = a[i].circ; } a.splice(i, 1); relabel(a); markDirty(); drawEditor(); },
   "ex-ss"(t){ const a = S.editor.w.exercises, i = +t.dataset.i; const x = a[i];
     if (x.ss) { x.ss = false; x.block = nextBlock(a, i); }
     else { x.ss = true; delete x.circ; let k = i-1; while (k > 0 && a[k].ss) k--; x.block = a[k].block || "A";
       const g = circGroupOf(a, i); if (g) circSync(a, g, a[g[0]].sets.length); }   // entra in un circuito: stessi giri degli altri
-    markDirty(); drawEditor(); },
+    relabel(a); markDirty(); drawEditor(); },
   "grp-kind"(t){ const a = S.editor.w.exercises, i = +t.dataset.i, g = ssGroups(a).find(g => g[0] === i); if (!g) return;
     if (t.dataset.v === "circ") { a[i].circ ??= {fmt: "giri", log: "full", rest: "", work: "40", pause: "20", min: "12"}; delete a[i].circ.solo; circSync(a, g, Math.max(...g.map(k => a[k].sets.length))); }
     else delete a[i].circ;
@@ -3807,23 +3879,41 @@ document.addEventListener("change", async e => {
 const copyKey = e => e.ctrlKey || e.metaKey || e.altKey;
 document.addEventListener("dragstart", e => { const c = e.target.closest?.("[data-drag]"); if (!c) return; const id = c.dataset.drag;
   const ids = S.calSel.has(id) ? [...S.calSel] : [id];
-  e.dataTransfer.setData("text/plain", JSON.stringify({from: id, ids})); e.dataTransfer.effectAllowed = "copyMove"; });
+  e.dataTransfer.setData("text/plain", JSON.stringify({from: id, ids})); e.dataTransfer.effectAllowed = "copyMove";
+  setTimeout(() => ids.forEach(k => document.querySelector(`.wcard[data-id="${k}"]`)?.classList.add("dragging")), 0); });
 document.addEventListener("dragover", e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault();
   e.dataTransfer.dropEffect = copyKey(e) ? "copy" : "move";
-  document.querySelectorAll(".cell.drop").forEach(x => x !== c && x.classList.remove("drop", "cp")); c.classList.add("drop"); c.classList.toggle("cp", copyKey(e)); });
-document.addEventListener("dragleave", e => { const c = e.target.closest?.("[data-drop]"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("drop"); });
+  document.querySelectorAll(".cell.drop").forEach(x => x !== c && x.classList.remove("drop", "cp")); c.classList.add("drop"); c.classList.toggle("cp", copyKey(e));
+  const at = dropIndex(c, e.clientY); document.querySelectorAll(".wcard.insb, .cell.inse").forEach(x => x.classList.remove("insb", "inse"));   // dove finirà: linea sopra la scheda (o in fondo al giorno)
+  if (at.before) at.before.classList.add("insb"); else c.classList.add("inse"); });
+/* posizione nel giorno in base all'altezza del mouse: prima della prima scheda che ha il centro più in basso */
+function dropIndex(c, y){ const cards = [...c.querySelectorAll(".wcard")].filter(el => !el.classList.contains("dragging"));
+  const before = cards.find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; }) || null;
+  return {before, ids: cards.map(el => el.dataset.id)}; }
+document.addEventListener("dragend", () => document.querySelectorAll(".wcard.insb, .cell.inse, .wcard.dragging").forEach(x => x.classList.remove("insb", "inse", "dragging")));
+document.addEventListener("dragleave", e => { const c = e.target.closest?.("[data-drop]"); if (c && !c.contains(e.relatedTarget)) { c.classList.remove("drop", "inse"); c.querySelectorAll(".insb").forEach(x => x.classList.remove("insb")); } });
 document.addEventListener("drop", async e => { const c = e.target.closest?.("[data-drop]"); if (!c) return; e.preventDefault(); c.classList.remove("drop", "cp");
+  const at = dropIndex(c, e.clientY); document.querySelectorAll(".wcard.insb, .cell.inse, .wcard.dragging").forEach(x => x.classList.remove("insb", "inse", "dragging"));
   let data; try { data = JSON.parse(e.dataTransfer.getData("text/plain")); } catch(err) { data = {from: e.dataTransfer.getData("text/plain")}; }
   const em = S.calAthlete, anchor = S.cache[em]?.[data.from]; if (!anchor) return;
   const list = (data.ids || [data.from]).map(id => S.cache[em]?.[id]).filter(Boolean);
   const delta = daysBetween(effDate(anchor), c.dataset.drop), copy = copyKey(e);
+  /* ordine nel giorno di arrivo: gli allenamenti trascinati si inseriscono dove c'è la linea; gli altri del giorno scalano */
+  const placeInDay = async (moved) => { const day = c.dataset.drop, ids = moved.map(w => w.id);
+    const rest = wOn(em, day).filter(w => !ids.includes(w.id)), pos = at.before ? rest.findIndex(w => w.id === at.before.dataset.id) : rest.length;
+    const seq = [...rest]; seq.splice(pos < 0 ? rest.length : pos, 0, ...moved.filter(w => effDate(w) === day));
+    const changed = []; seq.forEach((w, k) => { if (w.order !== k) { w.order = k; changed.push(w); } }); return changed; };
   if (copy) {
-    const made = []; for (const w of list) { const nw = freshCopy(w, addDays(effDate(w), delta)); await DB.createWorkout(em, nw); (S.cache[em] ??= {})[nw.id] = nw; made.push(nw.id); }
-    S.calSel = new Set(made.length > 1 ? made : []); drawCalendar();
+    const made = []; for (const w of list) { const nw = freshCopy(w, addDays(effDate(w), delta)); await DB.createWorkout(em, nw); (S.cache[em] ??= {})[nw.id] = nw; made.push(nw); }
+    const ch = await placeInDay(made); for (const w of ch) await DB.saveWorkout(em, w);
+    S.calSel = new Set(made.length > 1 ? made.map(w => w.id) : []); drawCalendar();
     toast(list.length === 1 ? `Copiato a ${fmtLong(addDays(effDate(anchor), delta))}` : `${list.length} allenamenti copiati`); return; }
-  if (!delta) return;
+  if (!delta) {   // stesso giorno: cambia solo l'ordine
+    const ch = await placeInDay(list.filter(w => effDate(w) === c.dataset.drop)); if (!ch.length) return;
+    drawCalendar(); for (const w of ch) await DB.saveWorkout(em, w); toast("Ordine del giorno aggiornato"); return; }
   list.forEach(w => { w.date = addDays(effDate(w), delta); w.doneDate = null; w.updatedAt = new Date().toISOString(); });
-  drawCalendar(); for (const w of list) await DB.saveWorkout(em, w);
+  const ch = await placeInDay(list); const toSave = [...new Set([...list, ...ch])];
+  drawCalendar(); for (const w of toSave) await DB.saveWorkout(em, w);
   toast(list.length === 1 ? `Spostato a ${fmtLong(anchor.date)}` : `${list.length} allenamenti spostati`); });
 /* selezione a riquadro: tieni premuto il tasto sinistro su uno spazio vuoto del calendario e trascina */
 document.addEventListener("mousedown", e => {

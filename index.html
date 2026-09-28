@@ -1242,7 +1242,7 @@ async function onUser(u){
 async function loadCoachData(){
   let st;
   [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);
-  S.params = st.params || []; applyParams(S.params);
+  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null;
   S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name));
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = activeAthletes()[0]?.email || null;
@@ -2053,7 +2053,7 @@ function drawEditorInner(){
         return g.length > 1 ? `<div class="ssg"><div class="ssg-h">Superserie ${esc(w.exercises[g[0]].block||"")}<span>l'atleta alterna ${g.map(i => esc(L[i])).join(" → ")} e recupera alla fine del giro</span></div>${body}</div>` : body; }).join(""); })()}
       <div class="row"><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
     </div>
-    <footer>${E.isNew?"":`<button class="btn ghost danger" data-act="ed-del">Elimina</button><button class="btn ghost" data-act="ed-copy">Copia in altre date / atleti…</button>`}<button class="btn ghost" data-act="ed-totpl">Salva in Allenamenti</button>
+    <footer>${E.isNew?"":`<button class="btn ghost danger" data-act="ed-del">Elimina</button><button class="btn ghost" data-act="ed-copy">Copia in altre date / atleti…</button>`}<button class="btn ghost" data-act="ed-totpl">Salva in Allenamenti</button><button class="btn ghost" data-act="ed-pdf" title="Crea un PDF da salvare o mandare (solo il programma, senza la parte che compila l'atleta)">Genera PDF</button>
       <span class="grow"></span><span class="dirty" id="ed-dirty" ${E.dirty?"":"hidden"}>Modifiche non salvate</span>
       <button class="btn" data-act="ed-close">Chiudi</button><button class="btn pri" data-act="ed-save">Salva</button></footer>
   </div></div>`;
@@ -2074,7 +2074,7 @@ function drawTplEditor(){
       ${exBlocksHtml(w, {})}
       <div class="row"><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
     </div>
-    <footer>${E.isNew ? "" : `<button class="btn ghost danger" data-act="tpl-del">Elimina</button><button class="btn ghost" data-act="tpl-dup">Duplica</button>`}
+    <footer>${E.isNew ? "" : `<button class="btn ghost danger" data-act="tpl-del">Elimina</button><button class="btn ghost" data-act="tpl-dup">Duplica</button>`}<button class="btn ghost" data-act="ed-pdf" title="Crea un PDF da salvare o mandare">Genera PDF</button>
       <span class="grow"></span><span class="dirty" id="ed-dirty" ${E.dirty?"":"hidden"}>Modifiche non salvate</span>
       <button class="btn" data-act="ed-close">Chiudi</button><button class="btn" data-act="ed-save">Salva</button><button class="btn pri" data-act="tpl-save-assign">Salva e assegna…</button></footer>
   </div></div>`;
@@ -2874,6 +2874,140 @@ async function saveEditor(){
 }
 function refreshCoach(){ if (S.user?.role !== "coach") return; if (S.view === "calendar" && $("#calwrap")) drawCalendar(); else renderView(); }
 
+/* ---------- PDF dell'allenamento: solo da leggere (niente parte che compila l'atleta), da salvare o mandare ---------- */
+const PDF_LIBS = [
+  ["https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js", () => window.jspdf?.jsPDF],
+  ["https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js", () => window.jspdf?.jsPDF?.API?.autoTable]];
+const loadScript = src => new Promise((ok, ko) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => ko(new Error("Impossibile caricare " + src)); document.head.appendChild(s); });
+async function loadPdfLibs(){ for (const [u, has] of PDF_LIBS) if (!has()) await loadScript(u); }
+/* il carattere del PDF (Helvetica) conosce solo le lettere "occidentali": frecce e simboli speciali diventano testo semplice */
+const pdfT = s => String(s ?? "").replace(/↔/g, "<->").replace(/→/g, "->").replace(/[′‘’]/g, "'").replace(/[″“”]/g, '"').replace(/≥/g, ">=").replace(/≤/g, "<=")
+  .replace(/[–—]/g, "-").replace(/…/g, "...").replace(/•/g, "·").replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, "");
+const hexRgb = h => { const n = parseInt(h.replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const blockHex = lbl => { const c = String(lbl || "").trim().toUpperCase().charCodeAt(0); return BLOCK_COLORS[c >= 65 && c <= 90 ? (c - 65) % 6 : 6]; };
+const PDF_TYPE_COL = {R: {bg: "#EBEEF3", fg: "#5B6476"}, W: {bg: "#2650D6", fg: "#FFFFFF"}, B: {bg: "#FAEED4", fg: "#AD6F08"}, D: {bg: "#DCF1E7", fg: "#14825A"}};
+const slug = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w]+/g, "_").replace(/^_|_$/g, "").slice(0, 40);
+/* prima del PDF: scegli se mettere in alto il tuo nome (ricordato nelle impostazioni) */
+function pdfDialog(){
+  const sg = {on: true, role: "Preparatore", name: S.user?.name && S.user.name !== "Coach" ? S.user.name : "", ...(S.pdfSig || {})};
+  $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="pdf-form"><header><h2>Genera PDF</h2></header><div class="body">
+    <label class="row"><input type="checkbox" id="pdf-on" ${sg.on ? "checked" : ""}> Metti il mio nome in alto, accanto ad «Asticella»</label>
+    <div class="row" id="pdf-f"><div class="field" style="width:150px"><label class="lbl" for="pdf-role">Ruolo</label><input class="in" id="pdf-role" list="pdf-roles" value="${esc(sg.role)}">
+      <datalist id="pdf-roles"><option value="Preparatore"></option><option value="Preparatore atletico"></option><option value="Allenatore"></option><option value="Coach"></option></datalist></div>
+      <div class="field grow"><label class="lbl" for="pdf-name">Nome e cognome</label><input class="in" id="pdf-name" value="${esc(sg.name)}" placeholder="es. Giuseppe Dimauro"></div></div>
+    <div class="faint" style="font-size:12px">In alto nel PDF: <b id="pdf-prev" style="color:var(--ink)"></b></div>
+    </div><footer><span class="grow"></span><button type="button" class="btn" id="pdf-no">Annulla</button><button class="btn pri">Genera PDF</button></footer></form></div>`;
+  const read = () => ({on: $("#pdf-on").checked, role: $("#pdf-role").value.trim(), name: $("#pdf-name").value.trim()});
+  const upd = () => { const r = read(); $("#pdf-f").style.opacity = r.on ? 1 : .45; $("#pdf-prev").textContent = "ASTICELLA" + (r.on && r.name ? " | " + [r.role, r.name].filter(Boolean).join(" - ") : ""); };
+  $("#pdf-form").oninput = upd; upd();
+  $("#pdf-no").onclick = () => $("#confirm").innerHTML = "";
+  $("#pdf-form").onsubmit = async ev => { ev.preventDefault(); const r = read(); $("#confirm").innerHTML = "";
+    if (JSON.stringify(r) !== JSON.stringify(S.pdfSig || null)) { S.pdfSig = r; DB.saveSettings({pdf: r}).catch(e => console.warn(e)); }
+    workoutPdf(r); };
+  setTimeout(() => $("#pdf-name")?.focus(), 30);
+}
+async function workoutPdf(sig){
+  const E = S.editor; if (!E) return;
+  toast("Preparo il PDF…");
+  try { await loadPdfLibs(); } catch(e) { console.error(e); return toast("Non riesco a creare il PDF: controlla la connessione e riprova"); }
+  const w = E.w, a = E.tpl ? null : athByEmail(E.email), exs = (w.exercises || []).filter(x => (x.name || "").trim());
+  const doc = new window.jspdf.jsPDF({unit: "mm", format: "a4"});
+  const PW = 210, PH = 297, M = 14, CW = PW - 2 * M;
+  const INK = [19, 24, 33], MUTED = [91, 100, 118], FAINT = [140, 149, 165], LINE = [221, 226, 234], ACC = [38, 80, 214];
+  const txt = (s, x, y, o = {}) => { doc.setFont("helvetica", o.b ? "bold" : o.i ? "italic" : "normal"); doc.setFontSize(o.sz || 10); doc.setTextColor(...(o.c || INK)); doc.text(pdfT(s), x, y, o.align ? {align: o.align} : undefined); };
+  const wrap = (s, width, sz = 10) => { doc.setFontSize(sz); return doc.splitTextToSize(pdfT(s), width); };
+  let y = M;
+  const room = h => { if (y + h > PH - 16) { doc.addPage(); y = M + 4; } };
+  const para = (label, s, o = {}) => {   // "Etichetta: testo" che va a capo
+    const lines = wrap((label ? label + " " : "") + s, CW - (o.indent || 0), o.sz || 9.5); room(lines.length * 4.4 + 1);
+    lines.forEach((ln, k) => { if (k === 0 && label) { doc.setFont("helvetica", "bold"); doc.setFontSize(o.sz || 9.5); doc.setTextColor(...(o.lc || MUTED)); doc.text(pdfT(label), M + (o.indent || 0), y);
+        const lw = doc.getTextWidth(pdfT(label) + " "); txt(ln.slice(pdfT(label).length + 1), M + (o.indent || 0) + lw, y, {sz: o.sz || 9.5, c: o.c || INK}); }
+      else txt(ln, M + (o.indent || 0), y, {sz: o.sz || 9.5, c: o.c || INK}); y += 4.4; }); };
+  // intestazione
+  txt("ASTICELLA", M, y + 2, {b: 1, sz: 9, c: ACC});
+  if (sig?.on && (sig.name || "").trim()) { doc.setFont("helvetica", "bold"); doc.setFontSize(9); const ax = M + doc.getTextWidth("ASTICELLA");
+    txt("|", ax + 2.5, y + 2, {sz: 9, c: LINE}); txt([sig.role, sig.name].map(v => (v || "").trim()).filter(Boolean).join(" - "), ax + 5, y + 2, {sz: 9, c: INK, b: 1}); } txt("Programma di allenamento", PW - M, y + 2, {sz: 8.5, c: FAINT, align: "right"}); y += 11;
+  wrap(w.title || "Allenamento", CW, 20).forEach(ln => { txt(ln, M, y, {b: 1, sz: 20}); y += 8; });
+  const sub = E.tpl ? ["Allenamento salvato (senza data e atleta)", KINDS[w.kind] ? "Tipo: " + KINDS[w.kind].l : ""]
+    : [a?.name || "", w.date ? fmtLong(w.date) : "", "Tipo: " + KINDS[kindOf(w)].l];
+  txt(sub.filter(Boolean).join("  ·  "), M, y, {sz: 10.5, c: MUTED}); y += 5.5;
+  const mz = !E.tpl && a && w.date ? mesoAt(a, w.date) : null;
+  if (mz) { doc.setFillColor(...hexRgb(mz.color)); doc.rect(M, y - 3.2, 1.4, 4.4, "F");
+    txt(`${mz.name}${mz.goal ? " · " + mz.goal : ""} · settimana ${mz.idx} di ${mz.weeks}`, M + 3.5, y, {sz: 9.5, c: hexRgb(mz.color), b: 1}); y += 5.5; }
+  doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(M, y, PW - M, y); y += 6;
+  // note del coach
+  if ((w.notes || "").trim()) { const lines = wrap(w.notes.trim(), CW - 8, 10); const h = lines.length * 4.8 + 9; room(h);
+    doc.setFillColor(235, 238, 243); doc.roundedRect(M, y - 4, CW, h, 2, 2, "F"); doc.setFillColor(...ACC); doc.rect(M, y - 4, 1.2, h, "F");
+    txt("NOTE", M + 4, y + 0.5, {b: 1, sz: 8, c: MUTED}); y += 5.5; lines.forEach(ln => { txt(ln, M + 4, y, {sz: 10}); y += 4.8; }); y += 6; }
+  // esercizi, a blocchi (le superserie insieme)
+  const L = exLabels(exs); const typesUsed = new Set();
+  const bracket = (b1, b2, col) => {   // linea che collega le etichette di una superserie (B1 → B2), nel margine a sinistra
+    const x0 = M - 4; doc.setDrawColor(...col); doc.setLineWidth(0.7);
+    for (let p = b1.p; p <= b2.p; p++) { doc.setPage(p); const ya = p === b1.p ? b1.y : M, yb = p === b2.p ? b2.y : PH - 16;
+      doc.line(x0, ya, x0, yb); if (p === b1.p) doc.line(x0, b1.y, M, b1.y); if (p === b2.p) doc.line(x0, b2.y, M, b2.y); }
+    doc.setPage(doc.getNumberOfPages()); doc.setLineWidth(0.3); };
+  ssGroups(exs).forEach(g => { const badges = [];
+    if (g.length > 1) { room(22); const col = hexRgb(blockHex(exs[g[0]].block || L[g[0]]));
+      txt(`SUPERSERIE ${exs[g[0]].block || ""}`.trim(), M, y, {b: 1, sz: 9.5, c: col});
+      txt(`alterna ${g.map(i => L[i]).join(" -> ")}: una serie di ognuno, poi recupero`, M + doc.getTextWidth(pdfT(`SUPERSERIE ${exs[g[0]].block || ""} `)) + 2, y, {sz: 9, c: MUTED}); y += 7; }
+    g.forEach((i, k) => { const x = exs[i], lib = libByName(x.name), cols = x.cols || [], col = hexRgb(blockHex(exs[g[0]].block || L[i]));
+      room(30);
+      // etichetta del blocco + nome
+      const lab = pdfT(L[i] || "•"); doc.setFont("helvetica", "bold"); doc.setFontSize(10); const bw = Math.max(8, doc.getTextWidth(lab) + 4);
+      doc.setFillColor(...col); doc.roundedRect(M, y - 4.6, bw, 6.2, 1.4, 1.4, "F"); txt(lab, M + bw / 2, y, {b: 1, sz: 10, c: [255, 255, 255], align: "center"});
+      badges.push({p: doc.getCurrentPageInfo().pageNumber, y: y - 1.5});
+      const meta = [lib?.category, lib?.pattern].filter(Boolean).join(" · "), VW = lib?.video ? 17 : 0;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+      const nameW = CW - bw - 3 - VW - (meta ? doc.getTextWidth(pdfT(meta)) + 6 : 0);
+      const nl = wrap(x.name, nameW, 12.5); nl.forEach((ln, q) => { txt(ln, M + bw + 3, y + q * 5.2, {b: 1, sz: 12.5}); });
+      if (meta) txt(meta, PW - M, y, {sz: 8.5, c: FAINT, align: "right"});
+      if (lib?.video) {   // pulsantino "Video" accanto al nome: nel PDF si clicca e apre il video
+        doc.setFont("helvetica", "bold"); doc.setFontSize(12.5); const vx = M + bw + 3 + doc.getTextWidth(nl[0]) + 3, vy = y - 4.2;
+        doc.setDrawColor(...ACC); doc.setLineWidth(0.35); doc.roundedRect(vx, vy, 15, 5.2, 2.6, 2.6, "S");
+        doc.setFillColor(...ACC); doc.triangle(vx + 2.6, vy + 1.4, vx + 2.6, vy + 3.8, vx + 4.6, vy + 2.6, "F");
+        txt("Video", vx + 5.6, vy + 3.7, {b: 1, sz: 8.5, c: ACC}); doc.link(vx, vy, 15, 5.2, {url: lib.video}); doc.setLineWidth(0.3); }
+      y += (nl.length - 1) * 5.2 + 5.2;
+      const sc = schemeText(x); if (sc) { txt(sc, M, y, {sz: 9.5, c: MUTED}); y += 3; }
+      // tabella delle serie (solo il programma)
+      const hasT = x.sets.some(s => s.type); x.sets.forEach(s => s.type && typesUsed.add(s.type));
+      if (cols.length && x.sets.length) {
+        const head = ["Serie", ...(hasT ? ["Tipo"] : []), ...cols.map(c => { const u = COLS[c]?.u; return pdfT(COLS[c]?.l || c) + (u && u !== "%" && u.toLowerCase() !== (COLS[c]?.l || "").toLowerCase() ? ` (${u})` : ""); })];
+        const body = x.sets.map((s, j) => [String(j + 1), ...(hasT ? [s.type || ""] : []), ...cols.map(c => pdfT(s[c] || "-"))]);
+        doc.autoTable({startY: y + 1, head: [head], body, margin: {left: M, right: M}, theme: "grid", tableWidth: Math.min(CW, 14 + (hasT ? 10 : 0) + cols.length * 26),
+          styles: {font: "helvetica", fontSize: 9.5, cellPadding: {top: 1.6, bottom: 1.6, left: 2, right: 2}, halign: "center", lineColor: LINE, lineWidth: 0.2, textColor: INK},
+          headStyles: {fillColor: [242, 244, 247], textColor: MUTED, fontStyle: "bold", fontSize: 8.5},
+          columnStyles: {0: {cellWidth: 14, textColor: MUTED}, ...(hasT ? {1: {cellWidth: 10, fontSize: 8, cellPadding: {top: 1.6, bottom: 1.6, left: 0.5, right: 0.5}}} : {})},
+          didParseCell: d => { if (hasT && d.section === "head" && d.column.index === 1) { d.cell.styles.fontSize = 7; d.cell.styles.cellPadding = {top: 1.8, bottom: 1.8, left: 0.3, right: 0.3}; }
+            if (hasT && d.section === "body" && d.column.index === 1) { const t = PDF_TYPE_COL[d.cell.raw]; if (t) { d.cell.styles.fillColor = hexRgb(t.bg); d.cell.styles.textColor = hexRgb(t.fg); d.cell.styles.fontStyle = "bold"; } } }});
+        y = doc.lastAutoTable.finalY + 5; }
+      else y += 3;
+      if ((x.notes || "").trim()) para("Nota:", x.notes.trim());
+      if ((lib?.notes || "").trim()) para("Indicazioni tecniche:", lib.notes.trim(), {c: MUTED});
+      const alts = altsOf(x).filter(n => n && !sameName(n, x.name)); if (alts.length) para("Se non puoi farlo:", alts.join(", "), {c: MUTED});
+      y += k < g.length - 1 ? 3 : 5;
+      if (k === g.length - 1) { doc.setDrawColor(...LINE); doc.line(M, y - 3, PW - M, y - 3); y += 2; } });
+    for (let k = 1; k < badges.length; k++) bracket(badges[k - 1], badges[k], hexRgb(blockHex(exs[g[0]].block || L[g[0]])));
+  });
+  if (!exs.length) { txt("Nessun esercizio.", M, y, {c: MUTED}); y += 6; }
+  if (typesUsed.size) { room(8); txt([...TYPE_ORDER].filter(t => typesUsed.has(t)).map(t => `${t} = ${SET_TYPES[t].l}`).join("   ·   "), M, y, {sz: 8.5, c: MUTED}); y += 5; }
+  // piè di pagina
+  const n = doc.getNumberOfPages(), foot = [w.title || "Allenamento", a?.name, w.date && !E.tpl ? fmtD(w.date) : ""].filter(Boolean).join(" · ");
+  for (let p = 1; p <= n; p++) { doc.setPage(p); doc.setDrawColor(...LINE); doc.line(M, PH - 11, PW - M, PH - 11);
+    txt(foot, M, PH - 7, {sz: 8, c: FAINT}); txt(`Pagina ${p} di ${n}`, PW - M, PH - 7, {sz: 8, c: FAINT, align: "right"}); }
+  const name = [E.tpl ? "" : w.date, a ? slug(a.name) : "", slug(w.title || "allenamento")].filter(Boolean).join("_") + ".pdf";
+  const blob = doc.output("blob");
+  await deliverFile(blob, name, w.title || "Allenamento");
+}
+/* consegna del file: nell'anteprima su claude.ai con il permesso "downloads"; su tablet/telefono il menu Condividi (WhatsApp, Mail, Salva su File…); altrimenti scarica */
+async function deliverFile(blob, name, title){
+  if (DEMO && window.claude?.use) { try { const dl = await window.claude.use("downloads"); if (dl) { await dl.save({filename: name, data: blob}); return toast("PDF pronto"); } }
+    catch(e) { if (e?.code === "declined") return; console.warn(e); } }
+  const file = typeof File === "function" ? new File([blob], name, {type: "application/pdf"}) : null;
+  if (tipPT !== "mouse" && file && navigator.canShare?.({files: [file]})) {
+    try { await navigator.share({files: [file], title: pdfT(title)}); return; } catch(e) { if (e?.name === "AbortError") return; console.warn(e); } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000); toast("PDF scaricato: lo trovi nei Download");
+}
 /* ---------- dialogo copia ---------- */
 function copyDialog({title, date, dateLabel, preselect, onCopy}){
   const gs = groups(); const ath = activeAthletes();
@@ -3185,6 +3319,7 @@ const ACT = {
     await DB.deleteTemplate(E.w.id); S.templates = S.templates.filter(x => x.id !== E.w.id); closeEditor(true); toast("Eliminato"); refreshCoach(); },
   async "tpl-dup"(){ const E = S.editor; if (E.dirty && !(await confirmBox("Duplicare senza salvare le modifiche fatte a questo?", "Duplica", false))) return;
     const c = freshCopy(E.w, ""); S.editor = null; openEditor(null, {id: c.id, title: (E.w.title||"") + " (copia)", notes: c.notes, kind: c.kind, exercises: c.exercises}, true, true); },
+  "ed-pdf"(){ pdfDialog(); },
   async "ed-totpl"(){ const w = S.editor.w; const c = freshCopy(w, "");
     const t = {id: uid(), title: (w.title||"Allenamento").trim(), notes: w.notes||"", ...(KINDS[w.kind] ? {kind: w.kind} : {}), exercises: c.exercises, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()};
     await DB.saveTemplate(t); S.templates.push(t); S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));

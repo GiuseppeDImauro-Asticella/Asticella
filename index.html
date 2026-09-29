@@ -561,6 +561,9 @@ table.tt tr + tr td{border-top:1px solid var(--line)}
 .psvol{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;font-size:12.5px}
 .psvol .lbl{margin-right:2px}
 .psvol .pv{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 10px;font-variant-numeric:tabular-nums}
+.psvol .pv.tot{border-color:var(--ink)}.psvol .pv.gone{border-style:dashed;opacity:.8}.psvol .pv.new{border-color:var(--ok)}
+.psdiff{margin-top:6px;font-size:12.5px;color:var(--muted)}.psdiff b{color:var(--ink)}
+.kfilt.psk select{width:auto;max-width:340px;padding:4px 8px}
 .psvol .up{color:var(--ok);font-weight:700}.psvol .dn{color:var(--warn);font-weight:700}
 .pscards{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .pscards .pgc{flex:0 1 250px}
@@ -2717,6 +2720,15 @@ function psSet(m, x, st, v){
 function psDraft(G, w){ if (!G.sess || G.sess.wid !== w.id) G.sess = {wid: w.id, sets: Object.fromEntries((w.exercises || []).map(x => [x.id, clone(x.sets || [])]))}; return G.sess; }
 const psDirty = (G, w) => !!G.sess && G.sess.wid === w.id && (w.exercises || []).some(x => JSON.stringify(G.sess.sets[x.id]) !== JSON.stringify(x.sets || []));
 /* sequenza delle serie nell'ordine in cui si fanno (superserie alternate), con il parametro da mostrare e il riferimento reale */
+/* sedute precedenti dello stesso tipo (Pesi con Pesi…) con dati registrati, dalla più recente */
+function sameKindSessions(email, w, limit = 6){ const k = kindOf(w);
+  return Object.values(S.cache[email] || {}).filter(q => q.id !== w.id && effDate(q) < w.date && kindOf(q) === k
+      && Object.values(q.results || {}).some(rr => Array.isArray(rr) && rr.some(r => r && (r.done || !emptyRes(r)))))
+    .sort((a, b) => effDate(b).localeCompare(effDate(a))).slice(0, limit); }
+const kindRefOf = (G, w) => { const KS = sameKindSessions(G.email, w); return {KS, RS: KS.find(q => q.id === G.psKref) || KS[0] || null}; };
+/* serie eseguite di una seduta, esercizio per esercizio (con il pattern) */
+const sessPool = RS => (RS.exercises || []).map(y => { const name = exName(RS, y);
+  return {name, pat: libByName(name)?.pattern || "", cols: y.cols, sets: (RS.results?.[y.id] || []).map((r, j) => ({r, s: y.sets[j] || {}, extra: j >= y.sets.length})).filter(o => o.r.done || !emptyRes(o.r)).map(q => ({...q, name, cols: y.cols}))}; }).filter(it => it.sets.length);
 function psSeq(G, w){
   const D = psDraft(G, w), ex = w.exercises || [], L = exLabels(ex), res = w.results || {}, out = [], order = [];
   const pickRef = (sets, st, j) => !sets.length ? null : (sets[j] && (sets[j].s.type || "") === (st.type || "")) ? sets[j] : sets.slice().reverse().find(q => (q.s.type || "") === (st.type || "")) || sets[Math.min(j, sets.length - 1)];
@@ -2728,10 +2740,23 @@ function psSeq(G, w){
     const patR = ls ? {kind: "pat", date: ls.date, pat: P.pat, items: ls.items} : null;
     const R0 = (G.psRef === "ex" ? exR || patR : patR || exR) || null;
     refs[x.id] = {R0, alt: R0 === exR ? patR : exR, own: [], extra: []}; });
+  /* riferimento = seduta più recente dello stesso tipo, intera: a ogni esercizio le serie dello stesso esercizio, se no dello stesso pattern,
+     se no quelle che restano (confronto di stimolo: serie, ripetizioni, RPE); quelle che avanzano vanno in fondo come "non coperte" */
+  if (G.psRef === "kind") { const {RS} = kindRefOf(G, w);
+    ex.forEach(x => refs[x.id] = {R0: null, alt: null, own: [], extra: []});
+    if (RS) { const pool = sessPool(RS), R0 = {kind: "kind", date: effDate(RS), title: RS.title}, nOf = x => (D.sets[x.id] || []).length; let rest = [];
+      ex.forEach(x => { refs[x.id].R0 = R0; const k = pool.findIndex(it => sameName(it.name, exName(w, x)) || sameName(it.name, x.name)); if (k < 0) return;
+        refs[x.id].own = pool[k].sets.slice(0, nOf(x)); rest.push(...pool[k].sets.slice(nOf(x))); pool.splice(k, 1); });
+      ex.forEach(x => { const r = refs[x.id]; if (r.own.length) return; const pat = libByName(x.name)?.pattern; if (!pat) return;
+        pool.filter(it => it.pat === pat).forEach(it => { while (r.own.length < nOf(x) && it.sets.length) r.own.push(it.sets.shift()); }); });
+      rest = [...rest, ...pool.flatMap(it => it.sets)];
+      ex.forEach(x => { const r = refs[x.id]; if (r.own.length) return; r.own = rest.slice(0, nOf(x)); rest = rest.slice(nOf(x)); });
+      if (ex.length) refs[ex[ex.length - 1].id].extra = rest; }
+  }
   /* riferimento per pattern: le serie della seduta di riferimento si "distribuiscono" sugli esercizi di quel pattern in questa seduta
      (prima all'esercizio con lo stesso nome, poi in ordine); quelle che avanzano compaiono dopo l'ultimo esercizio del pattern */
   const groups = {};
-  ex.forEach(x => { const r = refs[x.id]; if (r.R0?.kind === "pat") (groups[r.R0.pat] ??= []).push(x); else if (r.R0) r.own = r.R0.sets; });
+  if (G.psRef !== "kind") ex.forEach(x => { const r = refs[x.id]; if (r.R0?.kind === "pat") (groups[r.R0.pat] ??= []).push(x); else if (r.R0) r.own = r.R0.sets; });
   Object.values(groups).forEach(xs => { const R0 = refs[xs[0].id].R0;
     const pool = R0.items.map(it => ({name: it.name, cols: it.y.cols, sets: it.sets.map(q => ({...q, name: it.name, cols: it.y.cols}))}));
     let rest = [];
@@ -2740,15 +2765,16 @@ function psSeq(G, w){
     rest = [...rest, ...pool.flatMap(it => it.sets)];
     xs.forEach(x => { if (refs[x.id].own.length) return; const n = (D.sets[x.id] || []).length; refs[x.id].own = rest.slice(0, n); rest = rest.slice(n); });
     refs[xs[xs.length - 1].id].extra = rest; });
-  const refInfoOf = (R0, q) => R0 && q ? {kind: R0.kind, date: R0.date, pat: R0.pat, name: q.name, x: {cols: q.cols}} : R0 ? {...R0} : null;
+  const refInfoOf = (R0, q) => R0 && q ? {kind: R0.kind, date: R0.date, pat: R0.pat, title: R0.title, name: q.name, x: {cols: q.cols}} : R0 ? {...R0} : null;
+  const pooled = R0 => R0?.kind === "pat" || R0?.kind === "kind";   // serie programmate + quelle del riferimento avanzate in fondo
   ssGroups(ex).forEach(g => {
     const lenOf = i => { const x = ex[i], r = refs[x.id], n = (D.sets[x.id] || []).length;
-      return r.R0?.kind === "pat" ? n + r.extra.length : Math.max(n, r.own.length); };
+      return pooled(r.R0) ? n + r.extra.length : Math.max(n, r.own.length); };
     const len = Math.max(0, ...g.map(lenOf));
     for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], ds = D.sets[x.id] || [], st = ds[j], r = refs[x.id];
       if (j >= lenOf(i)) return;
       const ghost = !st;   // serie presente solo nel riferimento: non programmata qui
-      const q = !r.R0 ? null : ghost ? (r.R0.kind === "pat" ? r.extra[j - ds.length] : r.own[j]) : (r.own[j] || null);   // stessa posizione: serie 3 contro serie 3 del riferimento
+      const q = !r.R0 ? null : ghost ? (pooled(r.R0) ? r.extra[j - ds.length] : r.own[j]) : (r.own[j] || null);   // stessa posizione: serie 3 contro serie 3 del riferimento
       if (ghost && !q) return;
       const info = refInfoOf(r.R0, q);
       if (ghost) {   // serie del riferimento non coperta: resta "sua" (nome, parametro e scala dell'esercizio di allora), in una banda a parte
@@ -2766,6 +2792,16 @@ function psSeq(G, w){
 /* volume di serie per pattern: programmate in questa seduta contro la seduta più recente dello stesso pattern (per "pareggiare" anche con esercizi diversi) */
 function psVolHtml(G, w){
   const D = G.sess?.wid === w.id ? G.sess : null, rows = {};
+  if (G.psRef === "kind") { const {RS} = kindRefOf(G, w); if (!RS) return "";   // seduta intera contro seduta intera: serie per pattern e totale, differenze in evidenza
+    const cur = {}, ref = {}, patOf = n => libByName(n)?.pattern || "Senza pattern";
+    (w.exercises || []).forEach(x => { const pt = patOf(x.name); cur[pt] = (cur[pt] || 0) + (D ? D.sets[x.id] : x.sets || []).length; });
+    sessPool(RS).forEach(it => { const pt = it.pat || "Senza pattern"; ref[pt] = (ref[pt] || 0) + it.sets.length; });
+    const pats = [...new Set([...Object.keys(cur), ...Object.keys(ref)])].sort((a, b) => Math.abs((cur[b] || 0) - (ref[b] || 0)) - Math.abs((cur[a] || 0) - (ref[a] || 0)));
+    const tc = Object.values(cur).reduce((t, v) => t + v, 0), tr = Object.values(ref).reduce((t, v) => t + v, 0);
+    const chip = (lab, n, rn, strong) => { const d = n - rn; return `<span class="pv ${strong ? "tot" : ""} ${!n && rn ? "gone" : !rn && n ? "new" : ""}"><b>${esc(lab)}</b> ${n} <span class="faint">/ ${rn} rif.</span> <span class="${d === 0 ? "" : d > 0 ? "up" : "dn"}">${d === 0 ? "=" : (d > 0 ? "+" : "") + d}</span></span>`; };
+    const big = pats.filter(pt => Math.abs((cur[pt] || 0) - (ref[pt] || 0)) >= 2);
+    return `<div class="psvol"><span class="lbl">Serie per pattern</span>${chip("Totale", tc, tr, true)}${pats.map(pt => chip(pt, cur[pt] || 0, ref[pt] || 0)).join("")}</div>
+      ${big.length ? `<div class="psdiff">Rispetto a ${esc(fmtD(effDate(RS)))}: ${big.map(pt => { const d = (cur[pt] || 0) - (ref[pt] || 0); return `<b>${esc(pt)}</b> ${d > 0 ? `+${d} serie` : `${d} serie`}${!ref[pt] ? " (nuovo)" : !cur[pt] ? " (non c'è più)" : ""}`; }).join(" · ")}</div>` : ""}`; }
   (w.exercises || []).forEach(x => { const pt = libByName(x.name)?.pattern; if (!pt) return;
     const r = (rows[pt] ??= {n: 0, ex: [], ref: undefined}); r.n += (D ? D.sets[x.id] : x.sets || []).length; if (!r.ex.includes(exName(w, x))) r.ex.push(exName(w, x));
     if (r.ref === undefined) { const P = patternHistory(G.email, x, w, 1); r.ref = P?.list?.[0] || null; } });
@@ -2792,7 +2828,10 @@ function drawProgSess(G, a){
       <section class="pgmain">${w ? `
         <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}</span></div>
         <div class="kfilt">${Object.entries(PS_M).map(([k, m]) => `<button class="${G.sm === k ? "on" : ""}" data-act="ps-met" data-v="${k}" aria-pressed="${G.sm === k}">${m.l}</button>`).join("")}</div>
-        <div class="kfilt"><span class="lbl">Confronta con</span>${[["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${l}</button>`).join("")}</div>
+        <div class="kfilt"><span class="lbl">Confronta con</span>${[["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"], ["kind", `Seduta più recente (stesso tipo · ${KINDS[kindOf(w)].l})`]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${esc(l)}</button>`).join("")}</div>
+        ${G.psRef === "kind" ? (({KS, RS}) => RS ? `<div class="kfilt psk"><span class="lbl">Riferimento</span><select class="in" data-change="ps-kref" aria-label="Seduta di riferimento">${KS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")}${q === KS[0] ? " (la più recente)" : ""}</option>`).join("")}</select>
+          <span class="faint" style="font-size:12px">Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE).</span></div>`
+          : `<div class="faint" style="font-size:12px;margin-top:6px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)} con dati registrati.</div>`)(kindRefOf(G, w)) : ""}
         <div class="chartwrap" id="ps-chart"></div>
         <div class="pslegend">
           <span title="${editable ? "Programma: trascina i punti per cambiare i valori" : "Previsto"}"><svg width="20" height="10"><line x1="1" x2="19" y1="5" y2="5" style="stroke:${done || !editable ? "var(--faint)" : "var(--muted)"};stroke-width:2;${done || !editable ? "stroke-dasharray:5 4" : ""}"/></svg>${editable ? "programma" : "previsto"}</span>
@@ -2805,7 +2844,7 @@ function drawProgSess(G, a){
         </div>
         ${G.psHelp ? `<div class="pshelpbox">
           <div><b>Programma</b> — i punti colorati (colore = esercizio) sono le serie che stai programmando${editable ? ": trascinali in su o in giù per cambiare il valore; clic su un punto per tipo di serie, duplica, elimina; frecce ↑↓ da tastiera per uno scatto" : ""}.</div>
-          <div><b>Riferimento</b> — la linea tratteggiata con i puntini vuoti è la stessa serie (stessa posizione) ${(G.psRef || "pat") === "pat" ? "nella seduta più recente dello stesso pattern" : "l'ultima volta che l'atleta ha fatto l'esercizio"}.</div>
+          <div><b>Riferimento</b> — la linea tratteggiata con i puntini vuoti è la stessa serie (stessa posizione) ${(G.psRef || "pat") === "pat" ? "nella seduta più recente dello stesso pattern" : G.psRef === "kind" ? "nella seduta di riferimento dello stesso tipo (scelta sopra): lo stesso esercizio, se no uno dello stesso pattern, se no le serie che restano (in quel caso si confrontano serie, ripetizioni e RPE, non i kg)" : "l'ultima volta che l'atleta ha fatto l'esercizio"}.</div>
           <div><b>Copre</b> — l'anello tratteggiato: quella serie prende il posto di una serie del riferimento fatta con un altro esercizio dello stesso pattern.</div>
           <div><b>Non coperta</b> — puntino grigio: serie del riferimento che in questa seduta non hai (ancora) coperto; resta dell'esercizio di allora.</div>
           <div><b>prog. / rif.</b> — sotto il grafico: tipo di serie programmato e tipo della serie del riferimento nella stessa posizione; in arancione quando sono diversi.</div>
@@ -3853,6 +3892,7 @@ document.addEventListener("change", async e => {
     if (daysBetween(f, to) > 7*104) { toast("Periodo massimo: 2 anni"); f = addDays(to, -7*104); } anQ.from = f; anQ.to = to; return renderView(); }
   if (k === "pg-base") { S.prog.P.base = t.value; return drawProg(); }
   if (k === "pg-step") { S.prog.P.step = +t.value; return drawProg(); }
+  if (k === "ps-kref") { S.prog.psKref = t.value; S.prog.psPop = null; return drawProg(); }
   if (k === "ps-edit") { S.prog.sess.sets[t.dataset.x][+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "pg-edit") { const sets = pgManualSets(t.dataset.w, t.dataset.x); sets[+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "an-who") { anQ.who = t.value; anQ.sess = null; return renderView(); }

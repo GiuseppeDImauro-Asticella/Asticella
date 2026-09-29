@@ -3336,33 +3336,35 @@ async function deliverFile(blob, name, title){
 /* ---------- sposta / copia un esercizio (o il suo gruppo) in un altro allenamento dell'atleta ---------- */
 function removeExIdx(a, idxs){ idxs.slice().sort((x, y) => y - x).forEach(i => { if (a[i+1]?.ss && !a[i].ss) { a[i+1].ss = false; a[i+1].block = a[i].block; if (a[i].circ) a[i+1].circ = a[i].circ; } a.splice(i, 1); }); relabel(a); }
 async function exXferDialog(i){
-  const E = S.editor, w = E.w, a = E.w.exercises, x = a[i], em = E.email, L = exLabels(a);
+  const E = S.editor, w = E.w, a = E.w.exercises, x = a[i], L = exLabels(a);
   const g = ssGroups(a).find(g => g.includes(i)), grp = g.length > 1 ? g : null, gName = grp ? (circOfGroup(a, g) ? circTitle(circOfGroup(a, g), a[g[0]].block || "") : `Superserie ${a[g[0]].block || ""}`) : "";
-  const st = {mode: "copy", date: w.date, target: "", all: false, title: ""};
-  const draw = async () => {
+  const st = {mode: "copy", date: w.date, target: "", all: false, title: "", em: E.email};
+  const draw = async () => { const em = st.em, other = em !== E.email, who = athByEmail(em);
     await ensureWeeks(em, monday(st.date), 1);
     const list = wOn(em, st.date).filter(q => q.id !== w.id);
     if (st.target !== "__new" && !list.some(q => q.id === st.target)) st.target = list[0]?.id || "__new";
     $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="xf-form" style="max-width:520px"><header><h2>Sposta o copia «${esc(x.name || "esercizio")}»</h2></header><div class="body">
       <div class="seg" role="radiogroup"><button type="button" class="${st.mode === "copy" ? "on" : ""}" data-m="copy">Copia</button><button type="button" class="${st.mode === "move" ? "on" : ""}" data-m="move">Sposta</button></div>
       ${grp ? `<label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="xf-all" ${st.all ? "checked" : ""} style="margin-top:3px"><span>Tutto il gruppo «${esc(gName)}» (${grp.map(k => esc(L[k])).join(", ")})<br><span class="faint" style="font-size:12px">${st.all ? "" : `Senza spunta va solo ${esc(L[i])}, come esercizio singolo.`}</span></span></label>` : ""}
-      <div class="field"><label class="lbl" for="xf-date">Nel giorno</label><input class="in" type="date" id="xf-date" value="${st.date}" style="max-width:200px"></div>
+      <div class="row" style="align-items:flex-end"><div class="field grow"><label class="lbl" for="xf-ath">Atleta</label><select class="in" id="xf-ath">${activeAthletes().map(q => `<option value="${esc(q.email)}" ${q.email === em ? "selected" : ""}>${esc(q.name)}${q.email === E.email ? " (questo)" : ""}</option>`).join("")}</select></div>
+        <div class="field"><label class="lbl" for="xf-date">Nel giorno</label><input class="in" type="date" id="xf-date" value="${st.date}" style="max-width:200px"></div></div>
       <div class="field"><span class="lbl">Nell'allenamento</span><div class="wopts">
         ${list.map(q => `<button type="button" class="wopt ${st.target === q.id ? "on" : ""}" data-t="${q.id}"><i></i><span><b>${esc(q.title || "Allenamento")}</b><small>${(q.exercises || []).length} esercizi${q.status === "done" ? " · già svolto" : ""}</small></span></button>`).join("")}
         <button type="button" class="wopt ${st.target === "__new" ? "on" : ""}" data-t="__new"><i></i><span><b>Nuovo allenamento in quel giorno</b><small>${list.length ? "" : "quel giorno non c'è niente"}</small></span></button></div>
         ${st.target === "__new" ? `<input class="in" id="xf-title" value="${esc(st.title)}" placeholder="Titolo (es. Complementari)" style="margin-top:6px">` : ""}</div>
-      <div class="faint" style="font-size:12px">Va in fondo all'allenamento scelto; le lettere si rimettono in ordine.${st.mode === "move" ? " Da questo allenamento viene tolto (con i dati già registrati, se ci sono)." : ""}</div>
+      <div class="faint" style="font-size:12px">Va in fondo all'allenamento scelto; le lettere si rimettono in ordine.${st.mode === "move" ? (other ? ` Da questo allenamento viene tolto; a ${esc(who?.name || "")} arriva senza dati registrati (quelli restano di ${esc(athByEmail(E.email)?.name || "")}).` : " Da questo allenamento viene tolto (con i dati già registrati, se ci sono).") : ""}</div>
       </div><footer><span class="grow"></span><button type="button" class="btn" id="xf-no">Annulla</button><button class="btn pri">${st.mode === "copy" ? "Copia" : "Sposta"}</button></footer></form></div>`;
     const f = $("#xf-form");
     f.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { keep(); st.mode = b.dataset.m; draw(); });
     f.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { keep(); st.target = b.dataset.t; draw(); });
     $("#xf-all")?.addEventListener("change", ev => { keep(); st.all = ev.target.checked; draw(); });
+    $("#xf-ath").onchange = ev => { keep(); st.em = ev.target.value; st.target = ""; draw(); };
     $("#xf-date").onchange = ev => { keep(); if (ev.target.value) { st.date = ev.target.value; st.target = ""; draw(); } };
     $("#xf-no").onclick = () => $("#confirm").innerHTML = "";
     f.onsubmit = async ev => { ev.preventDefault(); keep(); await doXfer(); };
   };
   const keep = () => { const t = $("#xf-title"); if (t) st.title = t.value; };
-  const doXfer = async () => {
+  const doXfer = async () => { const em = st.em, other = em !== E.email;
     const idxs = st.all && grp ? grp.slice() : [i];
     if (st.mode === "move" && E.isNew) return toast("Salva prima questo allenamento, poi potrai spostare l'esercizio");
     if (st.mode === "move" && E.dirty) { if (!(await confirmBox("Per spostarlo salvo anche le altre modifiche di questo allenamento. Procedo?", "Salva e sposta", false))) return; }
@@ -3373,14 +3375,14 @@ async function exXferDialog(i){
     const isNew = !tw;
     if (isNew) tw = {id: uid(), date: st.date, title: (st.title || "").trim() || "Allenamento", notes: "", exercises: [], status: "todo", results: {}, createdAt: new Date().toISOString()};
     const nw = clone(tw); nw.exercises = [...(nw.exercises || []), ...items]; relabel(nw.exercises); nw.updatedAt = new Date().toISOString();
-    if (st.mode === "move") { nw.results ??= {}; moved.forEach(y => { if (w.results?.[y.id]) nw.results[y.id] = clone(w.results[y.id]); }); }
+    if (st.mode === "move" && !other) { nw.results ??= {}; moved.forEach(y => { if (w.results?.[y.id]) nw.results[y.id] = clone(w.results[y.id]); }); }   // i dati registrati restano dell'atleta che li ha fatti
     if (isNew) await DB.createWorkout(em, nw); else { await DB.saveWorkout(em, nw); if (st.mode === "move" && Object.keys(nw.results || {}).length) await DB.saveResults(em, nw.id, {results: nw.results}); }
-    S.cache[em][nw.id] = {...(S.cache[em][nw.id] || {}), ...nw};
-    if (st.mode === "move") { removeExIdx(a, idxs); moved.forEach(y => { if (w.results) delete w.results[y.id]; }); await DB.saveWorkout(em, w);
+    (S.cache[em] ??= {})[nw.id] = {...(S.cache[em][nw.id] || {}), ...nw};
+    if (st.mode === "move") { const em = E.email; removeExIdx(a, idxs); moved.forEach(y => { if (w.results) delete w.results[y.id]; }); await DB.saveWorkout(em, w);
       if (w.results) await DB.saveResults(em, w.id, {results: w.results});
       S.cache[em][w.id] = {...(S.cache[em][w.id] || {}), ...clone(w)}; E.dirty = false; }
     $("#confirm").innerHTML = ""; drawEditor(); refreshCoach();
-    toast(`${st.mode === "copy" ? "Copiato" : "Spostato"} in «${nw.title}» · ${fmtLong(st.date)}`);
+    toast(`${st.mode === "copy" ? "Copiato" : "Spostato"} in «${nw.title}» · ${fmtLong(st.date)}${other ? " · " + (athByEmail(em)?.name || "") : ""}`);
   };
   draw();
 }

@@ -213,6 +213,8 @@ table.list{width:100%;border-collapse:collapse}
 .list th,.list td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
 .list th{font-size:12px;color:var(--muted);font-weight:600}
 .list tr:last-child td{border-bottom:0}
+.ov tr.grprow th{background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 8px;position:static}
+.list tr.grprow th{background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 12px}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--surface2);font-size:12px;font-weight:600;color:var(--muted)}
 .two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
 .form{padding:16px;display:flex;flex-direction:column;gap:12px}
@@ -1162,6 +1164,11 @@ const wOn = (email, date) => Object.values(S.cache[email] || {}).filter(w => eff
 const wIn = (email, from, to) => Object.values(S.cache[email] || {}).filter(w => effDate(w) >= from && effDate(w) <= to);
 const activeAthletes = () => S.athletes.filter(a => !a.archived).sort((a,b)=>a.name.localeCompare(b.name));
 const groups = () => [...new Set(S.athletes.map(a => a.group).filter(Boolean))].sort();
+/* atleti divisi per gruppo (in ordine alfabetico, "Senza gruppo" in fondo): per menu a tendina ed elenchi */
+function athByGroup(list){ const m = new Map(); (list || activeAthletes()).forEach(a => { const g = (a.group || "").trim(); if (!m.has(g)) m.set(g, []); m.get(g).push(a); });
+  return [...m.entries()].sort((x, y) => (!x[0]) - (!y[0]) || x[0].localeCompare(y[0], "it")).map(([g, l]) => [g, l.sort((a, b) => a.name.localeCompare(b.name, "it"))]); }
+const athOptions = (sel, label = a => esc(a.name)) => { const G = athByGroup(); return G.map(([g, l]) => { const o = l.map(a => `<option value="${esc(a.email)}" ${a.email === sel ? "selected" : ""}>${label(a)}</option>`).join("");
+  return G.length > 1 || g ? `<optgroup label="${esc(g || "Senza gruppo")}">${o}</optgroup>` : o; }).join(""); };
 const athByEmail = e => S.athletes.find(a => a.email === e);
 const libByName = n => S.exercises.find(x => x.name.trim().toLowerCase() === String(n||"").trim().toLowerCase());
 /* ---------- cambio esercizio da parte dell'atleta ----------
@@ -1468,7 +1475,7 @@ function demoBar(){
     <label for="demo-role" class="muted dtxt">Stai guardando come:</label>
     <select id="demo-role" data-change="demo-role">
       <option value="coach" ${S.demoRole==="coach"?"selected":""}>Coach (tu)</option>
-      ${activeAthletes().map(a => `<option value="${esc(a.email)}" ${S.demoRole===a.email?"selected":""}>Atleta: ${esc(a.name)}</option>`).join("")}
+      ${athOptions(S.demoRole, a => "Atleta: " + esc(a.name))}
     </select>
     <span class="grow"></span><button class="btn sm" data-act="demo-reset">Ripristina dati demo</button></div>`;
 }
@@ -1526,7 +1533,7 @@ async function viewOverview(m){
   const today = TODAY();
   if (!ath.length) { $("#ov").innerHTML = `<div class="empty" style="margin:16px">Nessun atleta. Aggiungine uno dalla sezione <b>Atleti</b>.</div>`; return; }
   $("#ov").innerHTML = `<table class="ov"><thead><tr><th>Atleta</th>${days.map((d,i) => `<th class="${d===today?"today":""}">${DAYS[i]} ${parse(d).getDate()}</th>`).join("")}<th title="Allenamenti completati / programmati">Fatti</th><th title="Carico interno: somma di RPE di sessione × minuti">Carico sRPE</th></tr></thead>
-    <tbody>${ath.map(a => {
+    <tbody>${athByGroup(ath).map(([g, gl]) => (athByGroup(ath).length > 1 ? `<tr class="grprow"><th colspan="10">${esc(g || "Senza gruppo")} <span class="faint">· ${gl.length}</span></th></tr>` : "") + gl.map(a => {
       const ws = wIn(a.email, days[0], days[6]);
       const done = ws.filter(w => w.status === "done").length;
       const load = ws.reduce((s,w) => s + (w.status==="done" && w.sessionRpe && w.durationMin ? w.sessionRpe*w.durationMin : 0), 0);
@@ -1534,7 +1541,7 @@ async function viewOverview(m){
         ${days.map(d => `<td class="day ${d===today?"today":""}">${wOn(a.email,d).map(w => `<button class="chip st-${statusOf(w)}" data-act="open-w" data-e="${esc(a.email)}" data-id="${w.id}" title="${STATUS_TXT[statusOf(w)]}"><span class="dot"></span>${esc(w.title||"Senza titolo")}</button>`).join("")}
           <button class="btn sm ghost add" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" aria-label="Nuovo allenamento">+</button></td>`).join("")}
         <td class="num"><span class="stat">${done}</span><span class="muted">/${ws.length}</span></td>
-        <td class="num"><span class="stat">${load ? load.toLocaleString("it-IT") : "–"}</span></td></tr>`; }).join("")}</tbody></table>`;
+        <td class="num"><span class="stat">${load ? load.toLocaleString("it-IT") : "–"}</span></td></tr>`; }).join("")).join("")}</tbody></table>`;
   $("#ov").insertAdjacentHTML("afterend", `<div class="legend"><span><i class="dot st-done"></i>Completato</span><span><i class="dot st-progress"></i>In corso</span><span><i class="dot st-todo"></i>Da fare</span><span><i class="dot st-missed"></i>Non registrato / non svolto</span></div>`);
 }
 
@@ -1546,7 +1553,7 @@ async function viewCalendar(m){
   const a = athByEmail(S.calAthlete);
   m.innerHTML = `<div class="pagehead"><div><h1>${esc(a.name)}</h1><div class="sub">${esc(a.group||"")} · trascina un allenamento per spostarlo di giorno</div></div>
     <div class="toolbar">
-      <select class="in" id="cal-ath" data-change="cal-ath" style="width:auto">${ath.map(x => `<option value="${esc(x.email)}" ${x.email===a.email?"selected":""}>${esc(x.name)}</option>`).join("")}</select>
+      <select class="in" id="cal-ath" data-change="cal-ath" style="width:auto">${athOptions(a.email)}</select>
       ${weekNav("cal-week")}
       <button class="btn" data-act="meso-new">+ Mesociclo</button>
       <button class="btn" data-act="pg-open" title="Come progrediscono gli esercizi nel periodo: previsto e fatto davvero">↗ Progressione</button>
@@ -1660,8 +1667,8 @@ function viewAthletes(m){
   const url = location.href.split("#")[0].split("?")[0];
   m.innerHTML = `<div class="pagehead"><div><h1>Atleti</h1><div class="sub">${activeAthletes().length} attivi</div></div><button class="btn pri" data-act="ath-new">+ Nuovo atleta</button></div>
   <div class="two"><div class="panel scroll-x"><table class="list"><thead><tr><th>Nome</th><th>Email di accesso</th><th>Gruppo</th><th></th></tr></thead><tbody>
-    ${list.map(a => `<tr style="${a.archived?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.archived?' <span class="tag">archiviato</span>':""}${isNoAccess(a)?' <span class="tag" title="Non entra nell\'app: i dati li inserisci tu">senza accesso</span>':""}</td><td class="muted">${isNoAccess(a) ? "—" : esc(a.email)}</td><td>${a.group?`<span class="tag">${esc(a.group)}</span>`:""}</td>
-      <td style="text-align:right;white-space:nowrap"><button class="btn sm" data-act="open-cal" data-e="${esc(a.email)}">Calendario</button> <button class="btn sm ghost" data-act="ath-edit" data-e="${esc(a.email)}">Modifica</button></td></tr>`).join("") || `<tr><td colspan="4" class="muted">Nessun atleta ancora.</td></tr>`}
+    ${[...athByGroup(list.filter(a => !a.archived)), ...(list.some(a => a.archived) ? [["__arch", list.filter(a => a.archived)]] : [])].map(([g, l]) => `<tr class="grprow"><th colspan="4">${g === "__arch" ? "Archiviati" : esc(g || "Senza gruppo")} <span class="faint">· ${l.length}</span></th></tr>` + l.map(a => `<tr style="${a.archived?"opacity:.5":""}"><td><b>${esc(a.name)}</b>${a.archived?' <span class="tag">archiviato</span>':""}${isNoAccess(a)?' <span class="tag" title="Non entra nell\'app: i dati li inserisci tu">senza accesso</span>':""}</td><td class="muted">${isNoAccess(a) ? "—" : esc(a.email)}</td><td>${a.group?`<span class="tag">${esc(a.group)}</span>`:""}</td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn sm" data-act="open-cal" data-e="${esc(a.email)}">Calendario</button> <button class="btn sm ghost" data-act="ath-edit" data-e="${esc(a.email)}">Modifica</button></td></tr>`).join("")).join("") || `<tr><td colspan="4" class="muted">Nessun atleta ancora.</td></tr>`}
   </tbody></table></div>
   <div class="panel">${e ? `<form class="form" id="ath-form">
       <h3>${e.isNew ? "Nuovo atleta" : "Modifica atleta"}</h3>
@@ -1815,7 +1822,7 @@ async function viewAnalysis(m){
   const ms = (a.mesos || []).map(mm => ({...mm, end: addDays(mm.from, 7*mm.weeks - 1)}));
   const inRange = mm => mm.from <= to && mm.end >= from;
   m.innerHTML = `<div class="pagehead"><div><h1>Analisi</h1><div class="sub">Calcolata sui dati registrati dagli atleti (e sulle tue correzioni).</div></div>
-    <div class="toolbar"><select class="in" id="an-who" data-change="an-who" style="width:auto">${ath.map(x => `<option value="${esc(x.email)}" ${x.email===a.email?"selected":""}>${esc(x.name)}</option>`).join("")}</select>
+    <div class="toolbar"><select class="in" id="an-who" data-change="an-who" style="width:auto">${athOptions(a.email)}</select>
     <div class="field"><label class="lbl" for="an-from">Dal</label><input class="in" type="date" id="an-from" value="${from}" data-change="an-date"></div>
     <div class="field"><label class="lbl" for="an-to">Al</label><input class="in" type="date" id="an-to" value="${to}" data-change="an-date"></div></div></div>
     <div class="mrow"><span class="lbl">Mesocicli di ${esc(a.name.split(" ")[0])}</span>
@@ -2208,7 +2215,7 @@ async function viewData(m){
   <div class="panel form"><div class="row">
     <div class="field"><label class="lbl" for="d-from">Dal</label><input class="in" type="date" id="d-from" value="${dataQ.from}" data-change="d-q"></div>
     <div class="field"><label class="lbl" for="d-to">Al</label><input class="in" type="date" id="d-to" value="${dataQ.to}" data-change="d-q"></div>
-    <div class="field"><label class="lbl" for="d-who">Atleta</label><select class="in" id="d-who" data-change="d-q"><option value="all">Tutti</option>${activeAthletes().map(a=>`<option value="${esc(a.email)}" ${dataQ.who===a.email?"selected":""}>${esc(a.name)}</option>`).join("")}</select></div>
+    <div class="field"><label class="lbl" for="d-who">Atleta</label><select class="in" id="d-who" data-change="d-q"><option value="all">Tutti</option>${athOptions(dataQ.who)}</select></div>
     <span class="grow"></span>
     <button class="btn pri" data-act="d-copy">Copia per Google Fogli</button>${DEMO ? "" : `<button class="btn" data-act="d-csv">Scarica CSV</button>`}</div>
     <div class="faint" style="font-size:12px">«Copia» e poi Incolla (Ctrl+V) nella cella A1 di un foglio Google: i decimali usano la virgola.</div>
@@ -3346,7 +3353,7 @@ async function exXferDialog(i){
     $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="xf-form" style="max-width:520px"><header><h2>Sposta o copia «${esc(x.name || "esercizio")}»</h2></header><div class="body">
       <div class="seg" role="radiogroup"><button type="button" class="${st.mode === "copy" ? "on" : ""}" data-m="copy">Copia</button><button type="button" class="${st.mode === "move" ? "on" : ""}" data-m="move">Sposta</button></div>
       ${grp ? `<label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="xf-all" ${st.all ? "checked" : ""} style="margin-top:3px"><span>Tutto il gruppo «${esc(gName)}» (${grp.map(k => esc(L[k])).join(", ")})<br><span class="faint" style="font-size:12px">${st.all ? "" : `Senza spunta va solo ${esc(L[i])}, come esercizio singolo.`}</span></span></label>` : ""}
-      <div class="row" style="align-items:flex-end"><div class="field grow"><label class="lbl" for="xf-ath">Atleta</label><select class="in" id="xf-ath">${activeAthletes().map(q => `<option value="${esc(q.email)}" ${q.email === em ? "selected" : ""}>${esc(q.name)}${q.email === E.email ? " (questo)" : ""}</option>`).join("")}</select></div>
+      <div class="row" style="align-items:flex-end"><div class="field grow"><label class="lbl" for="xf-ath">Atleta</label><select class="in" id="xf-ath">${athOptions(em, q => esc(q.name) + (q.email === E.email ? " (questo)" : ""))}</select></div>
         <div class="field"><label class="lbl" for="xf-date">Nel giorno</label><input class="in" type="date" id="xf-date" value="${st.date}" style="max-width:200px"></div></div>
       <div class="field"><span class="lbl">Nell'allenamento</span><div class="wopts">
         ${list.map(q => `<button type="button" class="wopt ${st.target === q.id ? "on" : ""}" data-t="${q.id}"><i></i><span><b>${esc(q.title || "Allenamento")}</b><small>${(q.exercises || []).length} esercizi${q.status === "done" ? " · già svolto" : ""}</small></span></button>`).join("")}

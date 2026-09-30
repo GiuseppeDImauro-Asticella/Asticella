@@ -785,6 +785,18 @@ table.nt{width:100%;border-collapse:collapse;font-size:13px}
 <div id="ptr" aria-live="polite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span>Tira giù per aggiornare</span></div>
 <datalist id="exlib"></datalist>
 
+<script>
+/* iPhone/iPad: evita che la pagina resti ingrandita (tornando nell'app dopo averla lasciata, o toccando una casella piccola). maximum-scale=1 lo evita (su iOS lo zoom con due dita resta possibile). */
+(function(){ var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (!ios) return; var m = document.querySelector('meta[name="viewport"]');
+  if (!m) { m = document.createElement("meta"); m.name = "viewport"; document.head.appendChild(m); }
+  var V = "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"; m.setAttribute("content", V);
+  /* quando si torna nell'app (dopo averla lasciata in background) iPad a volte la ritrova ingrandita:
+     si "ricorda" a Safari la scala giusta, cambiando il viewport per un attimo e poi rimettendolo */
+  var fix = function(){ m.setAttribute("content", V + ", minimum-scale=1"); setTimeout(function(){ m.setAttribute("content", V); }, 60); };
+  window.addEventListener("pageshow", fix); window.addEventListener("orientationchange", fix);
+  document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible") fix(); }); })();
+</script>
 <script type="module">
 /* =====================================================================
    ASTICELLA — programmazione allenamenti

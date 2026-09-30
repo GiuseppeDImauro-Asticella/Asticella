@@ -3273,22 +3273,23 @@ async function workoutPdf(sig){
     lines.forEach((ln, k) => { if (k === 0 && label) { doc.setFont("helvetica", "bold"); doc.setFontSize(o.sz || 9.5); doc.setTextColor(...(o.lc || MUTED)); doc.text(pdfT(label), M + (o.indent || 0), y);
         const lw = doc.getTextWidth(pdfT(label) + " "); txt(ln.slice(pdfT(label).length + 1), M + (o.indent || 0) + lw, y, {sz: o.sz || 9.5, c: o.c || INK}); }
       else txt(ln, M + (o.indent || 0), y, {sz: o.sz || 9.5, c: o.c || INK}); y += 4.4; }); };
-  // intestazione
-  txt("ASTICELLA", M, y + 2, {b: 1, sz: 9, c: ACC});
-  if (sig?.on && (sig.name || "").trim()) { doc.setFont("helvetica", "bold"); doc.setFontSize(9); const ax = M + doc.getTextWidth("ASTICELLA");
+  // intestazione (allineata a sinistra con le barre colorate degli esercizi)
+  const HX = M - 5.5, HW = PW - M - HX;
+  txt("ASTICELLA", HX, y + 2, {b: 1, sz: 9, c: ACC});
+  if (sig?.on && (sig.name || "").trim()) { doc.setFont("helvetica", "bold"); doc.setFontSize(9); const ax = HX + doc.getTextWidth("ASTICELLA");
     txt("|", ax + 2.5, y + 2, {sz: 9, c: LINE}); txt([sig.role, sig.name].map(v => (v || "").trim()).filter(Boolean).join(" - "), ax + 5, y + 2, {sz: 9, c: INK, b: 1}); } txt("Programma di allenamento", PW - M, y + 2, {sz: 8.5, c: FAINT, align: "right"}); y += 11;
-  wrap(w.title || "Allenamento", CW, 20).forEach(ln => { txt(ln, M, y, {b: 1, sz: 20}); y += 8; });
+  wrap(w.title || "Allenamento", HW, 20).forEach(ln => { txt(ln, HX, y, {b: 1, sz: 20}); y += 8; });
   const sub = E.tpl ? ["Allenamento salvato (senza data e atleta)", KINDS[w.kind] ? "Tipo: " + KINDS[w.kind].l : ""]
     : [a?.name || "", w.date ? fmtLong(w.date) : "", "Tipo: " + KINDS[kindOf(w)].l];
-  txt(sub.filter(Boolean).join("  ·  "), M, y, {sz: 10.5, c: MUTED}); y += 5.5;
+  txt(sub.filter(Boolean).join("  ·  "), HX, y, {sz: 10.5, c: MUTED}); y += 5.5;
   const mz = !E.tpl && a && w.date ? mesoAt(a, w.date) : null;
-  if (mz) { doc.setFillColor(...hexRgb(mz.color)); doc.rect(M, y - 3.2, 1.4, 4.4, "F");
-    txt(`${mz.name}${mz.goal ? " · " + mz.goal : ""} · settimana ${mz.idx} di ${mz.weeks}`, M + 3.5, y, {sz: 9.5, c: hexRgb(mz.color), b: 1}); y += 5.5; }
-  doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(M, y, PW - M, y); y += 6;
+  if (mz) { doc.setFillColor(...hexRgb(mz.color)); doc.rect(HX, y - 3.2, 1.4, 4.4, "F");
+    txt(`${mz.name}${mz.goal ? " · " + mz.goal : ""} · settimana ${mz.idx} di ${mz.weeks}`, HX + 3.5, y, {sz: 9.5, c: hexRgb(mz.color), b: 1}); y += 5.5; }
+  doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(HX, y, PW - M, y); y += 6;
   // note del coach
-  if ((w.notes || "").trim()) { const lines = wrap(w.notes.trim(), CW - 8, 10); const h = lines.length * 4.8 + 9; room(h);
-    doc.setFillColor(235, 238, 243); doc.roundedRect(M, y - 4, CW, h, 2, 2, "F"); doc.setFillColor(...ACC); doc.rect(M, y - 4, 1.2, h, "F");
-    txt("NOTE", M + 4, y + 0.5, {b: 1, sz: 8, c: MUTED}); y += 5.5; lines.forEach(ln => { txt(ln, M + 4, y, {sz: 10}); y += 4.8; }); y += 6; }
+  if ((w.notes || "").trim()) { const lines = wrap(w.notes.trim(), HW - 8, 10); const h = lines.length * 4.8 + 9; room(h);
+    doc.setFillColor(235, 238, 243); doc.roundedRect(HX, y - 4, HW, h, 2, 2, "F"); doc.setFillColor(...ACC); doc.rect(HX, y - 4, 1.4, h, "F");
+    txt("NOTE", HX + 4, y + 0.5, {b: 1, sz: 8, c: MUTED}); y += 5.5; lines.forEach(ln => { txt(ln, HX + 4, y, {sz: 10}); y += 4.8; }); y += 9; }
   // esercizi, a blocchi (le superserie insieme)
   const L = exLabels(exs); const typesUsed = new Set();
   const bracket = (b1, b2, col) => {   // linea che collega le etichette di una superserie (B1 → B2), nel margine a sinistra
@@ -3362,8 +3363,8 @@ async function workoutPdf(sig){
   if (typesUsed.size) { room(8); txt([...TYPE_ORDER].filter(t => typesUsed.has(t)).map(t => `${t} = ${SET_TYPES[t].l}`).join("   ·   "), M, y, {sz: 8.5, c: MUTED}); y += 5; }
   // piè di pagina
   const n = doc.getNumberOfPages(), foot = [w.title || "Allenamento", a?.name, w.date && !E.tpl ? fmtD(w.date) : ""].filter(Boolean).join(" · ");
-  for (let p = 1; p <= n; p++) { doc.setPage(p); doc.setDrawColor(...LINE); doc.line(M, PH - 11, PW - M, PH - 11);
-    txt(foot, M, PH - 7, {sz: 8, c: FAINT}); txt(`Pagina ${p} di ${n}`, PW - M, PH - 7, {sz: 8, c: FAINT, align: "right"}); }
+  for (let p = 1; p <= n; p++) { doc.setPage(p); doc.setDrawColor(...LINE); doc.line(M - 5.5, PH - 11, PW - M, PH - 11);
+    txt(foot, M - 5.5, PH - 7, {sz: 8, c: FAINT}); txt(`Pagina ${p} di ${n}`, PW - M, PH - 7, {sz: 8, c: FAINT, align: "right"}); }
   const name = [E.tpl ? "" : w.date, a ? slug(a.name) : "", slug(w.title || "allenamento")].filter(Boolean).join("_") + ".pdf";
   const blob = doc.output("blob");
   await deliverFile(blob, name, w.title || "Allenamento");

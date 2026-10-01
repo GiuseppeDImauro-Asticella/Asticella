@@ -218,6 +218,9 @@ body.nosel{user-select:none}
 .wcard li{font-size:12px;display:grid;grid-template-columns:minmax(14px,auto) 1fr;column-gap:5px;line-height:1.25}
 .wcard li .b{color:var(--bc,var(--accent));font-weight:700;font-size:11px}
 .wcard li .s{grid-column:2;color:var(--muted);font-size:11px}
+/* testi lunghi senza spazi (es. 60/100/150/200/150/100/60 m): vanno a capo invece di uscire dalla scheda (iPad) */
+.wcard li > span,.tpl li > span,.chip{min-width:0;overflow-wrap:break-word}
+.api > div{min-width:0}.api .nm,.api .sc,.aex .info,.aex .cscheme,.aex .h .n{overflow-wrap:break-word}
 .wcard.st-done{border-left:3px solid var(--ok)}
 .wcard.st-progress{border-left:3px solid var(--warn)}
 .wcard.st-missed,.wcard.st-skipped{border-left:3px solid var(--bad)}
@@ -1360,12 +1363,12 @@ function miniListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0], c: circOfGroup(exs, g)}));
   return `<ol>${exs.map((x,i) => { const g = inGroup[i]; const link = g.size > 1 && g.k < g.size - 1;
-    return `${g.c && g.k === 0 ? `<li class="ctag" style="--bc:var(--circ)"><span></span><span>${esc(circTag(g.c, exs[g.lead].sets.length, g.size))}</span></li>` : ""}<li class="${link ? "link" : ""}" style="--bc:${g.c ? "var(--circ)" : blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? `title="${g.c ? "Circuito" : "Superserie"}"` : ""}><span class="b">${esc(L[i])}</span>${(sw => sw ? `<span class="swn" title="Cambiato dall'atleta: previsto ${esc(x.name)}${swapWhy(sw) ? " · "+esc(swapWhy(sw)) : ""}"><s>${esc(x.name)}</s> ↔ ${esc(sw.name)}</span>` : `<span>${esc(x.name||"—")}</span>`)(swapOf(w, x))}<span class="s">${esc(summarize(x))}</span></li>`; }).join("")}</ol>`;
+    return `${g.c && g.k === 0 ? `<li class="ctag" style="--bc:var(--circ)"><span></span><span>${esc(circTag(g.c, exs[g.lead].sets.length, g.size))}</span></li>` : ""}<li class="${link ? "link" : ""}" style="--bc:${g.c ? "var(--circ)" : blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? `title="${g.c ? "Circuito" : "Superserie"}"` : ""}><span class="b">${esc(L[i])}</span>${(sw => sw ? `<span class="swn" title="Cambiato dall'atleta: previsto ${esc(x.name)}${swapWhy(sw) ? " · "+esc(swapWhy(sw)) : ""}"><s>${esc(x.name)}</s> ↔ ${esc(sw.name)}</span>` : `<span>${esc(x.name||"—")}</span>`)(swapOf(w, x))}<span class="s">${esc(summarize(x)).replace(/\//g, "/<wbr>")}</span></li>`; }).join("")}</ol>`;
 }
 function planListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const item = (x, i, col, link, c) => `<li class="api ${link ? "link" : ""} ${c === "single" ? "single" : ""}" style="--bc:${col}"><div class="lc"><span class="lab">${esc(L[i] || "•")}</span></div>
-      <div><div class="nm">${esc(exName(w, x))}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${esc(c && c !== "single" ? (c.fmt === "amrap" && !amrapReps(c) ? "per giro: " : "") + circScheme(x, amrapReps(c)) : schemeText(x))}</div></div></li>`;
+      <div><div class="nm">${esc(exName(w, x))}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${esc(c && c !== "single" ? (c.fmt === "amrap" && !amrapReps(c) ? "per giro: " : "") + circScheme(x, amrapReps(c)) : schemeText(x)).replace(/\//g, "/<wbr>")}</div></div></li>`;
   /* superserie e circuiti: un riquadro che raccoglie gli esercizi collegati, con il nome del metodo in alto */
   return `<ul class="aplan">${ssGroups(exs).map(g => { const c = circOfGroup(exs, g), lead = exs[g[0]];
     if (g.length === 1 && !c) return item(lead, g[0], blockColor(lead.block || L[g[0]]), false, "single");

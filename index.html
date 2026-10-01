@@ -563,6 +563,12 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 #ps-chart .psrefd{fill:var(--surface);stroke:var(--faint);stroke-width:1.5}
 #ps-chart .psrefd.pat{stroke-dasharray:2 2}
 #ps-chart .pscur{stroke-width:2.4}
+#ps-chart text,#ps-chart .psrefb{pointer-events:none}
+#ps-chart .psgl{stroke:var(--line)}
+#ps-chart .psplus{cursor:pointer}#ps-chart .psplus circle{fill:var(--surface);stroke-width:1.6}#ps-chart .psplus path{stroke-width:2;stroke-linecap:round}
+#ps-chart .psplus:hover circle{fill:var(--surface2)}#ps-chart .psplusl{stroke-width:1.5;stroke-dasharray:3 3;opacity:.7}#ps-chart .psax{font-size:10.5px;fill:var(--faint)}
+#ps-chart .psrefb{fill:none;stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3}
+#ps-chart .psbar.ed{cursor:ns-resize;outline:none}#ps-chart .psbar.ed:focus-visible rect:first-child{stroke:var(--accent);stroke-width:2}
 #ps-chart .psband{fill:var(--surface2);opacity:.55}
 #ps-chart .psband.gh{fill:none;stroke:var(--line);stroke-dasharray:4 3;opacity:1}
 #ps-chart .psbl{font-size:11.5px;font-weight:600;fill:var(--ink)}
@@ -2812,7 +2818,7 @@ function drawProg(){
   restore();
 }
 /* ---------- PROGRESSIONE · PER SEDUTA: tutte le serie della seduta in ordine, da spostare col mouse ---------- */
-const PS_M = {kg: {l: "Carico", u: "kg"}, reps: {l: "Ripetizioni", u: "rip."}, rpe: {l: "RPE", u: ""}};
+const PS_M = {sets: {l: "Serie", u: ""}, kg: {l: "Carico", u: "kg"}, reps: {l: "Ripetizioni", u: "rip."}, rpe: {l: "RPE", u: ""}};
 const psLabel = k => PS_M[k] || {l: COLS[k]?.l || k, u: COLS[k]?.u || ""};
 /* parametri che si possono guardare nel grafico: quelli numerici usati dagli esercizi della seduta (o del riferimento, se è vuota) */
 function psParams(G, w){
@@ -2820,7 +2826,8 @@ function psParams(G, w){
   (w.exercises || []).forEach(x => add(x.cols));
   if (!(w.exercises || []).length && G.psRef === "kind") { const {RS} = kindRefOf(G, w); (RS?.exercises || []).forEach(y => add(y.cols)); }
   const pref = ["kg", "reps", "rpe", "height", "dist", "time", "vel", "pct", "steps"];
-  return Object.keys(n).sort((a, b) => (pref.indexOf(a) + 1 || 99) - (pref.indexOf(b) + 1 || 99)).map(k => ({k, n: n[k], ...psLabel(k)}));
+  const nx = (w.exercises || []).length || (G.psRef === "kind" ? (kindRefOf(G, w).RS?.exercises || []).length : 0);
+  return [...(nx ? [{k: "sets", n: nx, l: "Serie", u: ""}] : []), ...Object.keys(n).sort((a, b) => (pref.indexOf(a) + 1 || 99) - (pref.indexOf(b) + 1 || 99)).map(k => ({k, n: n[k], ...psLabel(k)}))];
 }
 const PS_STEP = {kg: 2.5, pct: 2.5, reps: 1, rpe: 0.5, height: 1, dist: 0.5, time: 0.1, vel: 0.05, steps: 1};
 const psStep = p => PS_STEP[p] ?? 1;
@@ -2832,7 +2839,7 @@ function psPrimary(x, sets){
   return cand.find(c => (sets || []).some(st => psGet(c, x, st) != null)) || cand[0] || null;
 }
 const psGet = (m, x, st) => { if (!st) return null; if (m === "rpe") return setRpe(st)?.v ?? null; return numv(st[m]); };
-const psHas = (m, x) => !!m && (m === "rpe" ? (x.cols || []).some(c => c === "rpe" || c === "rir") : (x.cols || []).includes(m));
+const psHas = (m, x) => !!m && (m === "sets" || (m === "rpe" ? (x.cols || []).some(c => c === "rpe" || c === "rir") : (x.cols || []).includes(m)));
 function psSet(m, x, st, v){
   if (m === "rpe") { v = Math.min(10, Math.max(1, v)); if ((x.cols || []).includes("rpe")) st.rpe = numStr(v); else st.rir = numStr(Math.max(0, 10 - v)); }
   else st[m] = numStr(Math.max(m === "reps" || m === "steps" ? 1 : 0, v));
@@ -2986,6 +2993,7 @@ function drawProgSess(G, a){
         </div>
         ${G.psHelp ? `<div class="pshelpbox">
           <div><b>Parametro</b> — scegli in alto cosa guardare (carico, ripetizioni, RPE, altezza…): il grafico mostra solo quello, con una sola scala (i numeri a sinistra). Accanto a ogni parametro c'è quanti esercizi della seduta lo usano.</div>
+          <div><b>Serie</b> — le serie di ogni esercizio sono puntini in fila (il numero sopra è quello della serie); i puntini vuoti sono quelle del riferimento${editable ? `. Il "+" in fondo alla fila aggiunge una serie (copia dell'ultima); tocca un puntino per tipo di serie, duplica o elimina` : ""}.</div>
           <div><b>Seduta</b> — ogni serie è un punto, nell'ordine in cui si fanno; ogni esercizio ha la sua fascia, con la lettera e il nome sotto. Un esercizio che non ha il parametro scelto resta al suo posto con dei trattini.</div>
           <div><b>Ora</b> — i punti colorati (colore = esercizio) con il valore sopra${editable ? ": trascinali in su o in giù per cambiarlo; clic su un punto per tipo di serie, duplica, elimina; frecce ↑↓ da tastiera" : ""}. Sotto le schede degli esercizi si aggiornano mentre li muovi.</div>
           <div><b>Riferimento</b> — la linea tratteggiata con i puntini vuoti: la stessa serie (stessa posizione) ${(G.psRef || "pat") === "pat" ? "nella seduta più recente dello stesso pattern" : G.psRef === "kind" ? "nella seduta di riferimento dello stesso tipo" : "l'ultima volta che è stato fatto l'esercizio"}. Sotto ogni punto la differenza: <b style="color:var(--ok)">+</b> in più, <b style="color:var(--warn)">−</b> in meno, "nuova" se allora non c'era.</div>
@@ -3006,6 +3014,7 @@ function drawProgSess(G, a){
   restore();
 }
 function psDomains(G, seq, done){
+  if (G.sm === "sets") { const hi = Math.max(1, ...seq.map(o => o.j + 1)) + 1; return {all: {lo: 0, hi, stp: hi > 12 ? 2 : 1}}; }
   const vals = {}; seq.forEach(o => { if (!o.p) return; const a = (vals[o.dk] ??= {p: o.p, v: []});
     [psGet(o.p, o.x, o.st), o.refOk ? psGet(o.p, o.x, o.ref) : null, done ? psGet(o.p, o.x, o.exec) : null].forEach(v => v != null && a.v.push(v)); });
   const doms = {};
@@ -3020,25 +3029,29 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
   const el = $("#ps-chart"); if (!el) return; const M = psLabel(G.sm);
   if (!seq.length) { el.innerHTML = `<div class="faint" style="padding:16px 0">Nessuna serie da mostrare.</div>`; return; }
   doms = doms || psDomains(G, seq, done); G.psDoms = doms;
-  const val = (o, which) => !o.p ? null : which === "ref" ? (o.refOk ? psGet(o.p, o.x, o.ref) : null) : which === "exec" ? (done ? psGet(o.p, o.x, o.exec) : null) : psGet(o.p, o.x, o.st);
+  const SETS = G.sm === "sets";   // "Serie": ogni punto vale il numero della serie (1, 2, 3…): la linea arriva al numero di serie dell'esercizio
+  const val = (o, which) => SETS ? (which === "ref" ? (o.ref ? o.j + 1 : null) : which === "exec" ? (done && o.exec && (o.exec.done || !emptyRes(o.exec)) ? o.j + 1 : null) : (o.st ? o.j + 1 : null))
+    : !o.p ? null : which === "ref" ? (o.refOk ? psGet(o.p, o.x, o.ref) : null) : which === "exec" ? (done ? psGet(o.p, o.x, o.exec) : null) : psGet(o.p, o.x, o.st);
   const cur = seq.map(o => val(o, "cur")), ref = seq.map(o => val(o, "ref")), ex = seq.map(o => val(o, "exec"));
   /* ogni esercizio (blocco) ha la sua fascia: tra una fascia e l'altra un piccolo spazio */
   const runs = []; seq.forEach((o, k) => { const r = runs[runs.length - 1]; if (r && r.grp === o.band) r.to = k; else runs.push({grp: o.band, from: k, to: k, names: [], ghost: o.ghost}); const rr = runs[runs.length - 1]; if (!rr.names.includes(o.name)) rr.names.push(o.name); });
-  const GAP = 0.5, W = Math.max(560, el.clientWidth || 800), H = 340, pl = 46, pr = 10, pt = 30, pb = 82, iw = W - pl - pr, ih = H - pt - pb;
+  const GAP = SETS ? 1.1 : 0.5, W = Math.max(560, el.clientWidth || 800), H = 340, pl = 46, pr = SETS ? 30 : 10, pt = 30, pb = 82, iw = W - pl - pr, ih = H - pt - pb;
   const slot = iw / (seq.length + GAP * (runs.length - 1)), runOf = k => runs.findIndex(r => k >= r.from && k <= r.to);
   const X = k => pl + slot * (k + GAP * runOf(k)) + slot / 2;
   const one = doms.all || {lo: 0, hi: 1}, Y = v => pt + ih - (v - one.lo) / ((one.hi - one.lo) || 1) * ih;
   G.psGeo = {pt, ih};
+  const rowY = k => { const r = runs[runOf(k)], idx = Math.max(0, r.names.indexOf(seq[k].name)); return pt + ih * (idx + 1) / (r.names.length + 1); };
+  const YY = (v, k) => SETS ? rowY(k) : Y(v);
   const tstp = one.stp || (one.hi - one.lo) / 4, ticks = Array.from({length: Math.round((one.hi - one.lo) / tstp) + 1}, (_, k) => one.lo + tstp * k);
   const nf = v => fmt1(Math.round(v * 100) / 100);
   // una linea per esercizio (anche nelle superserie, dove le serie si alternano)
   const ghostBands = [...new Set(seq.filter(o => o.ghost).map(o => o.band))];
   const path = (arr, cls) => [...order.map(n => seq.map((o, k) => !o.ghost && o.name === n ? k : -1).filter(k => k >= 0)), ...ghostBands.map(b => seq.map((o, k) => o.ghost && o.band === b ? k : -1).filter(k => k >= 0))]
-    .map(ks => { let d = "", on = false; ks.forEach(k => { const v = arr[k]; if (v == null) { on = false; return; } d += `${on ? "L" : "M"}${X(k)},${Y(v)} `; on = true; }); return d ? `<path class="${cls}" d="${d}" ${cls === "pscur" || cls === "psplan" ? `style="stroke:${exColor(order, seq[ks[0]].name)}"` : ""}/>` : ""; }).join("");
+    .map(ks => { let d = "", on = false; ks.forEach(k => { const v = arr[k]; if (v == null) { on = false; return; } d += `${on ? "L" : "M"}${X(k)},${YY(v, k)} `; on = true; }); return d ? `<path class="${cls}" d="${d}" ${cls === "pscur" || cls === "psplan" ? `style="stroke:${exColor(order, seq[ks[0]].name)}"` : ""}/>` : ""; }).join("");
   let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(M.l)} di ogni serie">`;
   runs.forEach(r => { const x1 = X(r.from) - slot / 2 + 2, x2 = X(r.to) + slot / 2 - 2;
-    svg += `<rect class="psband ${r.ghost ? "gh" : ""}" x="${x1}" y="${pt - 16}" width="${x2 - x1}" height="${ih + 22}" rx="8"/>`; });
-  svg += `<g class="grid">${ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${Y(t)}" y2="${Y(t)}"/>`).join("")}</g>
+    svg += `<rect class="psband ${r.ghost ? "gh" : ""}" x="${x1}" y="${pt - 16}" width="${x2 - x1}" height="${ih + 22}" rx="8" ${r.ghost ? "" : `style="fill:color-mix(in srgb,${exColor(order, r.names[0])} 9%,var(--surface));opacity:1"`}/>`; });   // fascia leggermente colorata come l'esercizio
+  if (!SETS) svg += `<g class="grid">${ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${Y(t)}" y2="${Y(t)}"/>`).join("")}</g>
     <g class="axis">${ticks.map(t => `<text x="${pl - 8}" y="${Y(t) + 4}" text-anchor="end">${nf(t)}</text>`).join("")}<text x="0" y="11" style="font-size:10.5px;font-weight:700">${esc(M.u || M.l)}</text></g>`;
   // nomi delle fasce, sotto
   runs.forEach(r => { const x1 = X(r.from) - slot / 2 + 2, x2 = X(r.to) + slot / 2 - 2, mx = Math.max(3, Math.floor((x2 - x1) / 6.6));
@@ -3047,22 +3060,24 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     svg += `<text class="psbl ${r.ghost ? "gh" : ""}" x="${(x1 + x2) / 2}" y="${H - 10}" text-anchor="middle">${lab ? `<tspan style="fill:${exColor(order, r.names[0])};font-weight:800">${esc(r.grp)}</tspan> · ` : ""}${esc(t)}</text>`; });
   svg += path(ref, "psref") + (done ? path(cur, "psplan") + path(ex, "psexec") : path(cur, editable ? "pscur" : "psplan"));
   seq.forEach((o, k) => { const c = exColor(order, o.name), has = !!o.p;
-    if (ref[k] != null && !o.ghost) svg += `<circle class="psrefd" cx="${X(k)}" cy="${Y(ref[k])}" r="3.6"/>`;
-    if (done && ex[k] != null) svg += `<g class="psdot" data-k="${k}"><circle class="hitc" cx="${X(k)}" cy="${Y(ex[k])}" r="12"/><circle cx="${X(k)}" cy="${Y(ex[k])}" r="5.5" style="fill:${c};stroke:var(--surface);stroke-width:2"/></g><text class="vlab" x="${X(k)}" y="${Y(ex[k]) - 11}" text-anchor="middle">${nf(ex[k])}</text>`;
+    if (ref[k] != null && !o.ghost) svg += `<circle class="psrefd" cx="${X(k)}" cy="${YY(ref[k], k)}" r="3.6"/>`;
+    if (done && ex[k] != null) svg += `<g class="psdot" data-k="${k}"><circle class="hitc" cx="${X(k)}" cy="${YY(ex[k], k)}" r="12"/><circle cx="${X(k)}" cy="${YY(ex[k], k)}" r="5.5" style="fill:${c};stroke:var(--surface);stroke-width:2"/></g><text class="vlab" x="${X(k)}" y="${YY(ex[k], k) - 11}" text-anchor="middle">${nf(ex[k])}</text>`;
     const chg = !o.ghost && o.old && has && psGet(o.p, o.x, o.st) !== psGet(o.p, o.x, o.old);
     if (o.ghost) {   // serie del riferimento che qui non c'è (o seduta ancora vuota): solo da vedere
-      if (ref[k] != null) svg += `<g class="psghost" data-k="${k}"><circle class="hitc" cx="${X(k)}" cy="${Y(ref[k])}" r="12"/><circle class="psrefd" cx="${X(k)}" cy="${Y(ref[k])}" r="4.5"/></g><text class="vlab gh" x="${X(k)}" y="${Y(ref[k]) - 10}" text-anchor="middle">${nf(ref[k])}</text>`;
+      if (ref[k] != null) svg += `<g class="psghost" data-k="${k}"><circle class="hitc" cx="${X(k)}" cy="${YY(ref[k], k)}" r="12"/><circle class="psrefd" cx="${X(k)}" cy="${YY(ref[k], k)}" r="4.5"/></g><text class="vlab gh" x="${X(k)}" y="${YY(ref[k], k) - 10}" text-anchor="middle">${nf(ref[k])}</text>`;
       else svg += `<text x="${X(k)}" y="${pt + ih - 4}" text-anchor="middle" style="font-size:11px;fill:var(--faint)">–</text>`; }
-    else if (has && done) { if (cur[k] != null) svg += `<circle cx="${X(k)}" cy="${Y(cur[k])}" r="4" style="fill:var(--surface);stroke:var(--faint);stroke-width:2"/>`; }
+    else if (has && done) { if (cur[k] != null) svg += `<circle cx="${X(k)}" cy="${YY(cur[k], k)}" r="4" style="fill:var(--surface);stroke:var(--faint);stroke-width:2"/>`; }
     else if (has) { const v = cur[k] ?? one.lo; svg += `<g class="psdot ${editable ? "ed" : ""}" data-k="${k}" ${editable ? `tabindex="0" role="slider" aria-label="${esc(o.name)} serie ${o.j+1}: ${cur[k] ?? "vuoto"} ${esc(psUnit(o.p))}" aria-valuenow="${cur[k] ?? ""}"` : ""}>
-      <circle class="hitc" cx="${X(k)}" cy="${Y(v)}" r="14"/>
-      <circle cx="${X(k)}" cy="${Y(v)}" r="${cur[k] == null ? 4 : 6.5}" style="fill:${cur[k] == null ? "var(--surface)" : c};stroke:${cur[k] == null ? c : chg ? "var(--ink)" : "var(--surface)"};stroke-width:2"/></g>
-      ${cur[k] != null ? `<text class="vlab" x="${X(k)}" y="${Y(cur[k]) - 12}" text-anchor="middle">${nf(cur[k])}</text>` : ""}`;
+      <circle class="hitc" cx="${X(k)}" cy="${YY(v, k)}" r="14"/>
+      <circle cx="${X(k)}" cy="${YY(v, k)}" r="${cur[k] == null ? 4 : 6.5}" style="fill:${cur[k] == null ? "var(--surface)" : c};stroke:${cur[k] == null ? c : chg ? "var(--ink)" : "var(--surface)"};stroke-width:2"/></g>
+      ${cur[k] != null ? `<text class="vlab" x="${X(k)}" y="${YY(cur[k], k) - 12}" text-anchor="middle">${nf(cur[k])}</text>` : ""}`;
       // differenza con la stessa serie del riferimento
       const d = cur[k] != null && ref[k] != null ? Math.round((cur[k] - ref[k]) * 100) / 100 : null;
-      if (d) svg += `<text class="psd ${d > 0 ? "up" : "dn"}" x="${X(k)}" y="${Y(cur[k]) + 21}" text-anchor="middle">${d > 0 ? "+" : "−"}${nf(Math.abs(d))}</text>`;
-      else if (cur[k] != null && !o.ref && o.refInfo && !o.cover) svg += `<text class="psd up" x="${X(k)}" y="${Y(cur[k]) + 21}" text-anchor="middle">nuova</text>`; }
+      if (d) svg += `<text class="psd ${d > 0 ? "up" : "dn"}" x="${X(k)}" y="${YY(cur[k], k) + 21}" text-anchor="middle">${d > 0 ? "+" : "−"}${nf(Math.abs(d))}</text>`;
+      else if (cur[k] != null && !o.ref && o.refInfo && !o.cover) svg += `<text class="psd up" x="${X(k)}" y="${YY(cur[k], k) + 21}" text-anchor="middle">nuova</text>`; }
     else svg += `<text x="${X(k)}" y="${pt + ih - 4}" text-anchor="middle" style="font-size:12px;fill:var(--faint)">–</text>`;
+    if (SETS && editable && !o.ghost && o.st && o.j === (G.sess.sets[o.x.id] || []).length - 1) { const px = X(k) + slot * 0.62, py = rowY(k);
+      svg += `<line class="psplusl" x1="${X(k) + 7}" x2="${px - 8}" y1="${py}" y2="${py}" style="stroke:${c}"/><g class="psplus" data-act="ps-add" data-x="${o.x.id}" role="button" tabindex="0" aria-label="Aggiungi una serie a ${esc(o.name)}"><title>Aggiungi una serie</title><circle cx="${px}" cy="${py}" r="8.5" style="stroke:${c}"/><path d="M${px - 4} ${py}h8M${px} ${py - 4}v8" style="stroke:${c}"/></g>`; }
     // tipo di serie: sopra quello di adesso, sotto (più piccolo) quello del riferimento nella stessa posizione; arancione se diverso
     const ty = o.ghost ? "" : (o.st.type || ""), rt = o.ghost ? (o.gtype || "") : (o.rtype ?? null);
     svg += `<text class="styp" x="${X(k)}" y="${pt + ih + 22}" text-anchor="middle" style="fill:${ty === "W" ? "var(--ink)" : "var(--muted)"}">${ty}</text>`;
@@ -3089,6 +3104,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     if (!editable) return;
     g.addEventListener("pointerdown", e => psDragStart(e, G, w, k));
     g.addEventListener("keydown", e => { if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return; e.preventDefault();
+      if (G.sm === "sets") { const a = G.sess.sets[o.x.id]; if (e.key === "ArrowUp") a.push(clone(a[a.length - 1] || {})); else if (a.length > 1) a.pop(); drawProg(); return; }
       const v = (psGet(o.p, o.x, o.st) ?? 0) + (e.key === "ArrowUp" ? psStep(o.p) : -psStep(o.p)); psSet(o.p, o.x, o.st, v);
       drawPsChart(G, w, seq, order, editable, done, G.psDoms); el.querySelector(`.psdot[data-k="${k}"]`)?.focus(); psRefreshSide(G, w); });
   });
@@ -3122,6 +3138,7 @@ function psPopHtml(k, o, x, y, W){
 /* trascinamento: il valore segue il mouse (a scatti: 2,5 kg · 1 rip. · 0,5 RPE · 1 cm…); un clic senza movimento apre il menu della serie */
 function psDragStart(e, G, w, k){
   e.preventDefault(); const el = $("#ps-chart"); const {seq} = psSeq(G, w); const o = seq[k], st = psStep(o.p);
+  if (G.sm === "sets") return psDragSets(e, G, w, k, seq);
   const doms = G.psDoms, dom = doms[o.dk], geo = G.psGeo, y0 = e.clientY; let moved = false; G.psPop = null;
   const toVal = cy => { const sv = el.querySelector("svg"), r = sv.getBoundingClientRect(), sc = sv.viewBox.baseVal.height / r.height; const py = (cy - r.top) * sc;   /* il grafico viene ridisegnato durante il trascinamento: lo rileggo ogni volta */
     const v = dom.lo + (geo.pt + geo.ih - py) / geo.ih * (dom.hi - dom.lo); return Math.round(v / st) * st; };
@@ -3131,6 +3148,18 @@ function psDragStart(e, G, w, k){
   const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); G.psDrag = null;
     if (!moved) { if (e.pointerType !== "mouse" && G.psTapK !== k) { G.psTapK = k; return; }   // tablet: il primo tocco mostra solo il dettaglio
       G.psTapK = null; G.psPop = k; }
+    drawProg(); };
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+}
+function psDragSets(e, G, w, k, seq){
+  const el = $("#ps-chart"), o = seq[k], a = G.sess.sets[o.x.id], last = false, dom = G.psDoms.all, geo = G.psGeo, y0 = e.clientY; let moved = false; G.psPop = null;
+  const move = ev => { if (!last || (!moved && Math.abs(ev.clientY - y0) < 4)) return; moved = true; G.psDrag = k;
+    const sv = el.querySelector("svg"), r = sv.getBoundingClientRect(), py = (ev.clientY - r.top) * sv.viewBox.baseVal.height / r.height;
+    const n = Math.max(1, Math.min(30, Math.round(dom.lo + (geo.pt + geo.ih - py) / geo.ih * (dom.hi - dom.lo)))); if (n === a.length) return;
+    while (a.length < n) a.push(clone(a[a.length - 1] || {})); a.length = n;   // le serie in più copiano l'ultima
+    const s2 = psSeq(G, w); const k2 = s2.seq.findIndex(q => !q.ghost && q.x.id === o.x.id && q.j === n - 1); G.psDrag = k2; drawPsChart(G, w, s2.seq, s2.order, true, false, G.psDoms); };
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); G.psDrag = null;
+    if (!moved) { if (e.pointerType !== "mouse" && G.psTapK !== k) { G.psTapK = k; return; } G.psTapK = null; G.psPop = k; }
     drawProg(); };
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
 }

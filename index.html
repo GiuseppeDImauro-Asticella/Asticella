@@ -3310,18 +3310,34 @@ async function workoutPdf(sig){
       const gc = circOfGroup(exs, g), GC = gc ? hexRgb("#1baf7a") : col;
       if (gc) {   // circuito: etichetta colorata con lo schema + come si esegue (stile "barra laterale", come nell'app)
         const n = exs[g[0]].sets.length, labs = g.map(i => L[i]), NG = n === 1 ? "giro" : "giri";
-        const facts = amrapReps(gc) ? [`${gc.min || "?"} minuti`, "più ripetizioni possibili"]
-          : gc.fmt === "amrap" ? [`${gc.min || "?"} minuti`, "più giri possibili"]
-          : gc.fmt === "emom" ? [`${n * g.length} minuti`, `${n} ${NG}`]
-          : [`${n} ${NG}`, ...(gc.fmt === "tempo" ? [`${gc.work || "?"}" lavoro / ${gc.pause || "0"}" pausa`] : []), ...(gc.rest ? [`recupero ${gc.rest} tra i giri`] : [])];
-        const head = wrap(`${circTitle(gc, exs[g[0]].block || "").toUpperCase()}  ·  ${facts.join("  ·  ")}`, CW, 10.5);
-        const how = wrap(circHow(gc, n, labs), CW, 9); room(head.length * 5 + how.length * 4.2 + 30);
-        gbar = {p: doc.getCurrentPageInfo().pageNumber, y: y - 4.3, col: GC}; head.forEach(ln => { txt(ln, M - 1.5, y, {b: 1, sz: 11.5, c: GC}); y += 5.4; });   // la barra parte dall'altezza della scritta
-        how.forEach(ln => { txt(ln, M - 1.5, y, {sz: 9, c: MUTED}); y += 4.2; }); y += 3;
+        const facts = amrapReps(gc) ? [`${gc.min || "?"} minuti`, "più ripetizioni possibili", ...(labs.length > 1 ? [`esercizi: ${labs.join(", ")}`] : [])]
+          : gc.fmt === "amrap" ? [`${gc.min || "?"} minuti`, "più giri possibili", `ordine: ${labs.join(" -> ")}`]
+          : gc.fmt === "emom" ? [`${n * g.length} minuti`, "ogni minuto un esercizio", `${n} ${NG}`, `ordine: ${labs.join(" -> ")}`]
+          : [`${n} ${NG}`, ...(gc.fmt === "tempo" ? [`${gc.work || "?"}" lavoro / ${gc.pause || "0"}" pausa per esercizio`] : []), `ordine: ${labs.join(" -> ")}`, ...(gc.rest ? [`recupero ${gc.rest} tra i giri`] : [])];
+        // lo schema in "pillole" (come nella vecchia fascia verde): si legge a colpo d'occhio
+        const X0 = M - 1.5, DK = [19, 90, 64], LT = GC.map(v => Math.round(v + (255 - v) * 0.88));
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+        const pills = []; let px = X0, prow = 0; facts.forEach(f => { const pw = doc.getTextWidth(pdfT(f)) + 6; if (px + pw > PW - M) { prow++; px = X0; } pills.push({f, x: px, row: prow, w: pw}); px += pw + 2.5; });
+        const head = wrap(circTitle(gc, exs[g[0]].block || "").toUpperCase(), CW, 11.5);
+        const how = wrap(circHow(gc, n, labs), CW, 9); room(head.length * 5.4 + how.length * 4.2 + (prow + 1) * 6.8 + 28);
+        gbar = {p: doc.getCurrentPageInfo().pageNumber, y: y - 4.3, col: GC}; head.forEach(ln => { txt(ln, X0, y, {b: 1, sz: 11.5, c: GC}); y += 5.4; });   // la barra parte dall'altezza della scritta
+        y -= 2;   // pillole subito sotto il titolo, poi la spiegazione
+        pills.forEach(q => { const py = y + q.row * 6.8; doc.setDrawColor(...GC); doc.setFillColor(...LT); doc.setLineWidth(0.35);
+          doc.roundedRect(q.x, py, q.w, 5.6, 2.8, 2.8, "FD"); txt(q.f, q.x + 3, py + 3.9, {b: 1, sz: 9, c: DK}); });
+        doc.setLineWidth(0.3); y += (prow + 1) * 6.8 + 4.6;
+        how.forEach(ln => { txt(ln, X0, y, {sz: 9, c: MUTED}); y += 4.2; }); y += 3;
       } else {
-        const gt = `Superserie ${exs[g[0]].block || ""}  ·  alterna ${g.map(i => L[i]).join(" -> ")}`.toUpperCase();
-        gbar = {p: doc.getCurrentPageInfo().pageNumber, y: y - 4.3, col: GC}; txt(gt, M - 1.5, y, {b: 1, sz: 11.5, c: col}); y += 5;
-        txt("una serie di ognuno, poi recupero", M - 1.5, y, {sz: 9, c: MUTED}); y += 6; } }
+        // superserie: titolo + schema in pillole (serie, ordine, recupero) + spiegazione
+        const labs = g.map(i => L[i]), X0 = M - 1.5, DK = col.map(v => Math.round(v * 0.62)), LT = col.map(v => Math.round(v + (255 - v) * 0.88));
+        const ns = [...new Set(g.map(i => exs[i].sets.length))], rests = [...new Set(g.flatMap(i => (exs[i].cols || []).includes("rest") ? exs[i].sets.map(q => (q.rest || "").trim()) : []).filter(Boolean))];
+        const facts = [...(ns.length === 1 && ns[0] ? [`${ns[0]} serie`] : []), `ordine: ${labs.join(" -> ")}`, ...(rests.length === 1 ? [`recupero ${rests[0]}`] : [])];
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+        const pills = []; let px = X0, prow = 0; facts.forEach(f => { const pw = doc.getTextWidth(pdfT(f)) + 6; if (px + pw > PW - M) { prow++; px = X0; } pills.push({f, x: px, row: prow, w: pw}); px += pw + 2.5; });
+        gbar = {p: doc.getCurrentPageInfo().pageNumber, y: y - 4.3, col: GC}; txt(`SUPERSERIE ${exs[g[0]].block || ""}`.trim(), X0, y, {b: 1, sz: 11.5, c: col}); y += 3.4;
+        pills.forEach(q => { const py = y + q.row * 6.8; doc.setDrawColor(...col); doc.setFillColor(...LT); doc.setLineWidth(0.35);
+          doc.roundedRect(q.x, py, q.w, 5.6, 2.8, 2.8, "FD"); txt(q.f, q.x + 3, py + 3.9, {b: 1, sz: 9, c: DK}); });
+        doc.setLineWidth(0.3); y += (prow + 1) * 6.8 + 4.6;
+        txt(`Fai una serie di ${labs.join(", poi una di ")}, recupera e ricomincia.`, X0, y, {sz: 9, c: MUTED}); y += 7; } }
     g.forEach((i, k) => { const x = exs[i], lib = libByName(x.name), cols = x.cols || [], col = circOfGroup(exs, g) ? hexRgb("#1baf7a") : hexRgb(blockHex(exs[g[0]].block || L[i]));
       room(30);
       // etichetta del blocco + nome

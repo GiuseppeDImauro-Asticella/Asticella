@@ -302,6 +302,8 @@ table.list{width:100%;border-collapse:collapse}
 .side-in{display:inline-flex;gap:3px}
 .side-in button{width:36px;height:42px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);font-weight:700;font-size:14px;color:var(--muted)}
 .side-in button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.side-in button.plan{border:2px dashed var(--accent);color:var(--ink)}
+.aex .sidehint{color:var(--ink)}
 .sets select{width:84px;border:1px solid var(--line);border-radius:6px;padding:5px 4px;background:var(--surface2)}
 .cols select{border:1px dashed var(--line);background:transparent;border-radius:99px;padding:3px 8px;font-size:12px;color:var(--muted)}
 table.sets{border-collapse:collapse}
@@ -1283,8 +1285,10 @@ function summarize(x){
   const cols = x.cols || [];
   const same = c => sets.every(s => (s[c]||"") === (sets[0][c]||""));
   const vals = c => same(c) ? (sets[0][c]||"") : sets.map(s => s[c]||"–").join("/");
-  const out = [cols.includes("reps") && vals("reps") ? `${sets.length}×${vals("reps")}` : `${sets.length}×`];
-  cols.filter(c => c !== "reps" && c !== "rest").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
+  const sd = cols.includes("side") ? sideSummary(sets) : null;
+  const out = [(cols.includes("reps") && vals("reps") ? `${sets.length}×${vals("reps")}` : `${sets.length}×`) + (sd?.both ? " per lato" : "")];
+  if (sd && !sd.both) out.push(sd.txt);
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
     const u = COLS[c].u; out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
   return out.join(" · ");
 }
@@ -1293,6 +1297,26 @@ const unitTag = c => { const u = COLS[c].u; return u && u !== "%" && u.toLowerCa
 function ssGroups(exs){ const g = []; (exs||[]).forEach((x,i) => { if (x.ss && i > 0) g[g.length-1].push(i); else g.push([i]); }); return g; }
 function exLabels(exs){ const out = []; ssGroups(exs).forEach(g => { const b = exs[g[0]].block || ""; g.forEach((i,k) => out[i] = g.length > 1 ? b + (k+1) : (exs[i].block || "")); }); return out; }
 const SIDES = ["", "Dx", "Sx", "Dx+Sx"];
+/* lato: una riga = una serie. "Dx+Sx" = quella serie si fa con tutti e due i lati (le ripetizioni sono per lato);
+   "Dx" / "Sx" = serie per un lato solo (es. 4 serie: 2 Dx + 2 Sx) */
+const SIDE_LBL = {"": "—", Dx: "Solo Dx", Sx: "Solo Sx", "Dx+Sx": "Dx + Sx (per lato)"};
+const bothSides = v => /dx/i.test(v || "") && /sx/i.test(v || "");   // anche "Dx/Sx" scritto a mano
+function nextSet(arr){ const a = arr || [], last = a[a.length - 1], st = clone(last || {});
+  const one = q => q && !bothSides(q) && /^(dx|sx)$/i.test(q), prev = a[a.length - 2]?.side;
+  if (last && one(last.side) && !(one(prev) && prev === last.side)) st.side = /dx/i.test(last.side) ? "Sx" : "Dx";
+  return st; }
+function sideSummary(sets){
+  const v = (sets || []).map(st => st.side || ""); if (!v.some(Boolean)) return null;
+  if (v.every(bothSides)) return {both: true, txt: "per lato"};
+  const nd = v.filter(q => !bothSides(q) && /dx/i.test(q)).length, ns = v.filter(q => !bothSides(q) && /sx/i.test(q)).length, nb = v.filter(bothSides).length;
+  const tot = [nd ? `${nd} Dx` : "", ns ? `${ns} Sx` : "", nb ? `${nb} Dx+Sx` : ""].filter(Boolean).join(" + ");
+  // l'ordine come l'ha programmato il coach: alternate (Dx, Sx, Dx, Sx) oppure a blocchi (prima 2 Dx, poi 2 Sx)
+  const k = q => bothSides(q) ? "Dx+Sx" : /dx/i.test(q) ? "Dx" : /sx/i.test(q) ? "Sx" : "–", runs = [];
+  v.forEach(q => { const r = runs[runs.length - 1]; if (r && r.k === k(q)) r.n++; else runs.push({k: k(q), n: 1}); });
+  if (!nd || !ns || nb || runs.some(r => r.k === "–")) return {both: false, txt: tot, how: ""};
+  if (runs.every(r => r.n === 1)) return {both: false, txt: `${tot}, alternate`, how: `alterna i lati: ${runs.slice(0, 2).map(r => r.k).join(", ")}, ${runs[0].k}…`};
+  return {both: false, txt: runs.map(r => `${r.n} ${r.k}`).join(" → "), how: `prima ${runs.map(r => `${r.n} ${r.n === 1 ? "serie" : "serie"} ${r.k}`).join(", poi ")}`};
+}
 /* tipo di serie: lo decide solo il coach (campo "type" nella serie programmata) */
 const SET_TYPES = {R:{l:"Ramping set", s:"Ramp"}, W:{l:"Work set", s:"Work"}, B:{l:"Back-off set", s:"Back-off"}, D:{l:"Down set", s:"Down"}};
 const TYPE_ORDER = ["", "R", "W", "B", "D"];
@@ -1391,8 +1415,10 @@ function schemeText(x){
   const same = c => sets.every(s => (s[c]||"") === (sets[0][c]||""));
   const vals = c => same(c) ? (sets[0][c]||"") : sets.map(s => s[c]||"–").join("/");
   const n = sets.length;
-  const out = [`${n} ${n === 1 ? "set" : "set"}${cols.includes("reps") && vals("reps") ? ` × ${vals("reps")} reps` : ""}`];
-  cols.filter(c => c !== "reps" && c !== "rest").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
+  const sd = cols.includes("side") ? sideSummary(sets) : null;
+  const out = [`${n} ${n === 1 ? "set" : "set"}${cols.includes("reps") && vals("reps") ? ` × ${vals("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`];
+  if (sd && !sd.both) out.push(sd.txt);
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
     const u = COLS[c].u; out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
   if (cols.includes("rest")) { const v = vals("rest"); if (v.replace(/[–/]/g,"")) out.push(`rec. ${v}`); }
   return out.join(" · ");
@@ -2442,7 +2468,7 @@ function exEditorHtml(x, i, res, L){
       ${avail.length ? `<select aria-label="Aggiungi parametro" data-change="col-add" data-i="${i}"><option value="">+ parametro</option>${avail.map(c=>`<option value="${c}">${esc(COLS[c].l)}</option>`).join("")}<option value="__new">+ Nuovo parametro…</option></select>` : ""}</div>
     <div class="scroll-x"><table class="sets"><thead><tr><th>${cc ? (cc.fmt === "amrap" ? "" : "Giro") : ""}</th>${cc ? "" : `<th title="Tipo di serie: clicca per cambiare (Ramping, Work, Back-off, Down)">Tipo</th>`}${cols.map(c=>`<th>${COLS[c].l}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${x.sets.map((s,j) => `<tr><td class="n ${cc ? "gn" : ""}">${cc ? (cc.fmt === "amrap" ? (amrapReps(cc) ? "" : "per giro") : j+1) : j+1}</td>${cc ? "" : `<td><button type="button" class="tbtn ${s.type?"has":""}" data-act="set-type" data-i="${i}" data-j="${j}" title="${s.type ? SET_TYPES[s.type].l+" · clicca per cambiare" : "Nessun tipo · clicca per scegliere"}" aria-label="Tipo serie ${j+1}">${s.type ? typeBadge(s.type) : "—"}</button></td>`}${cols.map(c=> c === "side"
-          ? `<td><select aria-label="Lato serie ${j+1}" data-bind="exercises.${i}.sets.${j}.side">${[...new Set([...SIDES, s.side||""])].map(v => `<option value="${esc(v)}" ${(s.side||"")===v?"selected":""}>${v ? esc(v) : "—"}</option>`).join("")}</select></td>`
+          ? `<td><select aria-label="Lato serie ${j+1}" data-bind="exercises.${i}.sets.${j}.side">${[...new Set([...SIDES, s.side||""])].map(v => `<option value="${esc(v)}" ${(s.side||"")===v?"selected":""}>${esc(SIDE_LBL[v] ?? v)}</option>`).join("")}</select></td>`
           : `<td><input aria-label="${COLS[c].l} serie ${j+1}" data-bind="exercises.${i}.sets.${j}.${c}" value="${esc(s[c]||"")}" ${c === "reps" && amrapReps(cc) ? `placeholder="max"` : ""}></td>`).join("")}
         <td class="ra">${cc ? "" : `<button class="btn ghost sm" data-act="set-dup" data-i="${i}" data-j="${j}" title="Duplica serie" aria-label="Duplica serie ${j+1}">${ICON.dup}</button><button class="btn ghost sm" data-act="set-rm" data-i="${i}" data-j="${j}" title="Elimina serie">✕</button>`}</td></tr>`).join("")}
     </tbody></table></div>
@@ -3104,7 +3130,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     if (!editable) return;
     g.addEventListener("pointerdown", e => psDragStart(e, G, w, k));
     g.addEventListener("keydown", e => { if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return; e.preventDefault();
-      if (G.sm === "sets") { const a = G.sess.sets[o.x.id]; if (e.key === "ArrowUp") a.push(clone(a[a.length - 1] || {})); else if (a.length > 1) a.pop(); drawProg(); return; }
+      if (G.sm === "sets") { const a = G.sess.sets[o.x.id]; if (e.key === "ArrowUp") a.push(nextSet(a)); else if (a.length > 1) a.pop(); drawProg(); return; }
       const v = (psGet(o.p, o.x, o.st) ?? 0) + (e.key === "ArrowUp" ? psStep(o.p) : -psStep(o.p)); psSet(o.p, o.x, o.st, v);
       drawPsChart(G, w, seq, order, editable, done, G.psDoms); el.querySelector(`.psdot[data-k="${k}"]`)?.focus(); psRefreshSide(G, w); });
   });
@@ -3156,7 +3182,7 @@ function psDragSets(e, G, w, k, seq){
   const move = ev => { if (!last || (!moved && Math.abs(ev.clientY - y0) < 4)) return; moved = true; G.psDrag = k;
     const sv = el.querySelector("svg"), r = sv.getBoundingClientRect(), py = (ev.clientY - r.top) * sv.viewBox.baseVal.height / r.height;
     const n = Math.max(1, Math.min(30, Math.round(dom.lo + (geo.pt + geo.ih - py) / geo.ih * (dom.hi - dom.lo)))); if (n === a.length) return;
-    while (a.length < n) a.push(clone(a[a.length - 1] || {})); a.length = n;   // le serie in più copiano l'ultima
+    while (a.length < n) a.push(nextSet(a)); a.length = n;   // le serie in più copiano l'ultima (lato alternato se si alternava)
     const s2 = psSeq(G, w); const k2 = s2.seq.findIndex(q => !q.ghost && q.x.id === o.x.id && q.j === n - 1); G.psDrag = k2; drawPsChart(G, w, s2.seq, s2.order, true, false, G.psDoms); };
   const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); G.psDrag = null;
     if (!moved) { if (e.pointerType !== "mouse" && G.psTapK !== k) { G.psTapK = k; return; } G.psTapK = null; G.psPop = k; }
@@ -3245,7 +3271,7 @@ function fixResults(i){
       ${cols.length ? `<div class="scroll-x"><table class="fixt"><thead><tr><th></th>${cols.map(c => `<th>${COLS[c].l}</th>`).join("")}<th>Fatta</th><th></th></tr></thead><tbody>
       ${rows.map((r,j) => { const p = x.sets[j] || {}; return `<tr><td class="faint">${j+1}${j >= x.sets.length ? "<br><small>extra</small>" : ""}</td>
         ${cols.map(c => c === "side"
-          ? `<td><select data-fx="${j}|side" data-plan="${esc(p.side || "")}" aria-label="Lato serie ${j+1}">${[...new Set([...SIDES, r.side||""])].map(v => `<option value="${esc(v)}" ${(r.side||"")===v?"selected":""}>${v ? esc(v) : "—"}</option>`).join("")}</select></td>`
+          ? `<td><select data-fx="${j}|side" data-plan="${esc(p.side || "")}" aria-label="Lato serie ${j+1}">${[...new Set([...SIDES, r.side||""])].map(v => `<option value="${esc(v)}" ${(r.side||"")===v?"selected":""}>${esc(SIDE_LBL[v] ?? v)}</option>`).join("")}</select></td>`
           : `<td><input data-fx="${j}|${c}" inputmode="${COLS[c].txt ? "text" : "decimal"}" value="${esc(r[c]||"")}" placeholder="${esc(p[c]||"–")}" aria-label="${COLS[c].l} serie ${j+1}"></td>`).join("")}
         <td style="text-align:center"><input type="checkbox" data-fx="${j}|done" ${r.done?"checked":""} aria-label="Serie ${j+1} fatta" style="width:18px;height:18px"></td>
         <td>${j >= x.sets.length ? `<button type="button" class="btn sm ghost danger" data-fxrm="${j}" aria-label="Togli serie ${j+1}">✕</button>` : ""}</td></tr>`; }).join("")}
@@ -3454,7 +3480,7 @@ async function workoutPdf(sig){
       const hasT = x.sets.some(s => s.type); x.sets.forEach(s => s.type && typesUsed.add(s.type));
       if (cols.length && x.sets.length) {
         const gcx = circOfGroup(exs, g); const head = [gcx ? (amrapReps(gcx) ? "" : gcx.fmt === "amrap" ? "Per giro" : "Giro") : "Serie", ...(hasT ? ["Tipo"] : []), ...cols.map(c => { const u = COLS[c]?.u; return pdfT(COLS[c]?.l || c) + (u && u !== "%" && u.toLowerCase() !== (COLS[c]?.l || "").toLowerCase() ? ` (${u})` : ""); })];
-        const body = x.sets.map((s, j) => [gcx?.fmt === "amrap" ? "" : String(j + 1), ...(hasT ? [s.type || ""] : []), ...cols.map(c => pdfT(s[c] || "-"))]);
+        const body = x.sets.map((s, j) => [gcx?.fmt === "amrap" ? "" : String(j + 1), ...(hasT ? [s.type || ""] : []), ...cols.map(c => pdfT(c === "side" && s[c] ? ({Dx: "Solo Dx", Sx: "Solo Sx", "Dx+Sx": "Dx + Sx"}[s[c]] || s[c]) : s[c] || "-"))]);
         doc.autoTable({startY: y + 1, head: [head], body, margin: {left: M, right: M}, theme: "grid", tableWidth: Math.min(CW, 14 + (hasT ? 10 : 0) + cols.length * 26),
           styles: {font: "helvetica", fontSize: 9.5, cellPadding: {top: 1.6, bottom: 1.6, left: 2, right: 2}, halign: "center", lineColor: LINE, lineWidth: 0.2, textColor: INK},
           headStyles: {fillColor: [242, 244, 247], textColor: MUTED, fontStyle: "bold", fontSize: 8.5},
@@ -3695,8 +3721,8 @@ function athExHtml(w, x, label, res, compact){
   const last = historyFor(name, w, 1)[0];
   const cell = (c, j, s, rr) => {
     if (!COLS[c].log) return `<td><div class="ro" title="Indicazione del coach: non va compilata">${esc(s[c] || "–")}</div></td>`;
-    if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
-      return `<td><span class="side-in" title="${s.side ? "Programmato: "+esc(s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} serie ${j+1}">${k}</button>`).join("")}</span></td>`; }
+    if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k), plan = k => new RegExp(k, "i").test(s.side || "");
+      return `<td><span class="side-in" title="${s.side ? "Da fare: "+esc(SIDE_LBL[s.side] ?? s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""} ${plan(k) && !has(k) ? "plan" : ""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} serie ${j+1}">${k}</button>`).join("")}</span></td>`; }
     if (COLS[c].pick && pickOpts(c).length) return `<td>${pickCell(c, x.id, j, rr[c], s[c])}</td>`;
     return `<td><input inputmode="${COLS[c].txt ? "text" : "decimal"}" aria-label="${esc(COLS[c].l)} serie ${j+1}" data-r="${x.id}|${j}|${c}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c]||"–")}"></td>`;
   };
@@ -3704,7 +3730,7 @@ function athExHtml(w, x, label, res, compact){
   return `<div class="sub">
     <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(name)}</span>${sw ? "" : `<button class="swbtn" data-act="a-swap" data-x="${x.id}" title="Non riesci a farlo? Cambialo con un'alternativa">↔ Cambia</button>`}</div>
     ${sw ? `<div class="swinfo"><span>↔ Al posto di <b>${esc(x.name)}</b>${swapWhy(sw) ? ` · ${esc(swapWhy(sw))}` : ""}</span><button class="btn sm ghost" data-act="a-unswap" data-x="${x.id}">Annulla cambio</button></div>` : ""}
-    ${sideHint && compact !== "light" ? `<div class="info">Lato programmato: ${esc(sideHint)} · segna quello che hai fatto</div>` : ""}
+    ${sideHint && compact !== "light" ? (sd => `<div class="info sidehint">${sd?.both ? `<b>Ogni serie con tutti e due i lati:</b> fai le ripetizioni con il destro e con il sinistro, e segna <b>Sx</b> e <b>Dx</b>.` : `<b>Lato:</b> ${esc(sd?.how || sd?.txt || sideHint)} — ogni serie con il lato indicato (quello contornato); segna quello che hai fatto.`}</div>`)(sideSummary(x.sets)) : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${lib?.notes ? `<div class="info faint">${esc(lib.notes)}</div>` : ""}
     ${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}">▶ Guarda il video</button>` : `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>`) : ""}
@@ -3962,7 +3988,7 @@ const ACT = {
   "set-rm"(t){ const x = S.editor.w.exercises[+t.dataset.i]; if (x.sets.length > 1) x.sets.splice(+t.dataset.j, 1); markDirty(); drawEditor(); },
   "set-type"(t){ const s = S.editor.w.exercises[+t.dataset.i].sets[+t.dataset.j]; const k = TYPE_ORDER[(TYPE_ORDER.indexOf(s.type||"")+1) % TYPE_ORDER.length];
     if (k) s.type = k; else delete s.type; markDirty(); drawEditor(); },
-  "set-plus"(t){ const x = S.editor.w.exercises[+t.dataset.i]; x.sets.push(clone(x.sets[x.sets.length-1] || {})); markDirty(); drawEditor(); },
+  "set-plus"(t){ const x = S.editor.w.exercises[+t.dataset.i]; x.sets.push(nextSet(x.sets)); markDirty(); drawEditor(); },
   "set-minus"(t){ const x = S.editor.w.exercises[+t.dataset.i]; if (x.sets.length > 1) x.sets.pop(); markDirty(); drawEditor(); },
   /* atleti */
   "ath-new"(){ S.athEdit = {isNew:true}; renderView(); setTimeout(()=>$("#a-name")?.focus(), 20); },
@@ -4013,7 +4039,7 @@ const ACT = {
   "ps-reset"(){ S.prog.sess = null; S.prog.psPop = null; drawProg(); },
   "ps-apply"(){ psApply(); },
   "ps-type"(t){ const st = S.prog.sess.sets[t.dataset.x][+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
-  "ps-add"(t){ const a = S.prog.sess.sets[t.dataset.x]; a.push(clone(a[a.length - 1] || {})); drawProg(); },
+  "ps-add"(t){ const a = S.prog.sess.sets[t.dataset.x]; a.push(nextSet(a)); drawProg(); },
   "ps-rm"(t){ const a = S.prog.sess.sets[t.dataset.x]; if (a.length > 1) a.pop(); drawProg(); },
   "ps-poptype"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; if (t.dataset.t) o.st.type = t.dataset.t; else delete o.st.type; drawProg(); },
   "ps-popdup"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; G.sess.sets[o.x.id].splice(o.j + 1, 0, clone(o.st)); G.psPop = null; drawProg(); },
@@ -4031,7 +4057,7 @@ const ACT = {
   "pg-apply"(){ pgApply(); },
   "pg-type-f"(t){ const P = S.prog.P, v = t.dataset.t; P.types = P.types.includes(v) ? P.types.filter(x => x !== v) : [...P.types, v]; drawProg(); },
   "pg-settype"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x), st = sets[+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
-  "pg-addset"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x); sets.push(clone(sets[sets.length - 1] || {})); drawProg(); },
+  "pg-addset"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x); sets.push(nextSet(sets)); drawProg(); },
   "pg-rmset"(t){ const sets = pgManualSets(t.dataset.w, t.dataset.x); if (sets.length > 1) sets.pop(); drawProg(); },
   "prog-tog"(t){ const E = S.editor; (E.progOpen ??= {})[t.dataset.x] = !E.progOpen[t.dataset.x]; drawEditor(); },
   "prog-tab"(t){ const E = S.editor; (E.progTab ??= {})[t.dataset.x] = t.dataset.v; drawEditor(); },

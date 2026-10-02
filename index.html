@@ -3759,8 +3759,8 @@ function athCircHtml(w, g, L, res){
       ${g.map(i => { const x = exs[i], s = x.sets[j] || {}, rr = (res[x.id] || [])[j] || {};
         const flds = (x.cols || []).map(cc => { const lab = `<span class="fl">${esc(COLS[cc].l)}${COLS[cc].u && COLS[cc].u !== "%" && COLS[cc].u.toLowerCase() !== COLS[cc].l.toLowerCase() ? " " + esc(COLS[cc].u) : ""}</span>`;
           if (!COLS[cc].log) return `<div class="cfl">${lab}<div class="ro">${esc(s[cc] || "–")}</div></div>`;
-          if (cc === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k);
-            return `<div class="cfl">${lab}<span class="side-in">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}">${k}</button>`).join("")}</span></div>`; }
+          if (cc === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k), plan = k => new RegExp(k, "i").test(s.side || "");   // lato da fare contornato, come negli esercizi singoli
+            return `<div class="cfl">${lab}<span class="side-in" title="${s.side ? "Da fare: " + esc(SIDE_LBL[s.side] ?? s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""} ${plan(k) && !has(k) ? "plan" : ""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}">${k}</button>`).join("")}</span></div>`; }
           if (COLS[cc].pick && pickOpts(cc).length) return `<div class="cfl">${lab}${pickCell(cc, x.id, j, rr[cc], s[cc])}</div>`;
           return `<div class="cfl">${lab}<input inputmode="${COLS[cc].txt ? "text" : "decimal"}" aria-label="${esc(COLS[cc].l)} giro ${j+1}" data-r="${x.id}|${j}|${cc}" value="${esc(rr[cc]||"")}" placeholder="${esc(s[cc]||"–")}"></div>`; }).join("");
         return `<div class="crow ${rr.done ? "ok" : ""}"><div class="cnm"><b style="color:${blockColor(lead.block || L[i])}">${esc(L[i])}</b> ${esc(exName(w, x))}</div><div class="lt cfs">${flds}</div>
@@ -4098,7 +4098,7 @@ const ACT = {
     scheduleSave(); const y = scrollY; renderWorkout(); scrollTo(0, y); },
   "c-round"(t){ const w = athleteWorkout(); const exs = w.exercises, g = ssGroups(exs).find(g => exs[g[0]].id === t.dataset.g); if (!g) return; const j = +t.dataset.j;
     w.results ??= {}; const on = !g.every(i => (w.results[exs[i].id] || [])[j]?.done);
-    g.forEach(i => { const x = exs[i], r = (w.results[x.id] ??= []); while (r.length <= j) r.push({}); r[j] = on ? {done: true, ...circLogVals(x, x.sets[j])} : {}; });
+    g.forEach(i => { const x = exs[i], r = (w.results[x.id] ??= []); while (r.length <= j) r.push({}); r[j] = on ? {...circLogVals(x, x.sets[j]), ...Object.fromEntries(Object.entries(r[j] || {}).filter(([k, v]) => v !== "" && v != null && k !== "done")), done: true} : {}; });   // spuntando il giro i valori già scritti dall'atleta restano
     scheduleSave(); const y = scrollY; renderWorkout(); scrollTo(0, y); },
   "a-side"(t){ const w = athleteWorkout(); w.results ??= {}; const r = (w.results[t.dataset.x] ??= []); const j = +t.dataset.j;
     while (r.length <= j) r.push({}); const cur = new Set((r[j].side || "").split("+").filter(Boolean)); const v = t.dataset.v;

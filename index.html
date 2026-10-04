@@ -788,7 +788,7 @@ tr.ok .ck svg{stroke:#fff}
 .wcmp .d{font-weight:800}.wcmp .wk{font-size:12px;margin-top:2px}
 .wcmp .foot{grid-column:1/-1;display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
 .wcmp .foot .lnk{margin-left:auto}
-.ctag{display:inline-flex;align-items:center;justify-content:center;width:18px;height:17px;border-radius:5px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:800}
+.abtag{display:inline-flex;align-items:center;justify-content:center;width:18px;height:17px;border-radius:5px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:800}
 .lnk{border:0;background:none;color:var(--accent);font-weight:600;font-size:12px;cursor:pointer;padding:0}
 .wtbl{margin-top:8px}.wtl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 0 2px}
 .wtr{display:grid;font-variant-numeric:tabular-nums;border-top:1px solid var(--line);padding-top:4px}
@@ -800,6 +800,7 @@ tr.ok .ck svg{stroke:#fff}
 .sdet summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:12px}
 .wcmp .sec{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--surface);color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .kfilt.pmb{display:inline-flex;margin:0;letter-spacing:0;text-transform:none}.kfilt.pmb button{padding:2px 9px;font-size:11.5px}
+.honly{text-transform:none;letter-spacing:0;font-weight:700;font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 8px}
 .wcmp .pk{text-transform:none;letter-spacing:0;font-size:12px}
 .wcmp .pr{padding-top:6px;padding-bottom:6px}
 .wcmp .pv{display:flex;align-items:center;gap:8px}.pbar{display:inline-block;height:7px;border-radius:3px;background:var(--faint)}.pbar.b{background:var(--accent)}
@@ -827,7 +828,13 @@ tr.ok .ck svg{stroke:#fff}
 .mchip i{width:8px;height:8px;border-radius:50%;background:var(--mc);opacity:.5}
 .mchip span{font-weight:500;color:var(--faint)}
 .mchip:hover{border-color:var(--mc)}
-.mchip.whole{border-style:solid;border-color:var(--mc);background:color-mix(in srgb,var(--mc) 12%,var(--surface));color:var(--ink)}
+.mchip.whole{border-style:solid;border-color:color-mix(in srgb,var(--mc) 70%,var(--line));color:var(--ink)}
+/* periodo scelto (mesociclo o "Ultime 12 settimane"): pieno e con la spunta */
+.mchip.on{border:1.5px solid var(--mc);background:var(--mc);color:var(--accent-ink);font-weight:700;box-shadow:0 0 0 3px color-mix(in srgb,var(--mc) 25%,transparent)}
+.mchip.on span{color:color-mix(in srgb,var(--accent-ink) 78%,transparent)}
+.mchip.l12{--mc:var(--accent);border-style:solid;color:var(--ink)}.mchip.l12.on{color:var(--accent-ink)}
+.msep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.antb{align-items:flex-end}.antb .in{height:40px;padding-top:0;padding-bottom:0}
 .mchip.whole i,.mchip.part i{opacity:1}
 .mchip.part{border-style:solid;border-color:color-mix(in srgb,var(--mc) 50%,var(--line));color:var(--ink)}
 .antables{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
@@ -1913,19 +1920,20 @@ const anQ = {cmpA: null, cmpB: null, dA: null, dB: null, wtOpen: false, ptOpen: 
 const METRICS = {
   volume: {l:"Volume", u:"kg", d:"Somma di kg × reps delle serie registrate (solo le serie con kg e reps compilati)."},
   sets:   {l:"Serie", u:"", d:"Numero di serie registrate: spuntate o compilate, extra comprese."},
-  hard:   {l:"Serie allenanti", u:"", d:"Serie registrate con RPE ≥ 7 o RIR ≤ 3. Contano solo le serie in cui l'atleta ha scritto RPE o RIR."},
+  hard:   {l:"Serie allenanti", u:"", d:"Serie registrate con RPE ≥ 7 o RIR ≤ 3. Contano solo le serie in cui l'atleta ha scritto RPE o RIR. In questa vista anche tipi di serie e pattern motori (sotto il grafico) contano solo le serie allenanti."},
   srpe:   {l:"Carico sRPE", u:"UA", d:"RPE di sessione × durata in minuti delle sedute completate (unità arbitrarie)."},
 };
 const numv = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isNaN(n) ? null : n; };
 const fmtN = (v, dec=0) => v == null ? "–" : Number(v).toLocaleString("it-IT", {maximumFractionDigits: dec});
 const compact = v => v >= 10000 ? (v/1000).toLocaleString("it-IT", {maximumFractionDigits: 1}) + "k" : fmtN(v);
 function wStats(w){
-  let sets = 0, vol = 0, reps = 0, hard = 0, known = 0; const ex = {}, types = {};
+  let sets = 0, vol = 0, reps = 0, hard = 0, known = 0; const ex = {}, types = {}, typesH = {};
   (w.exercises||[]).forEach(x => { const rr = (w.results||{})[x.id] || [];
     rr.forEach((r, j) => { if (emptyRes(r)) return; sets++;
       const ty = SET_TYPES[x.sets[j]?.type] ? x.sets[j].type : ""; types[ty] = (types[ty] || 0) + 1;
-      const hd = isHard(r); if (hd != null) { known++; if (hd) hard++; } const k = numv(r.kg), rp = numv(r.reps);
-      const e = (ex[exName(w, x)] ??= {sets:0, reps:0, vol:0, kgMax:null, hMax:null, tMin:null});
+      const hd = isHard(r); if (hd != null) { known++; if (hd) { hard++; typesH[ty] = (typesH[ty] || 0) + 1; } } const k = numv(r.kg), rp = numv(r.reps);
+      const e = (ex[exName(w, x)] ??= {sets:0, reps:0, vol:0, kgMax:null, hMax:null, tMin:null, h: {sets:0, reps:0, vol:0}});
+      if (hd) { e.h.sets++; if (rp != null) e.h.reps += rp; if (k != null && rp != null) e.h.vol += k*rp; }   // solo serie allenanti (vista "Serie allenanti")
       const hh = numv(r.height), tt = numv(r.time);
       if (hh != null) e.hMax = Math.max(e.hMax ?? 0, hh);
       if (tt != null && tt > 0 && !x.cols.includes("reps")) e.tMin = Math.min(e.tMin ?? Infinity, tt);
@@ -1933,7 +1941,7 @@ function wStats(w){
       if (k != null && rp != null) { vol += k*rp; e.vol += k*rp; }
       if (k != null) e.kgMax = Math.max(e.kgMax ?? 0, k); }); });
   const srpe = w.status === "done" && w.sessionRpe && w.durationMin ? w.sessionRpe * w.durationMin : 0;
-  return {sets, vol, reps, srpe, ex, types, hard, known, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
+  return {sets, vol, reps, srpe, ex, types, typesH, hard, known, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
 }
 function weeklySeries(email, from, to){
   const w0 = monday(from), n = Math.floor(daysBetween(w0, monday(to)) / 7) + 1, today = TODAY();
@@ -1949,8 +1957,9 @@ const patOrder = pats => { const d = DEF_OPTS.pat.map(x => x.toLowerCase()), i =
   return [...pats].sort((a, b) => i(a) - i(b) || a.localeCompare(b, "it")); };
 function accumLoad(o, list){
   const inK = (f, k) => !f || f === "all" || f === k;   // filtro "tipo di seduta" per volume e serie (anQ.kv / anQ.ks)
-  list.forEach(w => { const st = wStats(w), k = kindOf(w), b = (o.byK[k] ??= {volume:0, sets:0, srpe:0, n:0, done:0, pat:{}, types:{}, hard:0, known:0, rpes:[]});
-    Object.entries(st.types).forEach(([t, n]) => b.types[t] = (b.types[t] || 0) + n); b.hard += st.hard; b.known += st.known; if (st.rpe) b.rpes.push(st.rpe);
+  list.forEach(w => { const st = wStats(w), k = kindOf(w), b = (o.byK[k] ??= {volume:0, sets:0, srpe:0, n:0, done:0, pat:{}, patH:{}, types:{}, typesH:{}, hard:0, known:0, rpes:[]});
+    Object.entries(st.types).forEach(([t, n]) => b.types[t] = (b.types[t] || 0) + n); Object.entries(st.typesH).forEach(([t, n]) => b.typesH[t] = (b.typesH[t] || 0) + n);
+    Object.entries(st.ex).forEach(([n, e]) => { if (!e.h.sets) return; const q = (b.patH[patOfName(n)] ??= {sets:0, reps:0, vol:0}); q.sets += e.h.sets; q.reps += e.h.reps; q.vol += e.h.vol; }); b.hard += st.hard; b.known += st.known; if (st.rpe) b.rpes.push(st.rpe);
     Object.entries(st.ex).forEach(([n, e]) => { const q = (b.pat[patOfName(n)] ??= {sets:0, reps:0, vol:0}); q.sets += e.sets; q.reps += e.reps; q.vol += e.vol; });
     b.volume += st.vol; b.sets += st.sets; b.srpe += st.srpe; b.n++; if (w.status === "done") b.done++;
     if (inK(anQ.kv, k)) o.volume += st.vol; if (inK(anQ.ks, k)) { o.sets += st.sets; o.hard = (o.hard || 0) + st.hard; } o.srpe += st.srpe; if (w.status === "done") o.done++; });
@@ -1972,15 +1981,18 @@ async function viewAnalysis(m){
   const nW = Math.floor(daysBetween(monday(from), monday(to)) / 7) + 1;
   const ms = (a.mesos || []).map(mm => ({...mm, end: addDays(mm.from, 7*mm.weeks - 1)}));
   const inRange = mm => mm.from <= to && mm.end >= from;
+  const l12 = from === addDays(monday(TODAY()), -77) && to === addDays(monday(TODAY()), 6);   // periodo scelto = "Ultime 12 settimane"
   m.innerHTML = `<div class="pagehead"><div><h1>Analisi</h1><div class="sub">Calcolata sui dati registrati dagli atleti (e sulle tue correzioni).</div></div>
-    <div class="toolbar"><select class="in" id="an-who" data-change="an-who" style="width:auto">${athOptions(a.email)}</select>
+    <div class="toolbar antb"><div class="field"><label class="lbl" for="an-who">Atleta</label><select class="in" id="an-who" data-change="an-who" style="width:auto">${athOptions(a.email)}</select></div>
     <div class="field"><label class="lbl" for="an-from">Dal</label><input class="in" type="date" id="an-from" value="${from}" data-change="an-date"></div>
     <div class="field"><label class="lbl" for="an-to">Al</label><input class="in" type="date" id="an-to" value="${to}" data-change="an-date"></div></div></div>
-    <div class="mrow"><span class="lbl">Mesocicli di ${esc(a.name.split(" ")[0])}</span>
-      ${ms.length ? ms.map(mm => { const full = mm.from >= from && mm.end <= to, part = !full && inRange(mm);
-        return `<button class="mchip ${full ? "whole" : part ? "part" : ""}" style="--mc:${mcol(mm.color)}" data-act="an-meso" data-f="${mm.from}" data-t="${mm.end}" title="${full ? "Compreso tutto nel periodo" : part ? "Compreso solo in parte" : "Fuori dal periodo"} · clicca per analizzare solo questo mesociclo">
-          <i></i>${esc(mm.name)}${mm.goal ? " · " + esc(mm.goal) : ""} <span>${fmtD(mm.from)} – ${fmtD(mm.end)}${part ? " · in parte" : ""}</span></button>`; }).join("") : `<span class="faint" style="font-size:12px">nessuno (li crei dal Calendario)</span>`}
-      <button class="btn sm ghost" data-act="an-last12">Ultime 12 settimane</button></div>
+    <div class="mrow"><span class="lbl">Periodo</span>
+      <button class="mchip l12 ${l12 ? "on" : ""}" data-act="an-last12" aria-pressed="${l12}">${l12 ? "✓ " : ""}Ultime 12 settimane</button>
+      <span class="msep" aria-hidden="true"></span><span class="lbl">Mesocicli di ${esc(a.name.split(" ")[0])}</span>
+      ${ms.length ? ms.map(mm => { const on = mm.from === from && mm.end === to, full = !on && mm.from >= from && mm.end <= to, part = !on && !full && inRange(mm);
+        return `<button class="mchip ${on ? "on" : full ? "whole" : part ? "part" : ""}" style="--mc:${mcol(mm.color)}" data-act="an-meso" data-f="${mm.from}" data-t="${mm.end}" aria-pressed="${on}" title="${on ? "Stai analizzando questo mesociclo" : full ? "Compreso tutto nel periodo" : part ? "Compreso solo in parte" : "Fuori dal periodo"} · clicca per analizzare solo questo mesociclo">
+          ${on ? "✓ " : "<i></i>"}${esc(mm.name)}${mm.goal ? " · " + esc(mm.goal) : ""} <span>${fmtD(mm.from)} – ${fmtD(mm.end)}${part ? " · in parte" : ""}</span></button>`; }).join("") : `<span class="faint" style="font-size:12px">nessuno (li crei dal Calendario)</span>`}
+      </div>
     <div id="an-body"><div class="muted" style="padding:20px">Caricamento…</div></div>`;
   await Promise.all(ath.map(x => ensureWeeks(x.email, monday(from), nW)));
   if (S.view !== "analysis" || !$("#an-body")) return;
@@ -2047,9 +2059,9 @@ async function viewAnalysis(m){
 const kFilt0 = k => { const f = k === "volume" ? anQ.kv : k === "sets" || k === "hard" ? anQ.ks : "all"; return f && f !== "all" ? f : ""; };
 /* numeri di una settimana per il confronto e la tabella (con il filtro "Sedute" del grafico, se c'è) */
 function weekNums(o, key){ const f = kFilt0(key), ks = f ? [f] : Object.keys(o.byK), sum = q => ks.reduce((t, k) => t + (o.byK[k]?.[q] || 0), 0);
-  const pat = {}; ks.forEach(k => Object.entries(o.byK[k]?.pat || {}).forEach(([pt, q]) => { const t = (pat[pt] ??= {sets:0, reps:0, vol:0}); t.sets += q.sets; t.reps += q.reps; t.vol += q.vol; }));
+  const H = key === "hard", pat = {}; ks.forEach(k => Object.entries((H ? o.byK[k]?.patH : o.byK[k]?.pat) || {}).forEach(([pt, q]) => { const t = (pat[pt] ??= {sets:0, reps:0, vol:0}); t.sets += q.sets; t.reps += q.reps; t.vol += q.vol; }));
   const types = {}, rpes = []; let hard = 0, known = 0;
-  ks.forEach(k => { const b = o.byK[k]; if (!b) return; Object.entries(b.types || {}).forEach(([t, n]) => types[t] = (types[t] || 0) + n); hard += b.hard || 0; known += b.known || 0; rpes.push(...(b.rpes || [])); });
+  ks.forEach(k => { const b = o.byK[k]; if (!b) return; Object.entries((H ? b.typesH : b.types) || {}).forEach(([t, n]) => types[t] = (types[t] || 0) + n); hard += b.hard || 0; known += b.known || 0; rpes.push(...(b.rpes || [])); });
   const rpe = rpes.length ? {avg: rpes.reduce((t, v) => t + v, 0) / rpes.length, min: Math.min(...rpes), max: Math.max(...rpes), n: rpes.length} : null;
   return {pat, types, hard, known, rpe, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
 const cmpKeys = day => day ? ["dA", "dB"] : ["cmpA", "cmpB"];
@@ -2066,13 +2078,13 @@ function weekCmpHtml(ser, key, a){
   const sed = n => `<b>${n.done}</b> <span class="faint">/ ${n.planned} previste</span>${n.kinds.length ? `<div class="faint wk">${n.kinds.map(q => `${KINDS[q.k].l} ${q.done}${q.done !== q.n ? `/${q.n}` : ""}`).join(" · ")}</div>` : ""}`;
   const tys = TYPE_KEYS.filter(t => nA.types[t] || nB?.types[t]);
   const rows = [["Sedute fatte", sed, (x, y) => dAbs(x.done, y.done)], ["Volume", n => `<b>${fmtN(n.volume)}</b> kg`, (x, y) => dPct(x.volume, y.volume)], ["Serie", n => `<b>${fmtN(n.sets)}</b>`, (x, y) => dPct(x.sets, y.sets)],
-    ...(tys.length && (tys.length > 1 || tys[0]) ? [["§Serie per tipo"], ...tys.map(t => [typeLbl(t), n => `<b>${n.types[t] || 0}</b>`, (x, y) => dAbs(x.types[t] || 0, y.types[t] || 0), 1])] : []),
+    ...(tys.length && (tys.length > 1 || tys[0]) ? [[`§${anQ.metric === "hard" ? "Serie allenanti per tipo" : "Serie per tipo"}`], ...tys.map(t => [typeLbl(t), n => `<b>${n.types[t] || 0}</b>`, (x, y) => dAbs(x.types[t] || 0, y.types[t] || 0), 1])] : []),
     ["§Intensità"], ["Serie allenanti", n => `<b>${n.hard}</b> <span class="faint">su ${n.known} con RPE/RIR</span>`, (x, y) => dAbs(x.hard, y.hard), 1],
     ["RPE seduta", n => n.rpe ? `<b>${fmt1(n.rpe.avg)}</b>${n.rpe.n > 1 ? ` <span class="faint">${n.rpe.min === n.rpe.max ? "tutte " + fmt1(n.rpe.min) : `da ${fmt1(n.rpe.min)} a ${fmt1(n.rpe.max)}`}</span>` : ""}` : `<span class="faint">–</span>`, (x, y) => dRpe(x.rpe, y.rpe), 1],
     ["Carico sRPE", n => `<b>${fmtN(n.srpe)}</b> UA`, (x, y) => dPct(x.srpe, y.srpe), 1]];
   return `<div class="wcmp ${B ? "two" : ""}">
-    <div class="h"></div><div class="h"><span class="ctag a">A</span>${esc(lab(A))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${A.ws}">vedi i giorni ›</button>`}</div>
-    ${B ? `<div class="h"><span class="ctag b">B</span>${esc(lab(B))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${B.ws}">vedi i giorni ›</button>`}</div><div class="h k">B rispetto ad A</div>` : `<div class="h faint" style="font-weight:500">Tocca ${day ? "un altro giorno" : "un'altra colonna"} per confrontarl${day ? "o" : "a"} con questa</div>`}
+    <div class="h"></div><div class="h"><span class="abtag a">A</span>${esc(lab(A))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${A.ws}">vedi i giorni ›</button>`}</div>
+    ${B ? `<div class="h"><span class="abtag b">B</span>${esc(lab(B))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${B.ws}">vedi i giorni ›</button>`}</div><div class="h k">B rispetto ad A</div>` : `<div class="h faint" style="font-weight:500">Tocca ${day ? "un altro giorno" : "un'altra colonna"} per confrontarl${day ? "o" : "a"} con questa</div>`}
     ${rows.map(([l, v, d, nk]) => l[0] === "§" ? `<div class="sec">${l.slice(1)}</div>` : `<div class="k ${nk ? "pk" : ""}">${l}</div><div>${v(nA)}</div>${B ? `<div>${v(nB)}</div><div class="d">${d(nA, nB)}</div>` : `<div></div>`}`).join("")}
     ${patCmpHtml(nA, nB)}
     <div class="foot">${f ? `Solo sedute: <b>${KINDS[f].l}</b> (filtro del grafico)` : "Tutte le sedute"}<button class="lnk" data-act="an-cmpx" data-day="${day ? 1 : ""}">✕ Togli la scelta</button></div></div>`;
@@ -2090,7 +2102,7 @@ function patCmpHtml(nA, nB){
   const mx = Math.max(1, ...pats.flatMap(pt => [nA.pat[pt]?.[m] || 0, nB?.pat[pt]?.[m] || 0]));
   const cell = (v, b) => `<div class="pv pr">${v ? `<b>${patVal(v, m)}</b><span class="pbar ${b ? "b" : ""}" style="width:${Math.max(3, Math.round(v / mx * 90))}px"></span>` : `<span class="faint">–</span>`}</div>`;
   const dd = (x, y) => !x && y ? `<span class="up">nuovo</span>` : x && !y ? `<span class="dn">tolto</span>` : m === "vol" ? dPct(x, y) : dAbs(x, y);
-  return `<div class="sec">Per pattern motorio ${patMBtns()}</div>
+  return `<div class="sec">Per pattern motorio${anQ.metric === "hard" ? ` <span class="honly">solo serie allenanti</span>` : ""} ${patMBtns()}</div>
     ${pats.length ? pats.map(pt => { const a = nA.pat[pt]?.[m] || 0, b = nB?.pat[pt]?.[m] || 0;
       return `<div class="k pk pr">${esc(pt)}</div>${cell(a)}${nB ? `${cell(b, 1)}<div class="d pr">${dd(a, b)}</div>` : `<div class="pr"></div>`}`; }).join("")
     : `<div class="pnone">${all ? `Nessun dato di ${PATM[m].l.toLowerCase()} registrato: prova un'altra voce.` : "Nessuna serie registrata."}</div>`}`;
@@ -2102,12 +2114,12 @@ function patGridHtml(ser, key, g){
   const mx = Math.max(1, ...N.flatMap(p => pats.map(pt => p[pt]?.[m] || 0))), cols = `grid-template-columns:${g.padL}px repeat(${ser.length}, ${g.band}px)`;
   const noPat = pats.includes("Senza pattern"), thin = g.band < 46;   // colonne strette (telefono): volume in migliaia di kg
   const cv = v => !v ? "–" : m === "vol" && thin ? (v / 1000).toLocaleString("it-IT", {maximumFractionDigits: v < 10000 ? 1 : 0}) : patVal(v, m);
-  return `<details class="sdet ptab" ${anQ.ptOpen ? "open" : ""}><summary>Vedi pattern motori</summary><div class="ptbl">
+  return `<details class="sdet ptab" ${anQ.ptOpen ? "open" : ""}><summary>Vedi pattern motori${anQ.metric === "hard" ? " · solo serie allenanti" : ""}</summary><div class="ptbl">
     <div class="pthead"><span class="lbl">Conta</span>${patMBtns()}</div>
     ${pats.length ? pats.map(pt => `<div class="wtl">${esc(pt)}</div><div class="ptr ${g.band < 34 ? "sm" : ""}" style="${cols}"><span></span>${ser.map((o, k) => { const v = N[k][pt]?.[m] || 0, f = v / mx;
       return `<span class="${o.open || o.cut ? "part" : ""} ${o.ws === anQ[ka] || o.ws === anQ[kb] ? "pk" : ""} ${v ? "" : "z"}" ${v ? `style="--f:${Math.round(12 + f * 78)}%;${f > .55 ? "color:var(--accent-ink)" : ""}"` : ""} title="${esc(pt)} · ${day ? esc(fmtLong(o.ws)) : `Sett. ${weekNo(o.ws)}`}: ${v ? fmtN(v) + (PATM[m].u ? " " + PATM[m].u : "") : "niente"}">${cv(v)}</span>`; }).join("")}</div>`).join("")
       : `<div class="faint" style="font-size:12px;margin-top:8px">Nessun dato di ${PATM[m].l.toLowerCase()} registrato nel periodo.</div>`}
-    <div class="faint" style="font-size:11px;margin-top:8px">${PATM[m].l}${m === "vol" ? ` = kg × ripetizioni${thin ? ", in migliaia di kg (2,5 = 2.500 kg)" : ""}` : m === "reps" ? " (per i salti sono i contatti)" : ""} di ogni pattern ${day ? "in quel giorno" : "nella settimana"}, dalle serie registrate. Il pattern è quello scritto in libreria${noPat ? "; <b>Senza pattern</b> = esercizi a cui manca" : ""}.${kFilt0(key) ? ` Solo sedute ${KINDS[kFilt0(key)].l} (filtro del grafico).` : ""}</div></div></details>`;
+    <div class="faint" style="font-size:11px;margin-top:8px">${PATM[m].l}${m === "vol" ? ` = kg × ripetizioni${thin ? ", in migliaia di kg (2,5 = 2.500 kg)" : ""}` : m === "reps" ? " (per i salti sono i contatti)" : ""} di ogni pattern ${day ? "in quel giorno" : "nella settimana"}, dalle serie ${anQ.metric === "hard" ? "<b>allenanti</b> (RPE ≥ 7 o RIR ≤ 3)" : "registrate"}. Il pattern è quello scritto in libreria${noPat ? "; <b>Senza pattern</b> = esercizi a cui manca" : ""}.${kFilt0(key) ? ` Solo sedute ${KINDS[kFilt0(key)].l} (filtro del grafico).` : ""}</div></div></details>`;
 }
 function weekTableHtml(ser, key, g){
   const day = !!ser[0]?.day, [ka, kb] = cmpKeys(day), cols = `grid-template-columns:${g.padL}px repeat(${ser.length}, ${g.band}px)`, N = ser.map(o => weekNums(o, key));
@@ -2119,7 +2131,7 @@ function weekTableHtml(ser, key, g){
     ${row("Sedute fatte / previste", (n, p) => `<b>${n.done}</b><i>/${n.planned}</i>${p ? `<small>${dAbs(p.done, n.done)}</small>` : ""}`)}
     ${row(`Volume (${thin ? "migliaia di kg" : "kg"})`, (n, p) => `<b>${big(n.volume)}</b>${p ? pc(p.volume, n.volume) : ""}`)}
     ${row("Serie", (n, p) => `<b>${fmtN(n.sets)}</b>${p ? thin ? `<small>${dAbs(p.sets, n.sets)}</small>` : pc(p.sets, n.sets) : ""}`)}
-    ${tys.length && (tys.length > 1 || tys[0]) ? `<div class="wts">Serie per tipo</div>${tys.map(t => row(typeLbl(t), (n, p) => n.types[t] ? `<b>${n.types[t]}</b>${p ? `<small>${dAbs(p.types[t] || 0, n.types[t])}</small>` : ""}` : `<i>–</i>${p && p.types[t] ? `<small>${dAbs(p.types[t], 0)}</small>` : ""}`)).join("")}` : ""}
+    ${tys.length && (tys.length > 1 || tys[0]) ? `<div class="wts">${anQ.metric === "hard" ? "Serie allenanti per tipo" : "Serie per tipo"}</div>${tys.map(t => row(typeLbl(t), (n, p) => n.types[t] ? `<b>${n.types[t]}</b>${p ? `<small>${dAbs(p.types[t] || 0, n.types[t])}</small>` : ""}` : `<i>–</i>${p && p.types[t] ? `<small>${dAbs(p.types[t], 0)}</small>` : ""}`)).join("")}` : ""}
     <div class="wts">Intensità</div>
     ${row("Serie allenanti <i>(con RPE/RIR scritto)</i>", (n, p) => n.known ? `<b>${n.hard}</b><i>/${n.known}</i>${p ? `<small>${dAbs(p.hard, n.hard)}</small>` : ""}` : `<i>–</i>`)}
     ${row("RPE seduta <i>(media e da–a)</i>", n => n.rpe ? `<b>${fmt1(n.rpe.avg)}</b>${n.rpe.min !== n.rpe.max ? `<small class="faint">${fmt1(n.rpe.min)}–${fmt1(n.rpe.max)}</small>` : ""}` : `<i>–</i>`)}

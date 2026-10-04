@@ -567,7 +567,8 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 #ps-chart .pscur{stroke-width:2.4}
 #ps-chart text,#ps-chart .psrefb{pointer-events:none}
 #ps-chart .psgl{stroke:var(--line)}
-#ps-chart .psplus{cursor:pointer}#ps-chart .psplus circle{fill:var(--surface);stroke-width:1.6}#ps-chart .psplus path{stroke-width:2;stroke-linecap:round}
+#ps-chart .psplus{cursor:pointer}
+.pgset.lk{opacity:.75;font-size:12px}#ps-chart .psplus circle{fill:var(--surface);stroke-width:1.6}#ps-chart .psplus path{stroke-width:2;stroke-linecap:round}
 #ps-chart .psplus:hover circle{fill:var(--surface2)}#ps-chart .psplusl{stroke-width:1.5;stroke-dasharray:3 3;opacity:.7}#ps-chart .psax{font-size:10.5px;fill:var(--faint)}
 #ps-chart .psrefb{fill:none;stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3}
 #ps-chart .psbar.ed{cursor:ns-resize;outline:none}#ps-chart .psbar.ed:focus-visible rect:first-child{stroke:var(--accent);stroke-width:2}
@@ -589,6 +590,7 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .expi{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;background:none;text-align:left;padding:7px 8px;border-radius:7px;font-size:14px;color:var(--ink);cursor:pointer}
 .expi span{color:var(--faint);font-size:12px;white-space:nowrap}
 .expi:hover,.expi.on{background:var(--accent-soft)}
+.vispill.edprog{color:var(--accent)}
 .psparams{margin:14px 0 0;padding:10px 0 4px;border-top:1px solid var(--line);flex-wrap:nowrap !important;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
 .psparams button{padding:3px 10px;font-size:12px;white-space:nowrap;flex:none}
 .psparams .lbl{white-space:nowrap;flex:none}
@@ -2384,7 +2386,7 @@ function drawEditorInner(){
   const res = w.results || {};
   const hasRes = w.status && w.status !== "todo";
   $("#modal").innerHTML = `<div class="back" data-act="ed-back"><div class="modal" role="dialog" aria-label="Allenamento">
-    <header><h2>${E.isNew?"Nuovo allenamento":"Allenamento"} · ${esc(a?.name||"")}</h2><button type="button" class="vispill ${w.hidden ? "off" : ""}" data-act="ed-vis" title="Clicca per ${w.hidden ? "renderlo visibile" : "nasconderlo"} all'atleta">${w.hidden ? ICON.eyeoff + "Nascosto all'atleta" : ICON.eye + "Visibile all'atleta"}</button><span class="status-pill st-${st}"><span class="dot st-${st}"></span>${STATUS_TXT[st]}</span><button class="btn ghost icon" data-act="ed-close" aria-label="Chiudi">✕</button></header>
+    <header><h2>${E.isNew?"Nuovo allenamento":"Allenamento"} · ${esc(a?.name||"")}</h2><button type="button" class="vispill edprog" data-act="ed-prog" title="Apri la Progressione su questo allenamento (anche se non è ancora salvato): confronto con le sedute precedenti">↗ Progressione</button><button type="button" class="vispill ${w.hidden ? "off" : ""}" data-act="ed-vis" title="Clicca per ${w.hidden ? "renderlo visibile" : "nasconderlo"} all'atleta">${w.hidden ? ICON.eyeoff + "Nascosto all'atleta" : ICON.eye + "Visibile all'atleta"}</button><span class="status-pill st-${st}"><span class="dot st-${st}"></span>${STATUS_TXT[st]}</span><button class="btn ghost icon" data-act="ed-close" aria-label="Chiudi">✕</button></header>
     <div class="body">
       <div class="row"><div class="field grow" style="min-width:220px"><label class="lbl" for="ed-title">Titolo</label><input class="in" id="ed-title" data-bind="title" value="${esc(w.title||"")}" placeholder="es. Forza + rincorsa"></div>
         <div class="field"><label class="lbl" for="ed-kind">Tipo di seduta</label><select class="in" id="ed-kind" data-bind="kind">${KINDS[w.kind] ? "" : `<option value="" selected>Da scegliere (ora: ${KINDS[guessKind(w)].l})</option>`}${KIND_KEYS.map(k => `<option value="${k}" ${w.kind === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select></div>
@@ -2757,6 +2759,13 @@ function pgDraft(a, occ, G){
   return out;
 }
 const pgChanged = (o, D) => { const d = D.byW[o.w.id]; return !!d && o.xs.some(x => JSON.stringify(d.sets[x.id]) !== JSON.stringify(x.sets || [])); };
+/* l'allenamento su cui lavora la Progressione: aperta dall'editor è la bozza (anche non salvata), altrimenti quello del calendario */
+const progW = (G, id) => G.edit && S.editor && S.editor.w.id === id ? S.editor.w : S.cache[G.email]?.[id];
+function pgOpenFromEditor(){ const E = S.editor; if (!E || E.tpl || !E.email) return;
+  const w = E.w, d = w.date || TODAY(), ws = monday(d);
+  S.prog = {email: E.email, from: addDays(ws, -14), to: addDays(ws, 13), sel: null, metric: null, P: {base: "exec", step: null, types: null}, manual: {}, drafting: false, mode: "sess", sm: null, sess: null, psRef: "kind", edit: true, wid: w.id};
+  drawProg();
+  ensureWeeks(E.email, addDays(ws, -7 * 16), 19).then(() => { if (S.prog) drawProg(); }); }
 function pgOpen(){
   const a = athByEmail(S.calAthlete); if (!a) return;
   S.prog = {email: a.email, from: S.ws, to: addDays(S.ws, 7 * S.calWeeks - 1), sel: null, metric: null, P: {base: "exec", step: null, types: null}, manual: {}, drafting: false, mode: "sess", sm: null, sess: null, psRef: "kind"};   // si parte dal confronto con la seduta più recente dello stesso tipo
@@ -2849,10 +2858,10 @@ const psLabel = k => PS_M[k] || {l: COLS[k]?.l || k, u: COLS[k]?.u || ""};
 /* parametri che si possono guardare nel grafico: quelli numerici usati dagli esercizi della seduta (o del riferimento, se è vuota) */
 function psParams(G, w){
   const skip = ["side", "rest", "tut"], n = {}, add = cols => { const seen = new Set(); (cols || []).forEach(c => { const k = c === "rir" ? "rpe" : c; if (skip.includes(k) || COLS[c]?.txt || seen.has(k)) return; seen.add(k); n[k] = (n[k] || 0) + 1; }); };
-  (w.exercises || []).forEach(x => add(x.cols));
-  if (!(w.exercises || []).length && G.psRef === "kind") { const {RS} = kindRefOf(G, w); (RS?.exercises || []).forEach(y => add(y.cols)); }
+  namedEx(w).forEach(x => add(x.cols));
+  if (!namedEx(w).length && G.psRef === "kind") { const {RS} = kindRefOf(G, w); (RS?.exercises || []).forEach(y => add(y.cols)); }
   const pref = ["kg", "reps", "rpe", "height", "dist", "time", "vel", "pct", "steps"];
-  const nx = (w.exercises || []).length || (G.psRef === "kind" ? (kindRefOf(G, w).RS?.exercises || []).length : 0);
+  const nx = namedEx(w).length || (G.psRef === "kind" ? (kindRefOf(G, w).RS?.exercises || []).length : 0);
   return [...(nx ? [{k: "sets", n: nx, l: "Serie", u: ""}] : []), ...Object.keys(n).sort((a, b) => (pref.indexOf(a) + 1 || 99) - (pref.indexOf(b) + 1 || 99)).map(k => ({k, n: n[k], ...psLabel(k)}))];
 }
 const PS_STEP = {kg: 2.5, pct: 2.5, reps: 1, rpe: 0.5, height: 1, dist: 0.5, time: 0.1, vel: 0.05, steps: 1};
@@ -2870,6 +2879,10 @@ function psSet(m, x, st, v){
   if (m === "rpe") { v = Math.min(10, Math.max(1, v)); if ((x.cols || []).includes("rpe")) st.rpe = numStr(v); else st.rir = numStr(Math.max(0, 10 - v)); }
   else st[m] = numStr(Math.max(m === "reps" || m === "steps" ? 1 : 0, v));
 }
+/* esercizi con un nome (un allenamento appena creato ha un esercizio vuoto: conta come seduta vuota) */
+const namedEx = w => (w?.exercises || []).filter(x => (x.name || "").trim());
+/* serie già fatta (o registrata) dall'atleta: nella Progressione resta com'è */
+const psLocked = (w, x, j) => { const r = (w?.results?.[x.id] || [])[j]; return !!r && (r.done || !emptyRes(r)); };
 /* la seduta in bozza: copia delle serie di ogni esercizio (si salva solo con "Applica") */
 function psDraft(G, w){ if (!G.sess || G.sess.wid !== w.id) G.sess = {wid: w.id, sets: Object.fromEntries((w.exercises || []).map(x => [x.id, clone(x.sets || [])]))}; return G.sess; }
 const psDirty = (G, w) => !!G.sess && G.sess.wid === w.id && (w.exercises || []).some(x => JSON.stringify(G.sess.sets[x.id]) !== JSON.stringify(x.sets || []));
@@ -2884,7 +2897,7 @@ const kindRefOf = (G, w) => { const KS = sameKindSessions(G.email, w); return {K
 const sessPool = RS => (RS.exercises || []).map(y => { const name = exName(RS, y);
   return {name, pat: libByName(name)?.pattern || "", cols: y.cols, sets: (RS.results?.[y.id] || []).map((r, j) => ({r, s: y.sets[j] || {}, extra: j >= y.sets.length})).filter(o => o.r.done || !emptyRes(o.r)).map(q => ({...q, name, cols: y.cols}))}; }).filter(it => it.sets.length);
 function psSeq(G, w){
-  const D = psDraft(G, w), ex = w.exercises || [], L = exLabels(ex), res = w.results || {}, out = [], order = [];
+  const D = psDraft(G, w), ex = namedEx(w), L = exLabels(ex), res = w.results || {}, out = [], order = [];
   const pickRef = (sets, st, j) => !sets.length ? null : (sets[j] && (sets[j].s.type || "") === (st.type || "")) ? sets[j] : sets.slice().reverse().find(q => (q.s.type || "") === (st.type || "")) || sets[Math.min(j, sets.length - 1)];
   // due riferimenti per esercizio: lo stesso esercizio (ultima volta) e la seduta più recente dello stesso pattern (lo stimolo più recente)
   const refs = {};
@@ -2953,7 +2966,7 @@ function psVolHtml(G, w){
   const D = G.sess?.wid === w.id ? G.sess : null, rows = {};
   if (G.psRef === "kind") { const {RS} = kindRefOf(G, w); if (!RS) return "";   // seduta intera contro seduta intera: serie per pattern e totale, differenze in evidenza
     const cur = {}, ref = {}, patOf = n => libByName(n)?.pattern || "Senza pattern";
-    (w.exercises || []).forEach(x => { const pt = patOf(x.name); cur[pt] = (cur[pt] || 0) + (D ? D.sets[x.id] : x.sets || []).length; });
+    namedEx(w).forEach(x => { const pt = patOf(x.name); cur[pt] = (cur[pt] || 0) + (D ? D.sets[x.id] : x.sets || []).length; });
     sessPool(RS).forEach(it => { const pt = it.pat || "Senza pattern"; ref[pt] = (ref[pt] || 0) + it.sets.length; });
     const pats = [...new Set([...Object.keys(cur), ...Object.keys(ref)])].sort((a, b) => Math.abs((cur[b] || 0) - (ref[b] || 0)) - Math.abs((cur[a] || 0) - (ref[a] || 0)));
     const tc = Object.values(cur).reduce((t, v) => t + v, 0), tr = Object.values(ref).reduce((t, v) => t + v, 0);
@@ -2976,12 +2989,16 @@ function psVolHtml(G, w){
     return `<span class="pv" title="${r.ref ? `Riferimento: ${esc(r.ref.items.map(o => o.name).join(" + "))} · ${fmtD(r.ref.date)}` : "Nessuna seduta precedente con questo pattern"}"><b>${esc(pt)}</b> ${r.n}${rn != null ? ` <span class="faint">/ ${rn} rif.</span> <span class="${d === 0 ? "" : d > 0 ? "up" : "dn"}">${d === 0 ? "=" : (d > 0 ? "+" : "") + d}</span>` : ""}</span>`; }).join("")}</div>`;
 }
 function drawProgSess(G, a){
-  const all = wIn(G.email, G.from, G.to).sort((x, y) => x.date.localeCompare(y.date));
+  let all = wIn(G.email, G.from, G.to);
+  if (G.edit && S.editor) { const ew = S.editor.w; all = [...all.filter(q => q.id !== ew.id), {...ew, date: ew.date || TODAY()}]; }   // dall'editor: la bozza al posto della versione salvata
+  all = all.sort((x, y) => x.date.localeCompare(y.date));
   const todayIdx = all.findIndex(w => w.date >= TODAY() && w.status !== "done");
   if (!G.wid || !all.some(w => w.id === G.wid)) G.wid = (all[todayIdx] || all[all.length - 1])?.id;
-  const w = all.find(x => x.id === G.wid);
+  const w = G.edit && S.editor && G.wid === S.editor.w.id ? S.editor.w : all.find(x => x.id === G.wid);
   const done = w && (w.status === "done" || Object.values(w.results || {}).some(rr => (rr || []).some(r => !emptyRes(r))));
-  const editable = w && !done && w.date >= TODAY();
+  /* in corso (l'atleta ha già registrato qualcosa ma non ha finito): si possono ancora cambiare le serie non ancora fatte */
+  const inProg = w && done && w.status !== "done" && w.status !== "skipped";
+  const editable = w && w.status !== "done" && w.status !== "skipped";   // modificabile finché non è conclusa (anche se è passata e non registrata); in corso: solo le serie non fatte
   const PP = w ? psParams(G, w) : []; if (!PP.some(q => q.k === G.sm)) G.sm = PP[0]?.k || "reps";
   const {seq, order} = w ? psSeq(G, w) : {seq: [], order: []};
   const dirty = w && psDirty(G, w);
@@ -2992,12 +3009,12 @@ function drawProgSess(G, a){
       <aside class="pgl">${all.map(x => { const st = statusOf(x);
         return `<button class="pgsess ${x.id === G.wid ? "on" : ""}" data-act="ps-pick" data-id="${x.id}"><span class="dot st-${st}"></span><span><b>${esc(DAYS[dayIdx(x.date)])} ${parse(x.date).getDate()}/${parse(x.date).getMonth()+1}</b> · ${esc(x.title || "Allenamento")}<small>${esc(KINDS[kindOf(x)].l)} · ${esc(STATUS_TXT[st])}</small></span></button>`; }).join("") || `<div class="faint" style="padding:12px;font-size:13px">Nessun allenamento nel periodo.</div>`}</aside>
       <section class="pgmain">${w ? `
-        <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}</span></div>
+        <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${inProg && editable ? "in corso: le serie già fatte restano, le altre si possono ancora cambiare" : editable && w.date < TODAY() ? "non registrata: trascina i punti per cambiare i valori" : editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}${G.edit ? ` · <b style="color:var(--accent)">dall'allenamento aperto</b>` : ""}</span></div>
         <div class="kfilt"><span class="lbl">Confronta con</span>${[["kind", `Seduta più recente (stesso tipo · ${KINDS[kindOf(w)].l})`], ["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${esc(l)}</button>`).join("")}</div>
         ${G.psRef === "kind" ? (({KS, RS}) => RS ? `<div class="kfilt psk"><span class="lbl">Riferimento</span><select class="in" data-change="ps-kref" aria-label="Seduta di riferimento">${KS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")}${q === KS[0] ? " (la più recente)" : ""}</option>`).join("")}</select>
           <span class="faint" style="font-size:12px">Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE).</span></div>`
           : `<div class="faint" style="font-size:12px;margin-top:6px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)} con dati registrati.</div>`)(kindRefOf(G, w)) : ""}
-        ${!(w.exercises || []).length ? (({RS}) => `<div class="psempty"><b>Questa seduta è ancora vuota.</b> ${RS && G.psRef === "kind" ? `Nel grafico vedi cosa è stato fatto ${esc(DAYS[dayIdx(effDate(RS))].toLowerCase())} ${esc(fmtD(effDate(RS)))} · ${esc(RS.title || "")}: puoi partire da lì${editable ? `, cambiando se vuoi gli esercizi (in cima quelli dello stesso pattern), e poi i numeri.
+        ${!namedEx(w).length ? (({RS}) => `<div class="psempty"><b>Questa seduta è ancora vuota.</b> ${RS && G.psRef === "kind" ? `Nel grafico vedi cosa è stato fatto ${esc(DAYS[dayIdx(effDate(RS))].toLowerCase())} ${esc(fmtD(effDate(RS)))} · ${esc(RS.title || "")}: puoi partire da lì${editable ? `, cambiando se vuoi gli esercizi (in cima quelli dello stesso pattern), e poi i numeri.
             <div class="pscopy">${(RS.exercises || []).map((y, k) => { const L = exLabels(RS.exercises), pat = libByName(y.name)?.pattern || "", ch = (G.psSwap || {})[y.id] || y.name;
               const same = S.exercises.filter(e => pat && e.pattern === pat && !sameName(e.name, y.name)).sort((a, b) => a.name.localeCompare(b.name)), rest = S.exercises.filter(e => !sameName(e.name, y.name) && !same.includes(e)).sort((a, b) => (a.pattern || "~").localeCompare(b.pattern || "~") || a.name.localeCompare(b.name));
               return `<label><span class="l" style="color:${blockColor(L[k])}">${esc(L[k])}</span><select class="in" data-change="ps-swap" data-y="${y.id}" aria-label="Esercizio al posto di ${esc(y.name)}">
@@ -3031,9 +3048,10 @@ function drawProgSess(G, a){
           <button class="btn ghost" data-act="ps-reset" ${dirty ? "" : "disabled"}>Annulla modifiche</button><button class="btn pri" data-act="ps-apply" ${dirty ? "" : "disabled"}>Applica modifiche</button></div></div>` : ""}
         <div class="pscards">${(w.exercises || []).map(x => { const ds = G.sess.sets[x.id] || [], cs = (x.cols || []).filter(c => !["side", "rest", "tut"].includes(c)).slice(0, 4);
           return `<div class="pgc"><div class="pgch"><b><span style="color:${exColor(order, exName(w, x))}">●</span> ${esc(exName(w, x))}</b><span>${esc(summarize({...x, sets: ds}) || "")}</span></div>
-            ${editable ? `<div class="pgedit">${ds.map((st, j) => { const old = (x.sets || [])[j] || {};
+            ${editable ? `<div class="pgedit">${ds.map((st, j) => { const old = (x.sets || [])[j] || {}, lk = psLocked(w, x, j);
+              if (lk) return `<div class="pgset lk" title="Serie già fatta dall'atleta: non si cambia">${execSetHtml({r: (w.results?.[x.id] || [])[j], s: old}, x.cols || [])}</div>`;
               return `<div class="pgset"><button class="tbtn ${st.type ? "has" : ""}" data-act="ps-type" data-x="${x.id}" data-j="${j}" title="Tipo di serie: clicca per cambiare">${st.type ? typeBadge(st.type) : "—"}</button>${cs.map(c => `<input class="${(st[c] || "") !== (old[c] || "") ? "chg" : ""}" aria-label="${esc(COLS[c].l)} serie ${j+1}" title="${esc(COLS[c].l)}" value="${esc(st[c] || "")}" placeholder="${esc(COLS[c].l.slice(0, 3).toLowerCase())}" data-change="ps-edit" data-x="${x.id}" data-j="${j}" data-c="${c}">`).join("")}</div>`; }).join("")}
-              <div class="pgsetb"><button data-act="ps-add" data-x="${x.id}">+ serie</button><button data-act="ps-rm" data-x="${x.id}" ${ds.length <= 1 ? "disabled" : ""}>− serie</button></div><div class="pl">${cs.map(c => esc(COLS[c].l)).join(" · ")}</div></div>`
+              <div class="pgsetb"><button data-act="ps-add" data-x="${x.id}">+ serie</button><button data-act="ps-rm" data-x="${x.id}" ${ds.length <= 1 || psLocked(w, x, ds.length - 1) ? "disabled" : ""}>− serie</button></div><div class="pl">${cs.map(c => esc(COLS[c].l)).join(" · ")}</div></div>`
             : (rs => rs.length ? `<div class="exs">${rs.map(q => execSetHtml(q, x.cols || [])).join("")}</div>` : `<div class="pl">${esc(summarize(x) || "–")}</div>`)((w.results?.[x.id] || []).map((r, j) => ({r, s: x.sets[j] || {}, extra: j >= x.sets.length})).filter(q => q.r.done || !emptyRes(q.r)))}</div>`; }).join("")}</div>` : `<div class="faint">Scegli una seduta a sinistra.</div>`}
       </section></div></div></div>`;
   if (w) drawPsChart(G, w, seq, order, editable, done);
@@ -3084,7 +3102,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     let t = r.ghost ? `rif. ${r.names.join(" + ")}${(w.exercises || []).length ? " · non riprese" : ""}` : r.names.join(" + "); const lab = r.ghost ? "" : r.grp + " · ";
     if ((lab + t).length > mx) t = t.slice(0, Math.max(1, mx - lab.length - 1)) + "…";
     svg += `<text class="psbl ${r.ghost ? "gh" : ""}" x="${(x1 + x2) / 2}" y="${H - 10}" text-anchor="middle">${lab ? `<tspan style="fill:${exColor(order, r.names[0])};font-weight:800">${esc(r.grp)}</tspan> · ` : ""}${esc(t)}</text>`; });
-  svg += path(ref, "psref") + (done ? path(cur, "psplan") + path(ex, "psexec") : path(cur, editable ? "pscur" : "psplan"));
+  svg += path(ref, "psref") + (done && editable ? path(cur, "pscur") + path(ex, "psexec") : done ? path(cur, "psplan") + path(ex, "psexec") : path(cur, editable ? "pscur" : "psplan"));   // in corso: programma modificabile + quello già fatto
   seq.forEach((o, k) => { const c = exColor(order, o.name), has = !!o.p;
     if (ref[k] != null && !o.ghost) svg += `<circle class="psrefd" cx="${X(k)}" cy="${YY(ref[k], k)}" r="3.6"/>`;
     if (done && ex[k] != null) svg += `<g class="psdot" data-k="${k}"><circle class="hitc" cx="${X(k)}" cy="${YY(ex[k], k)}" r="12"/><circle cx="${X(k)}" cy="${YY(ex[k], k)}" r="5.5" style="fill:${c};stroke:var(--surface);stroke-width:2"/></g><text class="vlab" x="${X(k)}" y="${YY(ex[k], k) - 11}" text-anchor="middle">${nf(ex[k])}</text>`;
@@ -3092,7 +3110,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     if (o.ghost) {   // serie del riferimento che qui non c'è (o seduta ancora vuota): solo da vedere
       if (ref[k] != null) svg += `<g class="psghost" data-k="${k}"><circle class="hitc" cx="${X(k)}" cy="${YY(ref[k], k)}" r="12"/><circle class="psrefd" cx="${X(k)}" cy="${YY(ref[k], k)}" r="4.5"/></g><text class="vlab gh" x="${X(k)}" y="${YY(ref[k], k) - 10}" text-anchor="middle">${nf(ref[k])}</text>`;
       else svg += `<text x="${X(k)}" y="${pt + ih - 4}" text-anchor="middle" style="font-size:11px;fill:var(--faint)">–</text>`; }
-    else if (has && done) { if (cur[k] != null) svg += `<circle cx="${X(k)}" cy="${YY(cur[k], k)}" r="4" style="fill:var(--surface);stroke:var(--faint);stroke-width:2"/>`; }
+    else if (has && done && (!editable || psLocked(w, o.x, o.j))) { if (cur[k] != null) svg += `<circle cx="${X(k)}" cy="${YY(cur[k], k)}" r="4" style="fill:var(--surface);stroke:var(--faint);stroke-width:2"/>`; }
     else if (has) { const v = cur[k] ?? one.lo; svg += `<g class="psdot ${editable ? "ed" : ""}" data-k="${k}" ${editable ? `tabindex="0" role="slider" aria-label="${esc(o.name)} serie ${o.j+1}: ${cur[k] ?? "vuoto"} ${esc(psUnit(o.p))}" aria-valuenow="${cur[k] ?? ""}"` : ""}>
       <circle class="hitc" cx="${X(k)}" cy="${YY(v, k)}" r="14"/>
       <circle cx="${X(k)}" cy="${YY(v, k)}" r="${cur[k] == null ? 4 : 6.5}" style="fill:${cur[k] == null ? "var(--surface)" : c};stroke:${cur[k] == null ? c : chg ? "var(--ink)" : "var(--surface)"};stroke-width:2"/></g>
@@ -3127,7 +3145,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
       const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
       let x = b.left - p.left + b.width / 2 - tip.offsetWidth / 2; x = Math.max(0, Math.min(x, p.width - tip.offsetWidth)); tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight - 4) + "px"; });
     g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") tip.hidden = true; });
-    if (!editable) return;
+    if (!editable || !g.classList.contains("ed")) return;   // serie già fatte: solo da vedere
     g.addEventListener("pointerdown", e => psDragStart(e, G, w, k));
     g.addEventListener("keydown", e => { if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return; e.preventDefault();
       if (G.sm === "sets") { const a = G.sess.sets[o.x.id]; if (e.key === "ArrowUp") a.push(nextSet(a)); else if (a.length > 1) a.pop(); drawProg(); return; }
@@ -3191,7 +3209,8 @@ function psDragSets(e, G, w, k, seq){
 }
 function psRefreshSide(G, w){ clearTimeout(G.psT); G.psT = setTimeout(() => { if (S.prog === G) drawProg(); }, 700); }
 async function psApply(){
-  const G = S.prog, w = S.cache[G.email]?.[G.wid]; if (!w || !psDirty(G, w)) return;
+  const G = S.prog, w = progW(G, G.wid); if (!w || !psDirty(G, w)) return;
+  if (G.edit && w === S.editor?.w) { w.exercises.forEach(x => { x.sets = clone(G.sess.sets[x.id]); }); S.editor.dirty = true; G.sess = null; toast("Modifiche portate nell'allenamento: ricordati di salvarlo"); drawProg(); return; }
   const nw = clone(w); nw.exercises.forEach(x => { x.sets = clone(G.sess.sets[x.id]); }); nw.updatedAt = new Date().toISOString();
   await DB.saveWorkout(G.email, nw); S.cache[G.email][w.id] = {...w, exercises: nw.exercises, updatedAt: nw.updatedAt};
   G.sess = null; toast("Seduta aggiornata"); drawProg();
@@ -3942,6 +3961,7 @@ const ACT = {
   async "tpl-dup"(){ const E = S.editor; if (E.dirty && !(await confirmBox("Duplicare senza salvare le modifiche fatte a questo?", "Duplica", false))) return;
     const c = freshCopy(E.w, ""); S.editor = null; openEditor(null, {id: c.id, title: (E.w.title||"") + " (copia)", notes: c.notes, kind: c.kind, exercises: c.exercises}, true, true); },
   "ed-pdf"(){ pdfDialog(); },
+  "ed-prog"(){ pgOpenFromEditor(); },
   async "ed-totpl"(){ const w = S.editor.w; const c = freshCopy(w, "");
     const t = {id: uid(), title: (w.title||"Allenamento").trim(), notes: w.notes||"", ...(KINDS[w.kind] ? {kind: w.kind} : {}), exercises: c.exercises, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()};
     await DB.saveTemplate(t); S.templates.push(t); S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
@@ -4019,14 +4039,15 @@ const ACT = {
   "a-swap"(t){ swapSheet(t.dataset.x); },
   "a-hist"(t){ histSheet(t.dataset.x); },
   "pg-open"(){ pgOpen(); },
-  async "pg-mode"(t){ const G = S.prog; if (G.mode === "sess" && G.sess && psDirty(G, S.cache[G.email][G.sess.wid] || {}) && !(await confirmBox("Lasciare la seduta senza applicare le modifiche?", "Lascia", false))) return; G.sess = null; G.mode = t.dataset.v; drawProg(); },
-  async "ps-pick"(t){ const G = S.prog; if (G.sess && G.sess.wid !== t.dataset.id && psDirty(G, S.cache[G.email][G.sess.wid] || {}) && !(await confirmBox("Cambiare seduta senza applicare le modifiche a questa?", "Cambia", false))) return;
+  async "pg-mode"(t){ const G = S.prog; if (G.mode === "sess" && G.sess && psDirty(G, progW(G, G.sess.wid) || {}) && !(await confirmBox("Lasciare la seduta senza applicare le modifiche?", "Lascia", false))) return; G.sess = null; G.mode = t.dataset.v; drawProg(); },
+  async "ps-pick"(t){ const G = S.prog; if (G.sess && G.sess.wid !== t.dataset.id && psDirty(G, progW(G, G.sess.wid) || {}) && !(await confirmBox("Cambiare seduta senza applicare le modifiche a questa?", "Cambia", false))) return;
     G.sess = null; G.psPop = null; G.psSwap = null; G.wid = t.dataset.id; drawProg(); },
-  async "ps-copyref"(t){ const G = S.prog, w = S.cache[G.email]?.[G.wid], RS = S.cache[G.email]?.[t.dataset.id]; if (!w || !RS || (w.exercises || []).length) return;
+  async "ps-copyref"(t){ const G = S.prog, w = progW(G, G.wid), RS = S.cache[G.email]?.[t.dataset.id]; if (!w || !RS || namedEx(w).length) return;
     const sw = G.psSwap || {}, exs = freshCopy(RS, "").exercises.map((x, k) => { const y = RS.exercises[k], nn = sw[y.id]; if (!nn || sameName(nn, y.name)) return x;
       const lib = libByName(nn), cols = lib?.cols?.length ? [...lib.cols] : x.cols;   // esercizio cambiato: stesse serie, con i parametri del nuovo esercizio (i valori in comune restano)
       return {...x, name: lib?.name || nn, alts: undefined, cols, sets: x.sets.map(st => Object.fromEntries([...cols.map(c => [c, st[c] ?? ""]), ...(st.type ? [["type", st.type]] : [])]))}; });
     const nw = {...clone(w), exercises: JSON.parse(JSON.stringify(exs)), updatedAt: new Date().toISOString()}; G.psSwap = null;
+    if (G.edit && w === S.editor?.w) { w.exercises = nw.exercises; S.editor.dirty = true; G.sess = null; toast("Copiata nell'allenamento: cambia i numeri e poi salvalo"); return drawProg(); }
     await DB.saveWorkout(G.email, nw); S.cache[G.email][w.id] = {...w, exercises: nw.exercises, updatedAt: nw.updatedAt};
     G.sess = null; toast("Copiata: ora cambia i numeri e applica"); drawProg(); },
   "ex-pick"(t, e){ e?.stopPropagation?.(); exPickOpen(t); },
@@ -4040,12 +4061,13 @@ const ACT = {
   "ps-apply"(){ psApply(); },
   "ps-type"(t){ const st = S.prog.sess.sets[t.dataset.x][+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
   "ps-add"(t){ const a = S.prog.sess.sets[t.dataset.x]; a.push(nextSet(a)); drawProg(); },
-  "ps-rm"(t){ const a = S.prog.sess.sets[t.dataset.x]; if (a.length > 1) a.pop(); drawProg(); },
-  "ps-poptype"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; if (t.dataset.t) o.st.type = t.dataset.t; else delete o.st.type; drawProg(); },
-  "ps-popdup"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; G.sess.sets[o.x.id].splice(o.j + 1, 0, clone(o.st)); G.psPop = null; drawProg(); },
-  "ps-popdel"(t){ const G = S.prog, w = S.cache[G.email][G.wid], o = psSeq(G, w).seq[+t.dataset.k]; const a = G.sess.sets[o.x.id]; if (a.length > 1) a.splice(o.j, 1); else toast("L'esercizio deve avere almeno una serie"); G.psPop = null; drawProg(); },
+  "ps-rm"(t){ const G = S.prog, w = progW(G, G.wid), x = (w?.exercises || []).find(q => q.id === t.dataset.x), a = G.sess.sets[t.dataset.x]; if (a.length > 1 && !(x && psLocked(w, x, a.length - 1))) a.pop(); drawProg(); },
+  "ps-poptype"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; if (t.dataset.t) o.st.type = t.dataset.t; else delete o.st.type; drawProg(); },
+  "ps-popdup"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; G.sess.sets[o.x.id].splice(o.j + 1, 0, clone(o.st)); G.psPop = null; drawProg(); },
+  "ps-popdel"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; const a = G.sess.sets[o.x.id]; if (a.length > 1) a.splice(o.j, 1); else toast("L'esercizio deve avere almeno una serie"); G.psPop = null; drawProg(); },
   "ps-popclose"(){ S.prog.psPop = null; drawProg(); },
-  async "pg-close"(){ const G = S.prog; if (G && (Object.keys(G.manual).length || (G.sess && psDirty(G, S.cache[G.email][G.sess.wid] || {}))) && !(await confirmBox("Chiudere senza applicare i ritocchi fatti a mano?", "Chiudi", false))) return;
+  async "pg-close"(){ const G = S.prog; if (G && (Object.keys(G.manual).length || (G.sess && psDirty(G, progW(G, G.sess.wid) || {}))) && !(await confirmBox("Chiudere senza applicare i ritocchi fatti a mano?", "Chiudi", false))) return;
+    if (G?.edit && S.editor) { S.prog = null; drawEditor(); return; }   // aperta dall'allenamento: si torna lì
     S.prog = null; $("#modal").innerHTML = ""; renderView(); },
   "pg-range"(t){ const G = S.prog; G.from = t.dataset.f; G.to = t.dataset.t; G.sel = null; G.sess = null; G.wid = null;
     ensureWeeks(G.email, monday(G.from), Math.floor(daysBetween(monday(G.from), monday(G.to)) / 7) + 1).then(() => drawProg()); },

@@ -266,6 +266,11 @@ table.list{width:100%;border-collapse:collapse}
 .tpl-foot{display:flex;gap:6px;padding:8px 12px 12px;border-top:1px solid var(--line);margin-top:6px}
 .colpick{display:flex;flex-wrap:wrap;gap:6px}
 .plist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;max-height:340px;overflow-y:auto}
+.libtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:-4px 0 14px;overflow-x:auto}
+.libtabs button{border:0;background:none;padding:8px 10px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;cursor:pointer}
+.libtabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.prow .lnk{white-space:nowrap}
+.btn.danger-fill{background:var(--bad);border-color:var(--bad);color:#fff}
 .prow{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:13px}
 .prow:last-child{border-bottom:0}
 .prow > span:first-child{flex:1}
@@ -1558,7 +1563,7 @@ async function onUser(u){
 async function loadCoachData(){
   let st;
   [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);
-  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null;
+  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null;
   S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name));
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = activeAthletes()[0]?.email || null;
@@ -1884,7 +1889,7 @@ function viewExercises(m){
     <h3>${e.isNew ? "Nuovo esercizio" : "Modifica esercizio"}</h3>
 ${exFieldsHtml(e)}
     <div class="row"><button class="btn pri">Salva</button><button type="button" class="btn ghost" data-act="ex-cancel">Annulla</button><span class="grow"></span>${e.isNew?"":`<button type="button" class="btn danger ghost" data-act="ex-del">Elimina</button>`}</div>
-  </form>` : paramsPanel()}</div></div>`;
+  </form>` : libPanel()}</div></div>`;
   const f = $("#ex-form");
   if (f) f.onsubmit = async ev => { ev.preventDefault();
     if (!(await saveExForm(e))) return;
@@ -2338,11 +2343,17 @@ function drawSessionChart(el, w){
     g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") tip.hidden = true; }); g.addEventListener("blur", () => tip.hidden = true); });
 }
 
+/* riquadro a destra della pagina Esercizi: Parametri · Categorie · Pattern motori */
+function libPanel(){
+  const t = S.libTab || "params";
+  return `<div class="libtabs" role="tablist">${[["params", "Parametri"], ["cat", "Categorie"], ["pat", "Pattern motori"]].map(([k, l]) => `<button role="tab" class="${t === k ? "on" : ""}" aria-selected="${t === k}" data-act="lib-tab" data-v="${k}">${l}</button>`).join("")}</div>
+    ${t === "params" ? paramsPanel() : optPanel(t)}`;
+}
 /* ---------- parametri: elenco e creazione ---------- */
 function paramsPanel(){
   const base = Object.keys(BASE_COLS), custom = (S.params || []).filter(p => !p.deleted && !(p.key in BASE_COLS));
   const changed = k => (S.params || []).some(p => p.key === k);
-  return `<div class="form"><h3>Parametri</h3>
+  return `<div class="form">
     <div class="note">I parametri che scegli per un esercizio (es. Reps · Kg · RPE) diventano le colonne della tabella. «L'atleta lo compila» = lo registra lui a ogni serie; gli altri sono solo indicazioni tue.</div>
     <div class="plist">${base.map(k => { const d = COLS_REAL[k]; return `<div class="prow ${d.archived ? "off" : ""}"><span>${esc(d.l)}${d.u && d.u !== "%" && d.u.toLowerCase() !== d.l.toLowerCase() ? ` <span class="faint">${esc(d.u)}</span>` : ""}${d.archived ? ' <span class="tag">nascosto</span>' : changed(k) ? ` <span class="tag" title="Originale: ${esc(BASE_COLS[k].l)}">modificato</span>` : ""}${d.h ? `<br><span class="faint" style="font-size:11px">${esc(d.h)}</span>` : ""}</span><span class="faint">${d.log ? (d.pick ? "l'atleta lo sceglie da menu" : "l'atleta lo compila") : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${k}">Modifica</button></div>`; }).join("")}
       ${custom.map(p => `<div class="prow ${p.archived ? "off" : ""}"><span><b>${esc(p.label)}</b>${p.unit ? ` <span class="faint">${esc(p.unit)}</span>` : ""}${p.archived ? ' <span class="tag">nascosto</span>' : ""}</span><span class="faint">${p.log ? (p.pick ? "l'atleta lo sceglie da menu" : "l'atleta lo compila") : "solo indicazione"}</span><button class="btn sm ghost" data-act="param-edit" data-k="${p.key}">Modifica</button></div>`).join("")}</div>
@@ -2439,9 +2450,61 @@ const DEF_OPTS = {
   pat: ["Squat","Hinge","Monopodalico","Spinta orizzontale","Spinta verticale","Tirata orizzontale","Tirata verticale","Olimpico","Salto","Sprint","Salto in alto","Anti-estensione","Anti-rotazione","Anti-flessione laterale","Trasporto"],
 };
 const OPT_FIELD = {cat: "category", pat: "pattern"};
+/* elenco salvato dal coach (settings/app → opts.cat / opts.pat): se non l'ha mai toccato valgono le voci di partenza */
+const optBase = k => Array.isArray(S.opts?.[k]) ? S.opts[k] : DEF_OPTS[k];
+const OPT_TXT = {cat: {one: "categoria", the: "la categoria", Tit: "Categorie", none: "senza categoria", New: "Nuova categoria"},
+                 pat: {one: "pattern motorio", the: "il pattern", Tit: "Pattern motori", none: "senza pattern", New: "Nuovo pattern motorio"}};
+const optKey = v => String(v || "").trim().toLowerCase();
+const optUsers = (k, v) => S.exercises.filter(x => optKey(x[OPT_FIELD[k]]) === optKey(v));
+/* riquadro "Categorie" / "Pattern motori" della pagina Esercizi */
+function optPanel(k){
+  const T = OPT_TXT[k], list = optList(k);
+  return `<div class="form"><div class="note">Se rinomini una voce, si aggiornano tutti gli esercizi che la usano${k === "pat" ? " (anche Analisi e Progressione)" : ""}.</div>
+    <div class="plist">${list.map(v => { const n = optUsers(k, v).length;
+      return `<div class="prow"><span class="grow"><b>${esc(v)}</b></span>${n ? `<button class="lnk" data-act="opt-show" data-v="${esc(v)}" title="Mostra questi esercizi nell'elenco">${n} esercizi${n === 1 ? "o" : ""}</button>` : `<span class="faint" style="font-size:12px">non usato</span>`}<button class="btn sm ghost" data-act="opt-edit" data-k="${k}" data-v="${esc(v)}">Modifica</button></div>`; }).join("") || `<div class="prow faint">Nessuna voce.</div>`}</div>
+    <button class="btn" data-act="opt-new" data-k="${k}">+ ${T.New}</button></div>`;
+}
+async function saveOpts(k, list){
+  const seen = new Map(); list.filter(Boolean).forEach(v => { const t = v.trim().replace(/\s+/g, " "); if (t && !seen.has(optKey(t))) seen.set(optKey(t), t); });
+  S.opts = {...(S.opts || {}), [k]: [...seen.values()]}; await DB.saveSettings({opts: S.opts});
+}
+/* rinomina / unisci / elimina / aggiungi una voce */
+function optDialog(k, v){
+  const T = OPT_TXT[k], isNew = v == null, users = isNew ? [] : optUsers(k, v), others = optList(k).filter(o => optKey(o) !== optKey(v));
+  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="op-form"><header><h2>${isNew ? T.New : `Modifica ${T.one}`}</h2></header><div class="body">
+    <div class="field"><label class="lbl" for="op-n">Nome</label><input class="in" id="op-n" value="${esc(v || "")}" required autocomplete="off"></div>
+    ${isNew ? "" : `<div class="faint" id="op-info" style="font-size:13px">${users.length ? `Usato da <b>${users.length}</b> esercizi${users.length === 1 ? "o" : ""}: ${esc(users.slice(0, 6).map(x => x.name).join(", "))}${users.length > 6 ? "…" : ""}. Se lo rinomini si aggiornano tutti.` : "Nessun esercizio lo usa."}</div>`}
+    <div id="op-del" hidden class="field"><label class="lbl" for="op-to">Gli esercizi che lo usano diventano</label><select class="in" id="op-to"><option value="">— ${T.none} —</option>${others.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join("")}</select></div>
+    </div><footer>${isNew ? "" : `<button type="button" class="btn ghost danger" id="op-delb">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="op-no">Annulla</button><button class="btn pri" id="op-ok">Salva</button></footer></form></div>`;
+  const close = () => $("#confirm").innerHTML = "";
+  $("#op-no").onclick = close;
+  let delMode = false;
+  const db = $("#op-delb");
+  if (db) db.onclick = async () => {
+    if (!users.length) { close(); if (!(await confirmBox(`Eliminare ${T.the} «${v}»?`, "Elimina"))) return;
+      await saveOpts(k, optList(k).filter(o => optKey(o) !== optKey(v))); toast(`«${v}» eliminato`); return renderView(); }
+    if (!delMode) { delMode = true; $("#op-del").hidden = false; $("#op-n").disabled = true; $("#op-info").innerHTML = `Lo usano <b>${users.length}</b> esercizi${users.length === 1 ? "o" : ""}: ${esc(users.slice(0, 6).map(x => x.name).join(", "))}${users.length > 6 ? "…" : ""}.`; db.hidden = true; $("#op-ok").textContent = "Elimina"; $("#op-ok").classList.add("danger-fill"); return; } };
+  $("#op-form").onsubmit = async ev => { ev.preventDefault();
+    if (delMode) { const to = $("#op-to").value; close();
+      for (const x of users) { x[OPT_FIELD[k]] = to; await DB.saveExercise(x); }
+      await saveOpts(k, optList(k).filter(o => optKey(o) !== optKey(v)));
+      toast(`«${v}» eliminato${to ? ` · ${users.length} esercizi spostati su «${to}»` : ""}`); return renderView(); }
+    const nv = $("#op-n").value.trim().replace(/\s+/g, " "); if (!nv) return;
+    const clash = others.find(o => optKey(o) === optKey(nv));
+    if (isNew) { if (clash) return toast(`«${clash}» esiste già`);
+      close(); await saveOpts(k, [...optList(k), nv]); toast(`«${nv}» aggiunto`); return renderView(); }
+    if (nv === v) return close();
+    close();
+    if (clash && !(await confirmBox(`«${clash}» esiste già. Unisco «${v}» a «${clash}»? ${users.length ? `I ${users.length} esercizi di «${v}» passano a «${clash}».` : ""}`, "Unisci", false))) return;
+    const target = clash || nv;
+    for (const x of users) { x[OPT_FIELD[k]] = target; await DB.saveExercise(x); }
+    await saveOpts(k, optList(k).map(o => optKey(o) === optKey(v) ? target : o));
+    toast(clash ? `Unito a «${target}»` : `Rinominato in «${target}»`); renderView(); };
+  setTimeout(() => { const i = $("#op-n"); i?.focus(); i?.select(); }, 30);
+}
 function optList(k, extra){
   const seen = new Map();
-  [...DEF_OPTS[k], ...S.exercises.map(x => x[OPT_FIELD[k]]), extra].filter(Boolean).forEach(v => { const key = v.trim().toLowerCase(); if (key && !seen.has(key)) seen.set(key, v.trim()); });
+  [...optBase(k), ...S.exercises.map(x => x[OPT_FIELD[k]]), extra].filter(Boolean).forEach(v => { const key = v.trim().toLowerCase(); if (key && !seen.has(key)) seen.set(key, v.trim()); });
   return [...seen.values()].sort((a,b) => a.localeCompare(b, "it"));
 }
 function optSelect(k, val){
@@ -4200,6 +4263,10 @@ const ACT = {
     for (const [name, category, pattern, cols] of todo) { const x = {id: uid(), name, category, pattern, cols, video:"", notes:""}; await DB.saveExercise(x); S.exercises.push(x); }
     S.exercises.sort((a,b) => a.name.localeCompare(b.name)); fillDatalist(); toast(`${todo.length} esercizi aggiunti`); renderView(); },
   "param-new"(){ paramDialog(null); },
+  "lib-tab"(t){ S.libTab = t.dataset.v; renderView(); },
+  "opt-edit"(t){ optDialog(t.dataset.k, t.dataset.v); },
+  "opt-new"(t){ optDialog(t.dataset.k, null); },
+  "opt-show"(t){ S.exQuery = t.dataset.v; renderView(); $("#ex-q")?.scrollIntoView({block: "nearest"}); },
   "param-edit"(t){ const k = t.dataset.k; const p = (S.params||[]).find(x => x.key === k)
       || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: BASE_COLS[k].txt || 0, pick: BASE_COLS[k].pick || 0, archived: false} : null);
     if (p) paramDialog(clone(p)); },

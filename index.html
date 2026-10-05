@@ -826,7 +826,10 @@ tr.ok .ck svg{stroke:#fff}
 .ptr{display:grid;gap:0;font-variant-numeric:tabular-nums}
 .ptr span{margin:0 1.5px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;min-width:0;overflow:hidden;white-space:nowrap;background:color-mix(in srgb,var(--accent) var(--f),var(--surface2))}
 .ptr span:first-child{background:none}.ptr span.z{background:var(--surface2);color:var(--faint);font-weight:500}
-.ptr.sm span{font-size:10px;margin:0 1px}.ptr span.part{opacity:.55}.ptr span.pk{box-shadow:inset 0 0 0 2px var(--ink)}
+.ptr.sm span{font-size:10px;margin:0 1px}
+.wtl.sub{text-transform:none;letter-spacing:0;font-weight:600;font-size:11px;color:var(--faint);margin:3px 0 1px 10px}
+.ptr.sub span{height:18px;font-size:10.5px;font-weight:600}
+.wcmp .sub{padding-top:3px;padding-bottom:3px;font-size:11.5px;color:var(--muted);border-top-style:dashed}.wcmp .k.sub{padding-left:22px}.ptr span.part{opacity:.55}.ptr span.pk{box-shadow:inset 0 0 0 2px var(--ink)}
 .chartwrap .vlab{fill:var(--ink);font-size:11px;font-weight:600;font-family:var(--sans)}
 .ctip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:12px;min-width:140px;z-index:5}
 .ctip .tv{font-size:16px;font-weight:700;color:var(--ink)}
@@ -1311,6 +1314,15 @@ const athOptions = (sel, label = a => esc(a.name)) => { const G = athByGroup(); 
   return G.length > 1 || g ? `<optgroup label="${esc(g || "Senza gruppo")}">${o}</optgroup>` : o; }).join(""); };
 const athByEmail = e => S.athletes.find(a => a.email === e);
 const libByName = n => S.exercises.find(x => x.name.trim().toLowerCase() === String(n||"").trim().toLowerCase());
+/* esercizi "intercambiabili" = stesso pattern motorio E stessa categoria (con il joint by joint lo stesso pattern, es. Hip movement,
+   vale per forza, potenza e mobilità). Se a uno dei due manca la categoria conta solo il pattern. */
+const ck = v => String(v || "").trim().toLowerCase();
+const samePC = (a, b) => !!a?.pattern && ck(a.pattern) === ck(b?.pattern) && (!a.category || !b?.category || ck(a.category) === ck(b.category));
+let PCM = null;   // pattern → categorie usate in libreria (si ricalcola a ogni ridisegno della pagina)
+const patCatsMap = () => PCM ??= S.exercises.reduce((m, e) => { if (e.pattern) (m[ck(e.pattern)] ??= new Set()).add(ck(e.category)); return m; }, {});
+/* gruppo di un esercizio per Progressione e confronti: "Squat" se il pattern ha una sola categoria, altrimenti "Squat · Forza" */
+const pcOf = n => { const l = libByName(n); if (!l?.pattern) return "";
+  return patCatsMap()[ck(l.pattern)]?.size > 1 ? `${l.pattern.trim()} · ${l.category?.trim() || "senza categoria"}` : l.pattern.trim(); };
 /* ---------- cambio esercizio da parte dell'atleta ----------
    w.swaps = {idEsercizio: {name, reason, note, at}} → il programma del coach resta intatto, si registra solo cosa è stato fatto davvero */
 const SWAP_REASONS = {busy:"Attrezzo occupato", missing:"Attrezzo mancante", pain:"Fastidio / dolore", other:"Altro"};
@@ -1324,7 +1336,7 @@ function swapOptions(x){
   const own = altsOf(x).filter(n => n && !sameName(n, x.name));
   /* prima le alternative del coach, poi (come riserva) gli esercizi con lo stesso pattern motorio */
   const lib = libByName(x.name);
-  const same = !lib?.pattern ? [] : S.exercises.filter(e => e.id !== lib.id && e.pattern === lib.pattern && !own.some(n => sameName(n, e.name)))
+  const same = !lib?.pattern ? [] : S.exercises.filter(e => e.id !== lib.id && samePC(lib, e) && !own.some(n => sameName(n, e.name)))
     .sort((a,b) => (b.category === lib.category) - (a.category === lib.category) || a.name.localeCompare(b.name, "it")).slice(0, 8).map(e => e.name);
   const list = [...own, ...same];
   return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: lib?.pattern || "", nCoach: own.length, list};
@@ -1671,7 +1683,7 @@ function render(){
   renderView();
 }
 async function renderView(){
-  const m = $("#main"); if (!m) return;
+  const m = $("#main"); if (!m) return; PCM = null;
   const v = S.view;
   if (v === "overview") return viewOverview(m);
   if (v === "calendar") return viewCalendar(m);
@@ -1975,6 +1987,10 @@ function weeklySeries(email, from, to){
 }
 /* pattern motorio di un esercizio (dalla libreria) e metriche per pattern in Analisi */
 const patOfName = n => libByName(n)?.pattern?.trim() || "Senza pattern";
+/* chiavi per l'Analisi: il pattern (totale) e "pattern␁categoria" (dettaglio, mostrato se nel periodo ci sono più categorie) */
+const SUBK = "\u0001";
+const patKeys = n => { const pt = patOfName(n); if (pt === "Senza pattern") return [pt]; return [pt, pt + SUBK + (libByName(n)?.category?.trim() || "Senza categoria")]; };
+const addPat = (m, n, sets, reps, vol) => patKeys(n).forEach(k => { const q = (m[k] ??= {sets:0, reps:0, vol:0}); q.sets += sets; q.reps += reps; q.vol += vol; });
 const PATM = {sets: {l: "Serie", u: ""}, reps: {l: "Ripetizioni / contatti", u: ""}, vol: {l: "Volume", u: "kg"}};
 const patOrder = pats => { const d = DEF_OPTS.pat.map(x => x.toLowerCase()), i = x => x === "Senza pattern" ? 1e4 : (d.indexOf(x.toLowerCase()) + 1 || 1e3);
   return [...pats].sort((a, b) => i(a) - i(b) || a.localeCompare(b, "it")); };
@@ -1982,8 +1998,8 @@ function accumLoad(o, list){
   const inK = (f, k) => !f || f === "all" || f === k;   // filtro "tipo di seduta" per volume e serie (anQ.kv / anQ.ks)
   list.forEach(w => { const st = wStats(w), k = kindOf(w), b = (o.byK[k] ??= {volume:0, sets:0, srpe:0, n:0, done:0, pat:{}, patH:{}, types:{}, typesH:{}, hard:0, known:0, rpes:[]});
     Object.entries(st.types).forEach(([t, n]) => b.types[t] = (b.types[t] || 0) + n); Object.entries(st.typesH).forEach(([t, n]) => b.typesH[t] = (b.typesH[t] || 0) + n);
-    Object.entries(st.ex).forEach(([n, e]) => { if (!e.h.sets) return; const q = (b.patH[patOfName(n)] ??= {sets:0, reps:0, vol:0}); q.sets += e.h.sets; q.reps += e.h.reps; q.vol += e.h.vol; }); b.hard += st.hard; b.known += st.known; if (st.rpe) b.rpes.push(st.rpe);
-    Object.entries(st.ex).forEach(([n, e]) => { const q = (b.pat[patOfName(n)] ??= {sets:0, reps:0, vol:0}); q.sets += e.sets; q.reps += e.reps; q.vol += e.vol; });
+    Object.entries(st.ex).forEach(([n, e]) => { if (e.h.sets) addPat(b.patH, n, e.h.sets, e.h.reps, e.h.vol); }); b.hard += st.hard; b.known += st.known; if (st.rpe) b.rpes.push(st.rpe);
+    Object.entries(st.ex).forEach(([n, e]) => addPat(b.pat, n, e.sets, e.reps, e.vol));
     b.volume += st.vol; b.sets += st.sets; b.srpe += st.srpe; b.n++; if (w.status === "done") b.done++;
     if (inK(anQ.kv, k)) o.volume += st.vol; if (inK(anQ.ks, k)) { o.sets += st.sets; o.hard = (o.hard || 0) + st.hard; } o.srpe += st.srpe; if (w.status === "done") o.done++; });
   return o;
@@ -2120,29 +2136,31 @@ const dRpe = (a, b) => !a || !b ? "" : (d => Math.abs(d) < .05 ? `<span class="f
 const patMBtns = () => `<span class="kfilt pmb" role="group" aria-label="Cosa contare per pattern">${Object.entries(PATM).map(([k, m]) => `<button class="${anQ.patM === k ? "on" : ""}" data-patm="${k}" aria-pressed="${anQ.patM === k}">${m.l}${m.u ? ` (${m.u})` : ""}</button>`).join("")}</span>`;
 const patVal = (v, m) => !v ? "–" : m === "vol" ? compact(v) : fmtN(v);
 function patCmpHtml(nA, nB){
-  const m = anQ.patM, pats = patOrder(Object.keys({...nA.pat, ...(nB?.pat || {})}).filter(pt => nA.pat[pt]?.[m] || nB?.pat[pt]?.[m]));
+  const m = anQ.patM, keys = Object.keys({...nA.pat, ...(nB?.pat || {})}).filter(k => nA.pat[k]?.[m] || nB?.pat[k]?.[m]);
+  const pats = patOrder(keys.filter(k => !k.includes(SUBK))), subs = pt => { const l = keys.filter(k => k.startsWith(pt + SUBK)).sort((x, y) => x.localeCompare(y, "it")); return l.length > 1 ? l : []; };
   const all = Object.keys({...nA.pat, ...(nB?.pat || {})}).length;
   const mx = Math.max(1, ...pats.flatMap(pt => [nA.pat[pt]?.[m] || 0, nB?.pat[pt]?.[m] || 0]));
-  const cell = (v, b) => `<div class="pv pr">${v ? `<b>${patVal(v, m)}</b><span class="pbar ${b ? "b" : ""}" style="width:${Math.max(3, Math.round(v / mx * 90))}px"></span>` : `<span class="faint">–</span>`}</div>`;
+  const cell = (v, b, sub) => `<div class="pv pr ${sub ? "sub" : ""}">${v ? `<b>${patVal(v, m)}</b><span class="pbar ${b ? "b" : ""}" style="width:${Math.max(3, Math.round(v / mx * 90))}px"></span>` : `<span class="faint">–</span>`}</div>`;
   const dd = (x, y) => !x && y ? `<span class="up">nuovo</span>` : x && !y ? `<span class="dn">tolto</span>` : m === "vol" ? dPct(x, y) : dAbs(x, y);
   return `<div class="sec">Per pattern motorio${anQ.metric === "hard" ? ` <span class="honly">solo serie allenanti</span>` : ""} ${patMBtns()}</div>
-    ${pats.length ? pats.map(pt => { const a = nA.pat[pt]?.[m] || 0, b = nB?.pat[pt]?.[m] || 0;
-      return `<div class="k pk pr">${esc(pt)}</div>${cell(a)}${nB ? `${cell(b, 1)}<div class="d pr">${dd(a, b)}</div>` : `<div class="pr"></div>`}`; }).join("")
+    ${pats.length ? pats.flatMap(pt => [pt, ...subs(pt)]).map(k => { const a = nA.pat[k]?.[m] || 0, b = nB?.pat[k]?.[m] || 0, sub = k.includes(SUBK);
+      return `<div class="k pk pr ${sub ? "sub" : ""}">${sub ? `↳ ${esc(k.split(SUBK)[1])}` : esc(k)}</div>${cell(a, 0, sub)}${nB ? `${cell(b, 1, sub)}<div class="d pr ${sub ? "sub" : ""}">${dd(a, b)}</div>` : `<div class="pr ${sub ? "sub" : ""}"></div>`}`; }).join("")
     : `<div class="pnone">${all ? `Nessun dato di ${PATM[m].l.toLowerCase()} registrato: prova un'altra voce.` : "Nessuna serie registrata."}</div>`}`;
 }
 /* griglia pattern × settimane (o giorni), allineata alle colonne del grafico; più colore = più lavoro */
 function patGridHtml(ser, key, g){
   const day = !!ser[0]?.day, [ka, kb] = cmpKeys(day), m = anQ.patM, N = ser.map(o => weekNums(o, key)).map(n => n.pat);
-  const pats = patOrder([...new Set(N.flatMap(p => Object.keys(p)))].filter(pt => N.some(p => p[pt]?.[m])));
+  const keys = [...new Set(N.flatMap(p => Object.keys(p)))].filter(k => N.some(p => p[k]?.[m]));
+  const pats = patOrder(keys.filter(k => !k.includes(SUBK))), subs = pt => { const l = keys.filter(k => k.startsWith(pt + SUBK)).sort((x, y) => x.localeCompare(y, "it")); return l.length > 1 ? l : []; };
   const mx = Math.max(1, ...N.flatMap(p => pats.map(pt => p[pt]?.[m] || 0))), cols = `grid-template-columns:${g.padL}px repeat(${ser.length}, ${g.band}px)`;
   const noPat = pats.includes("Senza pattern"), thin = g.band < 46;   // colonne strette (telefono): volume in migliaia di kg
   const cv = v => !v ? "–" : m === "vol" && thin ? (v / 1000).toLocaleString("it-IT", {maximumFractionDigits: v < 10000 ? 1 : 0}) : patVal(v, m);
   return `<details class="sdet ptab" ${anQ.ptOpen ? "open" : ""}><summary>Vedi pattern motori${anQ.metric === "hard" ? " · solo serie allenanti" : ""}</summary><div class="ptbl">
     <div class="pthead"><span class="lbl">Conta</span>${patMBtns()}</div>
-    ${pats.length ? pats.map(pt => `<div class="wtl">${esc(pt)}</div><div class="ptr ${g.band < 34 ? "sm" : ""}" style="${cols}"><span></span>${ser.map((o, k) => { const v = N[k][pt]?.[m] || 0, f = v / mx;
-      return `<span class="${o.open || o.cut ? "part" : ""} ${o.ws === anQ[ka] || o.ws === anQ[kb] ? "pk" : ""} ${v ? "" : "z"}" ${v ? `style="--f:${Math.round(12 + f * 78)}%;${f > .55 ? "color:var(--accent-ink)" : ""}"` : ""} title="${esc(pt)} · ${day ? esc(fmtLong(o.ws)) : `Sett. ${weekNo(o.ws)}`}: ${v ? fmtN(v) + (PATM[m].u ? " " + PATM[m].u : "") : "niente"}">${cv(v)}</span>`; }).join("")}</div>`).join("")
+    ${pats.length ? pats.flatMap(p0 => [p0, ...subs(p0)]).map(pt => `<div class="wtl ${pt.includes(SUBK) ? "sub" : ""}">${pt.includes(SUBK) ? `↳ ${esc(pt.split(SUBK)[1])}` : esc(pt)}</div><div class="ptr ${g.band < 34 ? "sm" : ""} ${pt.includes(SUBK) ? "sub" : ""}" style="${cols}"><span></span>${ser.map((o, k) => { const v = N[k][pt]?.[m] || 0, f = v / mx;
+      return `<span class="${o.open || o.cut ? "part" : ""} ${o.ws === anQ[ka] || o.ws === anQ[kb] ? "pk" : ""} ${v ? "" : "z"}" ${v ? `style="--f:${Math.round(12 + f * 78)}%;${f > .55 ? "color:var(--accent-ink)" : ""}"` : ""} title="${esc(pt.replace(SUBK, " · "))} · ${day ? esc(fmtLong(o.ws)) : `Sett. ${weekNo(o.ws)}`}: ${v ? fmtN(v) + (PATM[m].u ? " " + PATM[m].u : "") : "niente"}">${cv(v)}</span>`; }).join("")}</div>`).join("")
       : `<div class="faint" style="font-size:12px;margin-top:8px">Nessun dato di ${PATM[m].l.toLowerCase()} registrato nel periodo.</div>`}
-    <div class="faint" style="font-size:11px;margin-top:8px">${PATM[m].l}${m === "vol" ? ` = kg × ripetizioni${thin ? ", in migliaia di kg (2,5 = 2.500 kg)" : ""}` : m === "reps" ? " (per i salti sono i contatti)" : ""} di ogni pattern ${day ? "in quel giorno" : "nella settimana"}, dalle serie ${anQ.metric === "hard" ? "<b>allenanti</b> (RPE ≥ 7 o RIR ≤ 3)" : "registrate"}. Il pattern è quello scritto in libreria${noPat ? "; <b>Senza pattern</b> = esercizi a cui manca" : ""}.${kFilt0(key) ? ` Solo sedute ${KINDS[kFilt0(key)].l} (filtro del grafico).` : ""}</div></div></details>`;
+    <div class="faint" style="font-size:11px;margin-top:8px">${PATM[m].l}${m === "vol" ? ` = kg × ripetizioni${thin ? ", in migliaia di kg (2,5 = 2.500 kg)" : ""}` : m === "reps" ? " (per i salti sono i contatti)" : ""} di ogni pattern ${day ? "in quel giorno" : "nella settimana"}, dalle serie ${anQ.metric === "hard" ? "<b>allenanti</b> (RPE ≥ 7 o RIR ≤ 3)" : "registrate"}. Il pattern è quello scritto in libreria${noPat ? "; <b>Senza pattern</b> = esercizi a cui manca" : ""}${pats.some(p0 => subs(p0).length) ? "; ↳ = divisione per categoria (forza, potenza, mobilità…)" : ""}.${kFilt0(key) ? ` Solo sedute ${KINDS[kFilt0(key)].l} (filtro del grafico).` : ""}</div></div></details>`;
 }
 function weekTableHtml(ser, key, g){
   const day = !!ser[0]?.day, [ka, kb] = cmpKeys(day), cols = `grid-template-columns:${g.padL}px repeat(${ser.length}, ${g.band}px)`, N = ser.map(o => weekNums(o, key));
@@ -2809,9 +2827,9 @@ function stimStats(rs){
 const stimTds = st => `<td class="mt">${st.n}</td><td class="mt">${st.hard ?? "–"}</td><td class="mt">${st.reps || "–"}</td><td class="mt">${st.rpe != null ? fmtN(st.rpe, 1) : "–"}</td>`;
 const stimThs = contacts => `<th class="r">Serie</th><th class="r" title="Serie con RPE ≥ 7 o RIR ≤ 3">Allenanti</th><th class="r">${contacts ? "Contatti" : "Rip."}</th><th class="r">RPE medio</th>`;
 function patternHistory(email, x, cur, limit = 6){
-  const lib = libByName(x.name), pat = lib?.pattern; if (!pat) return null;
+  const pat = pcOf(x.name); if (!pat) return null;
   const alts = altsOf(x);
-  const match = n => { const l = libByName(n); return (l && l.pattern === pat) || alts.some(a => sameName(a, n)) || sameName(n, x.name); };
+  const match = n => pcOf(n) === pat || alts.some(a => sameName(a, n)) || sameName(n, x.name);
   const out = [];
   const ws = Object.values(S.cache[email] || {}).filter(w => w.id !== cur.id && w.results && effDate(w) < (cur.date || TODAY()))
     .sort((a, b) => effDate(b).localeCompare(effDate(a)));
@@ -2918,7 +2936,7 @@ function pgVal(metric, rows){
   return null;
 }
 function pgMatch(sel){ if (sel.kind === "ex") return (w, x) => sameName(x.name, sel.key) || sameName(exName(w, x), sel.key);
-  return (w, x) => [x.name, exName(w, x)].some(n => libByName(n)?.pattern === sel.key); }
+  return (w, x) => [x.name, exName(w, x)].some(n => pcOf(n) === sel.key); }
 function pgOccurrences(email, from, to, sel){
   const m = pgMatch(sel), out = [];
   wIn(email, from, to).forEach(w => { const xs = (w.exercises || []).filter(x => m(w, x)); if (!xs.length) return;
@@ -3024,7 +3042,7 @@ function drawProg(){
   const all = wIn(G.email, G.from, G.to);
   // elenco esercizi nel periodo, raggruppati per pattern
   const names = {}; all.forEach(w => (w.exercises || []).forEach(x => { const n = x.name.trim(); if (!n) return; (names[n] ??= new Set()).add(w.id); }));
-  const byPat = {}; Object.keys(names).forEach(n => { const pt = libByName(n)?.pattern || "Senza pattern"; (byPat[pt] ??= []).push(n); });
+  const byPat = {}; Object.keys(names).forEach(n => { const pt = pcOf(n) || "Senza pattern"; (byPat[pt] ??= []).push(n); });
   const pats = Object.keys(byPat).sort((x, y) => (x === "Senza pattern") - (y === "Senza pattern") || x.localeCompare(y, "it"));
   if (!G.sel && pats.length) { const first = byPat[pats[0]].sort()[0]; G.sel = {kind: "ex", key: first}; }
   const occ = G.sel ? pgOccurrences(G.email, G.from, G.to, G.sel) : [];
@@ -3123,7 +3141,7 @@ function sameKindSessions(email, w, limit = 6){ const k = kindOf(w);
 const kindRefOf = (G, w) => { const KS = sameKindSessions(G.email, w); return {KS, RS: KS.find(q => q.id === G.psKref) || KS[0] || null}; };
 /* serie eseguite di una seduta, esercizio per esercizio (con il pattern) */
 const sessPool = RS => (RS.exercises || []).map(y => { const name = exName(RS, y);
-  return {name, pat: libByName(name)?.pattern || "", cols: y.cols, sets: (RS.results?.[y.id] || []).map((r, j) => ({r, s: y.sets[j] || {}, extra: j >= y.sets.length})).filter(o => o.r.done || !emptyRes(o.r)).map(q => ({...q, name, cols: y.cols}))}; }).filter(it => it.sets.length);
+  return {name, pat: pcOf(name), cols: y.cols, sets: (RS.results?.[y.id] || []).map((r, j) => ({r, s: y.sets[j] || {}, extra: j >= y.sets.length})).filter(o => o.r.done || !emptyRes(o.r)).map(q => ({...q, name, cols: y.cols}))}; }).filter(it => it.sets.length);
 function psSeq(G, w){
   const D = psDraft(G, w), ex = namedEx(w), L = exLabels(ex), res = w.results || {}, out = [], order = [];
   const pickRef = (sets, st, j) => !sets.length ? null : (sets[j] && (sets[j].s.type || "") === (st.type || "")) ? sets[j] : sets.slice().reverse().find(q => (q.s.type || "") === (st.type || "")) || sets[Math.min(j, sets.length - 1)];
@@ -3142,7 +3160,7 @@ function psSeq(G, w){
     if (RS) { const pool = sessPool(RS), R0 = {kind: "kind", date: effDate(RS), title: RS.title}, nOf = x => (D.sets[x.id] || []).length; let rest = [];
       ex.forEach(x => { refs[x.id].R0 = R0; const k = pool.findIndex(it => sameName(it.name, exName(w, x)) || sameName(it.name, x.name)); if (k < 0) return;
         refs[x.id].own = pool[k].sets.slice(0, nOf(x)); rest.push(...pool[k].sets.slice(nOf(x))); pool.splice(k, 1); });
-      ex.forEach(x => { const r = refs[x.id]; if (r.own.length) return; const pat = libByName(x.name)?.pattern; if (!pat) return;
+      ex.forEach(x => { const r = refs[x.id]; if (r.own.length) return; const pat = pcOf(x.name); if (!pat) return;
         pool.filter(it => it.pat === pat).forEach(it => { while (r.own.length < nOf(x) && it.sets.length) r.own.push(it.sets.shift()); }); });
       rest = [...rest, ...pool.flatMap(it => it.sets)];
       ex.forEach(x => { const r = refs[x.id]; if (r.own.length) return; r.own = rest.slice(0, nOf(x)); rest = rest.slice(nOf(x)); });
@@ -3193,7 +3211,7 @@ function psSeq(G, w){
 function psVolHtml(G, w){
   const D = G.sess?.wid === w.id ? G.sess : null, rows = {};
   if (G.psRef === "kind") { const {RS} = kindRefOf(G, w); if (!RS) return "";   // seduta intera contro seduta intera: serie per pattern e totale, differenze in evidenza
-    const cur = {}, ref = {}, patOf = n => libByName(n)?.pattern || "Senza pattern";
+    const cur = {}, ref = {}, patOf = n => pcOf(n) || "Senza pattern";
     namedEx(w).forEach(x => { const pt = patOf(x.name); cur[pt] = (cur[pt] || 0) + (D ? D.sets[x.id] : x.sets || []).length; });
     sessPool(RS).forEach(it => { const pt = it.pat || "Senza pattern"; ref[pt] = (ref[pt] || 0) + it.sets.length; });
     const pats = [...new Set([...Object.keys(cur), ...Object.keys(ref)])].sort((a, b) => Math.abs((cur[b] || 0) - (ref[b] || 0)) - Math.abs((cur[a] || 0) - (ref[a] || 0)));
@@ -3209,7 +3227,7 @@ function psVolHtml(G, w){
       ${less.length ? `<div class="pdl"><span class="pdk dn">Meno lavoro su</span><span>${less.map(it).join(" · ")}</span></div>` : ""}
       ${!big.length ? `<div class="pdl"><span class="pdk">Pattern</span><span>distribuzione simile (differenze di al massimo 1 serie)</span></div>` : ""}</div>
       <div class="psvol"><span class="lbl">Dettaglio serie per pattern</span>${pats.map(pt => chip(pt, cur[pt] || 0, ref[pt] || 0)).join("")}</div>`; }
-  (w.exercises || []).forEach(x => { const pt = libByName(x.name)?.pattern; if (!pt) return;
+  (w.exercises || []).forEach(x => { const pt = pcOf(x.name); if (!pt) return;
     const r = (rows[pt] ??= {n: 0, ex: [], ref: undefined}); r.n += (D ? D.sets[x.id] : x.sets || []).length; if (!r.ex.includes(exName(w, x))) r.ex.push(exName(w, x));
     if (r.ref === undefined) { const P = patternHistory(G.email, x, w, 1); r.ref = P?.list?.[0] || null; } });
   const list = Object.entries(rows); if (!list.length) return "";
@@ -3243,8 +3261,8 @@ function drawProgSess(G, a){
           <span class="faint" style="font-size:12px">Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE).</span></div>`
           : `<div class="faint" style="font-size:12px;margin-top:6px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)} con dati registrati.</div>`)(kindRefOf(G, w)) : ""}
         ${!namedEx(w).length ? (({RS}) => `<div class="psempty"><b>Questa seduta è ancora vuota.</b> ${RS && G.psRef === "kind" ? `Nel grafico vedi cosa è stato fatto ${esc(DAYS[dayIdx(effDate(RS))].toLowerCase())} ${esc(fmtD(effDate(RS)))} · ${esc(RS.title || "")}: puoi partire da lì${editable ? `, cambiando se vuoi gli esercizi (in cima quelli dello stesso pattern), e poi i numeri.
-            <div class="pscopy">${(RS.exercises || []).map((y, k) => { const L = exLabels(RS.exercises), pat = libByName(y.name)?.pattern || "", ch = (G.psSwap || {})[y.id] || y.name;
-              const same = S.exercises.filter(e => pat && e.pattern === pat && !sameName(e.name, y.name)).sort((a, b) => a.name.localeCompare(b.name)), rest = S.exercises.filter(e => !sameName(e.name, y.name) && !same.includes(e)).sort((a, b) => (a.pattern || "~").localeCompare(b.pattern || "~") || a.name.localeCompare(b.name));
+            <div class="pscopy">${(RS.exercises || []).map((y, k) => { const L = exLabels(RS.exercises), pat = pcOf(y.name), ch = (G.psSwap || {})[y.id] || y.name;
+              const same = S.exercises.filter(e => pat && pcOf(e.name) === pat && !sameName(e.name, y.name)).sort((a, b) => a.name.localeCompare(b.name)), rest = S.exercises.filter(e => !sameName(e.name, y.name) && !same.includes(e)).sort((a, b) => (a.pattern || "~").localeCompare(b.pattern || "~") || a.name.localeCompare(b.name));
               return `<label><span class="l" style="color:${blockColor(L[k])}">${esc(L[k])}</span><select class="in" data-change="ps-swap" data-y="${y.id}" aria-label="Esercizio al posto di ${esc(y.name)}">
                 <option value="${esc(y.name)}">${esc(y.name)} (come allora)</option>
                 ${same.length ? `<optgroup label="Stesso pattern · ${esc(pat)}">${same.map(e => `<option ${sameName(e.name, ch) ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</optgroup>` : ""}
@@ -3489,7 +3507,7 @@ function drawPgChart(el, a, occ, metric, draft){
 /* alternative che l'atleta può scegliere se non riesce a fare l'esercizio */
 function altsRowHtml(x, i, lib){
   const own = Array.isArray(x.alts), list = altsOf(x);
-  const pat = lib?.pattern ? S.exercises.filter(e => e.id !== lib.id && e.pattern === lib.pattern).length : 0;
+  const pat = lib?.pattern ? S.exercises.filter(e => e.id !== lib.id && samePC(lib, e)).length : 0;
   return `<div class="altrow"><span class="lbl" title="Se l'atleta non riesce a fare questo esercizio (attrezzo occupato, mancante…) può sceglierne uno di questi">Se non può farlo ↔</span>
     ${list.map((n,k) => `<span class="altc ${own ? "" : "inh"}">${esc(n)}<button type="button" data-act="alt-rm" data-i="${i}" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
     ${!own && list.length ? `<span class="faint" style="font-size:11px">dalla libreria</span>` : ""}
@@ -3882,7 +3900,7 @@ async function openAthleteHome(){
   renderAthlete();
 }
 let saveT = null, saveState = "";
-function renderAthlete(){
+function renderAthlete(){ PCM = null;
   const A = S.ath, e = S.user.email;
   if (A.open) return renderWorkout();
   const today = TODAY();

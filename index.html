@@ -215,6 +215,8 @@ body.nosel{user-select:none}
 .wcard{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:7px 8px;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.03)}
 .wcard:hover{border-color:var(--accent)}
 .wcard .t{display:flex;gap:6px;align-items:center;font-weight:600;font-size:13px;line-height:1.2}
+/* il titolo può restringersi e andare a capo (anche dentro una parola lunga, con il trattino): l'occhio resta dentro la scheda */
+.wcard .t .tt{min-width:0;overflow-wrap:break-word;-webkit-hyphens:auto;hyphens:auto}
 .wcard .t .vis{margin-left:auto;flex:none;align-self:flex-start;border:0;background:none;padding:3px;margin:-3px -4px 0 0;border-radius:6px;color:var(--faint);display:flex;cursor:pointer}
 .wcard .t .vis:hover{color:var(--ink);background:var(--surface2)}
 .wcard .t .vis svg{width:15px;height:15px}
@@ -1339,7 +1341,7 @@ function swapOptions(x){
   const same = !lib?.pattern ? [] : S.exercises.filter(e => e.id !== lib.id && samePC(lib, e) && !own.some(n => sameName(n, e.name)))
     .sort((a,b) => (b.category === lib.category) - (a.category === lib.category) || a.name.localeCompare(b.name, "it")).slice(0, 8).map(e => e.name);
   const list = [...own, ...same];
-  return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: lib?.pattern || "", nCoach: own.length, list};
+  return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: lib?.pattern || "", category: lib?.category || "", nCoach: own.length, list};
 }
 
 function statusOf(w){
@@ -1772,7 +1774,7 @@ function drawCalendar(){
 function cardHtml(email, w){
   const st = statusOf(w);
   return `<div class="wcard st-${st} ${S.calSel.has(w.id) ? "sel" : ""} ${w.hidden ? "hid" : ""}" draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
-    <div class="t"><span class="dot st-${st}"></span>${esc(w.title||"Senza titolo")}<button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></div>
+    <div class="t"><span class="dot st-${st}"></span><span class="tt">${esc(w.title||"Senza titolo")}</span><button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></div>
     ${w.hidden ? `<div class="hidl">Nascosto all'atleta</div>` : ""}
     <div class="kindt" title="Tipo di seduta${KINDS[w.kind] ? "" : " (dedotto dagli esercizi: sceglilo nell'allenamento)"}">${KINDS[kindOf(w)].l}${KINDS[w.kind] ? "" : " ?"}</div>
     ${miniListHtml(w.exercises, w)}
@@ -1916,7 +1918,7 @@ function exFieldsHtml(e){
     <div class="field"><span class="lbl">Alternative (se l'atleta non riesce a farlo: attrezzo occupato, mancante…)</span><div class="altrow">
       ${(e.alts||[]).map((n,k) => `<span class="altc">${esc(n)}<button type="button" data-act="xalt-rm" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
       <input class="in altin" id="x-alt" list="exlib" aria-label="Aggiungi alternativa" data-change="xalt-add" placeholder="+ alternativa"></div>
-      <span class="faint" style="font-size:12px">${(e.alts||[]).length ? "L'atleta le vedrà per prime; sotto, come riserva, anche gli esercizi con lo stesso pattern motorio." : "Se non ne metti, all'atleta verranno proposti gli esercizi con lo stesso pattern motorio."}</span></div>
+      <span class="faint" style="font-size:12px">${(e.alts||[]).length ? "L'atleta le vedrà per prime; sotto, come riserva, anche gli esercizi con stesso pattern motorio e stessa categoria." : "Se non ne metti, all'atleta verranno proposti gli esercizi con stesso pattern motorio e stessa categoria."}</span></div>
     <div class="field"><label class="lbl" for="x-video">Link video (YouTube, Instagram…)</label><div class="row" style="flex-wrap:nowrap"><input class="in grow" id="x-video" type="url" value="${esc(e.video||"")}" placeholder="https://"><button type="button" class="btn" data-act="x-video-try" title="Guarda come lo vedrà l'atleta">▶ Prova</button></div>
       <span class="faint" style="font-size:12px">Si apre dentro l'app con YouTube, Vimeo, Google Drive (condiviso a "chiunque abbia il link") e Instagram.</span></div>
     <div class="field"><label class="lbl" for="x-notes">Indicazioni tecniche</label><textarea class="in" id="x-notes">${esc(e.notes||"")}</textarea></div>`;
@@ -3366,7 +3368,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
       if (d) svg += `<text class="psd ${d > 0 ? "up" : "dn"}" x="${X(k)}" y="${YY(cur[k], k) + 21}" text-anchor="middle">${d > 0 ? "+" : "−"}${nf(Math.abs(d))}</text>`;
       else if (cur[k] != null && !o.ref && o.refInfo && !o.cover) svg += `<text class="psd up" x="${X(k)}" y="${YY(cur[k], k) + 21}" text-anchor="middle">nuova</text>`; }
     else svg += `<text x="${X(k)}" y="${pt + ih - 4}" text-anchor="middle" style="font-size:12px;fill:var(--faint)">–</text>`;
-    if (SETS && editable && !o.ghost && o.st && o.j === (G.sess.sets[o.x.id] || []).length - 1) { const px = X(k) + slot * 0.62, py = rowY(k);
+    if (SETS && editable && !o.ghost && o.st && o.j === (G.sess.sets[o.x.id] || []).length - 1) { const px = X(k) + Math.min(slot * 0.62, 44), py = rowY(k);   // il + resta vicino all'ultima serie (con poche serie le colonne sono larghissime e finiva fuori dal grafico)
       svg += `<line class="psplusl" x1="${X(k) + 7}" x2="${px - 8}" y1="${py}" y2="${py}" style="stroke:${c}"/><g class="psplus" data-act="ps-add" data-x="${o.x.id}" role="button" tabindex="0" aria-label="Aggiungi una serie a ${esc(o.name)}"><title>Aggiungi una serie</title><circle cx="${px}" cy="${py}" r="8.5" style="stroke:${c}"/><path d="M${px - 4} ${py}h8M${px} ${py - 4}v8" style="stroke:${c}"/></g>`; }
     // tipo di serie: sopra quello di adesso, sotto (più piccolo) quello del riferimento nella stessa posizione; arancione se diverso
     const ty = o.ghost ? "" : (o.st.type || ""), rt = o.ghost ? (o.gtype || "") : (o.rtype ?? null);
@@ -3513,7 +3515,7 @@ function altsRowHtml(x, i, lib){
     ${!own && list.length ? `<span class="faint" style="font-size:11px">dalla libreria</span>` : ""}
     <input class="in altin" list="exlib" aria-label="Aggiungi alternativa" data-change="alt-add" data-i="${i}" placeholder="+ alternativa">
     ${own && lib ? `<button type="button" class="btn sm ghost" data-act="alt-reset" data-i="${i}" title="Usa le alternative scritte nella libreria">↺ come in libreria</button>` : ""}
-    ${list.length ? "" : `<span class="faint" style="font-size:11px">${pat ? `nessuna: gli proporrò gli esercizi con lo stesso pattern (${esc(lib.pattern)})` : "nessuna: non potrà cambiarlo"}</span>`}</div>`;
+    ${list.length ? "" : `<span class="faint" style="font-size:11px">${pat ? `nessuna: gli proporrò gli esercizi con stesso pattern e categoria (${esc([lib.pattern, lib.category].filter(Boolean).join(" · "))})` : "nessuna: non potrà cambiarlo"}</span>`}</div>`;
 }
 /* ---------- correzione dei dati registrati (coach) ---------- */
 async function saveCoachFix(patch){
@@ -4068,9 +4070,9 @@ function swapSheet(xid){
       <div id="sw-o" style="display:flex;flex-direction:column;gap:14px">
       ${o.nCoach ? `<div class="field"><span class="lbl">Alternative indicate dal coach</span>
         <div class="wopts" role="radiogroup" aria-label="Alternative indicate dal coach">${o.list.slice(0, o.nCoach).map((n,k) => opt(k, n, "")).join("")}</div></div>` : ""}
-      ${o.list.length > o.nCoach ? `<div class="field"><span class="lbl">${o.nCoach ? "Altre possibilità · stesso pattern motorio" : "Esercizi con lo stesso pattern motorio"} (${esc(o.pattern)})</span>
+      ${o.list.length > o.nCoach ? `<div class="field"><span class="lbl">${o.nCoach ? "Altre possibilità · stesso pattern e categoria" : "Esercizi simili · stesso pattern e categoria"} (${esc([o.pattern, o.category].filter(Boolean).join(" · "))})</span>
         ${o.nCoach ? `<span class="faint" style="font-size:12px;margin-top:-2px">Solo se non riesci nemmeno con quelle del coach.</span>` : ""}
-        <div class="wopts" role="radiogroup" aria-label="Esercizi con lo stesso pattern motorio">${o.list.slice(o.nCoach).map((n,k) => { const l = libByName(n); return opt(o.nCoach + k, n, l?.category || ""); }).join("")}</div></div>` : ""}
+        <div class="wopts" role="radiogroup" aria-label="Esercizi con stesso pattern motorio e stessa categoria">${o.list.slice(o.nCoach).map((n,k) => { const l = libByName(n); return opt(o.nCoach + k, n, l?.category || ""); }).join("")}</div></div>` : ""}
       </div>
       <div class="field"><span class="lbl">Perché lo cambi?</span><div class="rchips" id="sw-r">${Object.entries(SWAP_REASONS).map(([k,v]) => `<button type="button" data-r="${k}" aria-pressed="false">${v}</button>`).join("")}</div></div>
       <div class="field"><label class="lbl" for="sw-note">Dettagli <span class="faint" id="sw-req">(facoltativo)</span></label><input class="in" id="sw-note" placeholder="es. rack occupato da un'altra squadra" maxlength="140"></div>`}

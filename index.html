@@ -449,6 +449,10 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .aex .sub + .sub{border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
 .aex .h .n{font-weight:700;font-size:16px;flex:1}
 .aex .info{font-size:13px;color:var(--muted);white-space:pre-wrap}
+.aex .info b{color:var(--ink);font-weight:600}
+.aex .xnote{display:flex;flex-direction:column;gap:6px;margin-top:2px}.aex .xnote .btn{align-self:flex-end}.aex .xnote textarea{min-height:64px;font-size:16px}
+.done-box.xnote-c{background:var(--accent-soft)}
+.aex .xnbtn{font-size:12.5px;font-weight:600}.aex .xnote-v{border-left:3px solid var(--accent);padding-left:8px}
 .aex .histbtn{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--ink)}
 .aex .histrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px}
 .aex .histbtn .arr{font-size:15px;line-height:1;margin-left:2px;color:var(--muted)}
@@ -1041,7 +1045,7 @@ const ICON = {
    DATI — due "motori": DEMO (browser) e FIREBASE (online)
    ===================================================================== */
 const COACH_FIELDS = ["id","date","title","notes","kind","exercises","createdAt","updatedAt","doneDate","order","hidden"];   // hidden: allenamento nascosto all'atleta
-const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt","doneDate","swaps"];
+const ATHLETE_FIELDS = ["results","status","sessionRpe","durationMin","athleteNote","completedAt","updatedByAthleteAt","doneDate","swaps","exNotes"];   // exNotes = {idEsercizio: nota dell'atleta}
 
 function LocalDB(){
   const KEY = "asticella-demo-v2";
@@ -1648,7 +1652,7 @@ function exitAsAthlete(){ if (!S.coachUser) return; clearTimeout(saveT); saveT =
 const PREVIEW_BLOCK = ["a-check", "a-side", "a-rmset", "a-addset", "a-finish", "a-skip", "a-swap", "a-unswap", "c-round"];
 document.addEventListener("click", e => { if (!S.user?.preview) return; const t = e.target.closest?.("[data-act]");
   if (t && PREVIEW_BLOCK.includes(t.dataset.act)) { e.stopImmediatePropagation(); e.preventDefault(); toast("Anteprima: qui l'atleta registrerebbe i dati, ma non si salva niente"); } }, true);
-function lockPreview(){ if (!S.user?.preview) return; document.querySelectorAll("#app [data-r]").forEach(el => { el.disabled = true; }); }
+function lockPreview(){ if (!S.user?.preview) return; document.querySelectorAll("#app [data-r], #app [data-xnote]").forEach(el => { el.disabled = true; }); }
 function demoBar(){
   if (!DEMO) return "";
   return `<div class="demobar"><b>DEMO</b><span class="dtxt">I dati sono finti e restano solo in questo browser.</span>
@@ -2546,7 +2550,7 @@ async function collectRows(){
   const ws = monday(dataQ.from), n = Math.ceil((daysBetween(ws, dataQ.to)+1)/7);
   await Promise.all(ath.map(a => ensureWeeks(a.email, ws, n)));
   const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Metodo","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
-    ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta"];
+    ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta esercizio", "Nota atleta"];
   const rows = [];
   ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>effDate(x).localeCompare(effDate(y))).forEach(w => {
     const st = statusOf(w);
@@ -2561,7 +2565,7 @@ async function collectRows(){
         if (i >= x.sets.length && emptyRes(res[i])) continue;
         rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, KINDS[kindOf(w)].l, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
           mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], methodOf(w, x)?.l || "", done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
-          ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.athleteNote||""]);
+          ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.exNotes?.[x.id] || "", w.athleteNote||""]);
       }
     });
   }));
@@ -2727,6 +2731,7 @@ function exEditorHtml(x, i, res, L){
       <input class="in grow" style="min-width:200px" aria-label="Note esercizio" data-bind="exercises.${i}.notes" value="${esc(x.notes||"")}" placeholder="Nota per l'atleta su questo esercizio"></div>
     ${x.name ? altsRowHtml(x, i, lib) : ""}
     ${progHtml(x, i)}
+    ${S.editor?.w?.exNotes?.[x.id] ? `<div class="done-box xnote-c"><b>Nota dell'atleta</b><span>${esc(S.editor.w.exNotes[x.id])}</span></div>` : ""}
     ${res && res.some((r,j) => !(j >= x.sets.length && emptyRes(r))) ? `<button type="button" class="done-box edit" data-act="fix-res" data-i="${i}" title="Clicca per correggere"><b>Eseguito dall'atleta${S.editor.w.coachEditedAt ? ` <span class="faint" style="font-weight:500">· corretto da te</span>` : ""}</b><div class="done-sets">${res.map((r,j)=> j >= x.sets.length && emptyRes(r) ? "" : `<span><span class="faint">${j+1}${j >= x.sets.length ? " extra" : ""})</span> ${esc(resultLine(r, cols) || (r.done?"✓":"–"))}</span>`).join("")}</div><span class="fix">✎ Correggi</span></button>`
       : !S.editor.tpl && S.editor.w.date <= TODAY() && !S.editor.isNew ? `<div><button type="button" class="btn sm ghost" data-act="fix-res" data-i="${i}">✎ Inserisci i dati eseguiti</button></div>` : ""}
   </section>`;
@@ -3757,7 +3762,7 @@ async function workoutPdf(sig){
         y = doc.lastAutoTable.finalY + 5; }
       else y += 3;
       if ((x.notes || "").trim()) para("Nota:", x.notes.trim());
-      if ((lib?.notes || "").trim()) para("Indicazioni tecniche:", lib.notes.trim(), {c: MUTED});
+      if ((lib?.notes || "").trim()) para("Indicazioni:", lib.notes.trim(), {c: MUTED});
       const alts = altsOf(x).filter(n => n && !sameName(n, x.name)); if (alts.length) para("Se non puoi farlo:", alts.join(", "), {c: MUTED});
       y += k < g.length - 1 ? 3 : 5;
       if (k === g.length - 1) { doc.setDrawColor(...LINE); doc.line(M, y - 3, PW - M, y - 3); y += 2; } });
@@ -3902,6 +3907,13 @@ async function openAthleteHome(){
   renderAthlete();
 }
 let saveT = null, saveState = "";
+/* nota dell'atleta sul singolo esercizio (per il coach): si apre con un tocco, si salva da sola mentre scrive */
+function xNoteHtml(w, x){
+  const v = w.exNotes?.[x.id] || "", open = S.ath?.xn === x.id;
+  if (open) return `<div class="xnote"><label class="lbl" for="xn-${x.id}">La tua nota per il coach</label><textarea class="in" id="xn-${x.id}" data-xnote="${x.id}" rows="2" placeholder="Sensazioni, fastidi, cosa hai cambiato…">${esc(v)}</textarea><button type="button" class="btn sm" data-act="a-xnote" data-x="">Fatto</button></div>`;
+  if (v) return `<div class="info xnote-v"><b>La tua nota:</b> ${esc(v)} <button type="button" class="lnk" data-act="a-xnote" data-x="${x.id}">Modifica</button></div>`;
+  return `<div><button type="button" class="lnk xnbtn" data-act="a-xnote" data-x="${x.id}">✎ Scrivi una nota al coach su questo esercizio</button></div>`;
+}
 function renderAthlete(){ PCM = null;
   const A = S.ath, e = S.user.email;
   if (A.open) return renderWorkout();
@@ -3999,7 +4011,7 @@ function athExHtml(w, x, label, res, compact){
     ${sw ? `<div class="swinfo"><span>↔ Al posto di <b>${esc(x.name)}</b>${swapWhy(sw) ? ` · ${esc(swapWhy(sw))}` : ""}</span><button class="btn sm ghost" data-act="a-unswap" data-x="${x.id}">Annulla cambio</button></div>` : ""}
     ${sideHint && compact !== "light" ? (sd => `<div class="info sidehint">${sd?.both ? `<b>Ogni serie con tutti e due i lati:</b> fai le ripetizioni con il destro e con il sinistro, e segna <b>Sx</b> e <b>Dx</b>.` : `<b>Lato:</b> ${esc(sd?.how || sd?.txt || sideHint)} — ogni serie con il lato indicato (quello contornato); segna quello che hai fatto.`}</div>`)(sideSummary(x.sets)) : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
-    ${lib?.notes ? `<div class="info faint">${esc(lib.notes)}</div>` : ""}
+    ${lib?.notes ? `<div class="info"><b>Indicazioni:</b> ${esc(lib.notes)}</div>` : ""}
     ${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}">▶ Guarda il video</button>` : `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>`) : ""}
     ${compact ? `<div class="sc cscheme">${esc(compact === "amrap" ? "per giro: " : "")}${esc(circScheme(x, compact === "amrapreps") || "")}</div>` : x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
@@ -4007,6 +4019,7 @@ function athExHtml(w, x, label, res, compact){
           <td class="ckc"><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}
     </tbody></table></div>${infoCols.length ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
     ${compact ? "" : `<div class="histrow"><button class="histbtn" data-act="a-hist" data-x="${x.id}">Vedi cronologia <span class="arr" aria-hidden="true">›</span></button>${last ? `<span class="faint">ultima volta ${esc(fmtD(last.date))}</span>` : ""}</div>`}
+    ${xNoteHtml(w, x)}
   </div>`;
 }
 /* circuito lato atleta: in alto gli esercizi (nome, note, video, valori per giro), sotto la registrazione giro per giro */
@@ -4051,6 +4064,7 @@ async function flushSave(extra={}){
   const saved = clone({exercises: w.exercises, results: w.results||{}}); pruneExtra(saved);   // nel database non finiscono serie extra vuote
   const patch = {results: saved.results, status: w.status||"progress", updatedByAthleteAt: new Date().toISOString()};
   ["sessionRpe","durationMin","athleteNote","completedAt","doneDate","swaps"].forEach(k => { if (k in extra) patch[k] = extra[k]; });
+  if (w._xnDirty) { delete w._xnDirty; patch.exNotes = Object.fromEntries(Object.entries(w.exNotes || {}).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v)); }
   try { await DB.saveResults(S.user.email, w.id, patch); saveState = "Salvato ✓"; }
   catch(e) { console.error(e); saveState = "Salvato sul telefono, invio appena c'è rete"; }
   const s = $("#saved"); if (s) s.textContent = saveState;
@@ -4300,6 +4314,8 @@ const ACT = {
   async "swap-undo"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const sw = {...(S.editor.w.swaps||{})}; delete sw[x.id]; await saveCoachFix({swaps: sw}); },
   /* atleta */
   "a-swap"(t){ swapSheet(t.dataset.x); },
+  "a-xnote"(t){ const prev = S.ath.xn; S.ath.xn = t.dataset.x || null; if (prev && saveT) flushSave();
+    const y = scrollY; renderAthlete(); scrollTo(0, y); if (S.ath.xn) { const ta = $(`#xn-${S.ath.xn}`); ta?.focus(); ta?.setSelectionRange(ta.value.length, ta.value.length); } },
   "a-hist"(t){ histSheet(t.dataset.x); },
   "pg-open"(){ pgOpen(); },
   async "pg-mode"(t){ const G = S.prog; if (G.mode === "sess" && G.sess && psDirty(G, progW(G, G.sess.wid) || {}) && !(await confirmBox("Lasciare la seduta senza applicare le modifiche?", "Lascia", false))) return; G.sess = null; G.mode = t.dataset.v; drawProg(); },
@@ -4433,6 +4449,7 @@ document.addEventListener("input", e => {
   if (e.target.tagName === "SELECT" && e.target.dataset.bind && S.editor) { setPath(S.editor.w, e.target.dataset.bind, e.target.value); markDirty(); return; }
   const t = e.target;
   if (t.dataset.bind && S.editor) { let v = t.value; if (/^exercises\.\d+\.block$/.test(t.dataset.bind) && S.editor.w.exercises[+t.dataset.bind.split(".")[1]+1]?.ss) v = v.replace(/\d+$/, ""); setPath(S.editor.w, t.dataset.bind, v); markDirty(); return; }
+  if (t.dataset.xnote) { const w = athleteWorkout(); if (!w || S.user?.preview) return; (w.exNotes ??= {})[t.dataset.xnote] = t.value; w._xnDirty = true; scheduleSave(); return; }
   if (t.dataset.r && t.tagName === "SELECT") { const o = t.selectedOptions[0], box = t.closest(".pick");   // menu RPE/RIR: aggiorno il numero mostrato
     box.querySelector("span").textContent = t.value ? (o.dataset.s || t.value) : t.dataset.ph; box.classList.toggle("pk-empty", !t.value); }
   if (t.dataset.r) { const [xid, j, c] = t.dataset.r.split("|"); const w = athleteWorkout(); w.results ??= {}; const r = (w.results[xid] ??= []);

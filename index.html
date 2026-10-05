@@ -251,6 +251,9 @@ table.list{width:100%;border-collapse:collapse}
 .list tr.grprow th{background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 12px}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--surface2);font-size:12px;font-weight:600;color:var(--muted)}
 .two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+/* il riquadro a destra (scheda esercizio / atleta) segue lo scorrimento della pagina */
+@media (min-width:861px){.two > .panel:last-child{position:sticky;top:16px;max-height:calc(100dvh - 32px);overflow-y:auto}}
+.lnk.libed{font-size:12px;font-weight:600;color:var(--muted)}.lnk.libed:hover{color:var(--accent)}
 .form{padding:16px;display:flex;flex-direction:column;gap:12px}
 .note{background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--muted)}
 .note code{background:var(--surface);padding:1px 5px;border-radius:4px;color:var(--ink);word-break:break-all}
@@ -1073,6 +1076,7 @@ function LocalDB(){
     async saveTemplate(t){ (st.templates ??= {})[t.id] = clone(t); save(); return wait(t); },
     async deleteTemplate(id){ delete st.templates[id]; save(); return wait(true); },
     async listWorkouts(e, from, to){ return wait(Object.values(st.workouts[e] || {}).filter(w => w.date >= from && w.date <= to)); },
+    async listAllWorkouts(e){ return wait(clone(Object.values(st.workouts[e] || {}))); },
     async createWorkout(e, w){ (st.workouts[e] ??= {})[w.id] = clone(w); save(); return wait(w); },
     async saveWorkout(e, w){ const cur = st.workouts[e]?.[w.id] || {}; const p = {}; COACH_FIELDS.forEach(k => { if (w[k] !== undefined) p[k] = w[k]; });
       (st.workouts[e] ??= {})[w.id] = {...cur, ...clone(p)}; save(); return wait(true); },
@@ -1107,6 +1111,7 @@ function FirebaseDB(F, db){
     async saveTemplate(t){ await F.setDoc(F.doc(db, "templates", t.id), cleanObj(t)); return t; },
     async deleteTemplate(id){ await F.deleteDoc(F.doc(db, "templates", id)); },
     async listWorkouts(e, from, to){ const q = F.query(W(e), F.where("date", ">=", from), F.where("date", "<=", to)); return docs(await fast(() => F.getDocs(q), () => F.getDocsFromCache(q))); },
+    async listAllWorkouts(e){ return docs(await F.getDocs(W(e))); },   // tutti, dal server (per rinominare un esercizio ovunque)
     async createWorkout(e, w){ await F.setDoc(F.doc(W(e), w.id), cleanObj(w)); return w; },
     async saveWorkout(e, w){ const p = {}; COACH_FIELDS.forEach(k => { if (w[k] !== undefined) p[k] = w[k]; });
       await F.setDoc(F.doc(W(e), w.id), cleanObj(p), {merge:true}); },
@@ -1892,6 +1897,9 @@ function viewAthletes(m){
 }
 
 /* ---------- ESERCIZI ---------- */
+/* la scheda di modifica deve vedersi subito anche se l'esercizio è in fondo all'elenco */
+function exFormIntoView(){ const f = $("#ex-form"); if (!f) return; const r = f.getBoundingClientRect();
+  if (r.top < 0 || r.top > innerHeight - 120) f.scrollIntoView({behavior: "smooth", block: "start"}); setTimeout(() => $("#x-name")?.focus({preventScroll: true}), 350); }
 function viewExercises(m){
   const q = S.exQuery.toLowerCase();
   const list = S.exercises.filter(x => !q || (x.name+" "+x.category+" "+x.pattern).toLowerCase().includes(q));
@@ -1909,9 +1917,9 @@ ${exFieldsHtml(e)}
     <div class="row"><button class="btn pri">Salva</button><button type="button" class="btn ghost" data-act="ex-cancel">Annulla</button><span class="grow"></span>${e.isNew?"":`<button type="button" class="btn danger ghost" data-act="ex-del">Elimina</button>`}</div>
   </form>` : libPanel()}</div></div>`;
   const f = $("#ex-form");
-  if (f) f.onsubmit = async ev => { ev.preventDefault();
-    if (!(await saveExForm(e))) return;
-    S.exEdit = null; toast("Esercizio salvato"); renderView(); };
+  if (f) f.onsubmit = async ev => { ev.preventDefault(); const sb = f.querySelector(".btn.pri"); if (sb.disabled) return; sb.disabled = true;
+    const ok = await saveExForm(e); sb.disabled = false; if (!ok) return;
+    S.exEdit = null; toast(takeRenMsg("Esercizio salvato")); renderView(); };
 }
 /* campi della scheda esercizio: usati nella pagina Esercizi e nella finestra "Aggiungilo alla libreria" dell'editor */
 function exFieldsHtml(e){
@@ -1932,27 +1940,53 @@ async function saveExForm(e){
   if (!x.name) return null;
   const dup = S.exercises.find(y => y.id !== x.id && sameName(y.name, x.name));
   if (dup) { toast(`«${dup.name}» è già nella libreria`); return null; }
+  const oldName = S.exercises.find(y => y.id === x.id)?.name;
   await DB.saveExercise(x);
   const i = S.exercises.findIndex(y => y.id === x.id); if (i>=0) S.exercises[i] = x; else S.exercises.push(x);
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name)); fillDatalist();
+  if (oldName && oldName.trim() !== x.name) await renameExEverywhere(oldName, x.name);
   return x;
 }
+/* esercizio rinominato in libreria: il nuovo nome va in tutti gli allenamenti (di tutti gli atleti, anche passati), negli allenamenti
+   salvati, nelle alternative e negli esercizi cambiati dall'atleta. Gli allenamenti sono legati all'esercizio per nome. */
+async function renameExEverywhere(oldN, newN){
+  const fix = n => sameName(n, oldN) ? newN : n, fixX = x => { let ch = false;
+    if (sameName(x.name, oldN)) { x.name = newN; ch = true; }
+    if (Array.isArray(x.alts) && x.alts.some(n => sameName(n, oldN))) { x.alts = x.alts.map(fix); ch = true; } return ch; };
+  toast(`Aggiorno «${newN}» negli allenamenti…`);
+  let nW = 0, err = 0; const jobs = [];
+  await Promise.all(S.athletes.map(async a => {
+    let list = []; try { list = await DB.listAllWorkouts(a.email); } catch(e) { console.error(e); err++; return; }
+    for (const w of list) {
+      const ch = (w.exercises || []).map(fixX).some(Boolean);
+      let chS = false; Object.values(w.swaps || {}).forEach(sw => { if (sameName(sw.name, oldN)) { sw.name = newN; chS = true; } });
+      if (!ch && !chS) continue;
+      jobs.push(async () => { try { if (ch) await DB.saveWorkout(a.email, w); if (chS) await DB.saveResults(a.email, w.id, {swaps: w.swaps}); nW++; } catch(e) { console.error(e); err++; } });
+      const c = S.cache[a.email]?.[w.id]; if (c) { (c.exercises || []).forEach(fixX); Object.values(c.swaps || {}).forEach(sw => { if (sameName(sw.name, oldN)) sw.name = newN; }); } } }));
+  for (let k = 0; k < jobs.length; k += 10) await Promise.all(jobs.slice(k, k + 10).map(f => f()));   // 10 salvataggi alla volta
+  for (const t of S.templates) if ((t.exercises || []).map(fixX).some(Boolean)) { try { await DB.saveTemplate(t); } catch(e) { console.error(e); err++; } }
+  for (const e of S.exercises) if (Array.isArray(e.alts) && e.alts.some(n => sameName(n, oldN))) { e.alts = e.alts.map(fix); try { await DB.saveExercise(e); } catch(er) { console.error(er); err++; } }
+  if (S.editor?.w) (S.editor.w.exercises || []).forEach(fixX);   // allenamento aperto in questo momento
+  renMsg = (err ? `Nome aggiornato, ma ${err} salvataggi non sono riusciti: riprova a rinominare con la connessione` : `Rinominato «${oldN}» → «${newN}»${nW ? ` anche in ${nW} allenament${nW === 1 ? "o" : "i"}` : ""}`); toast(renMsg);
+}
+let renMsg = "";   // messaggio del rinomina: lo mostra chi ha salvato (al posto di "Esercizio salvato")
+const takeRenMsg = d => { const m = renMsg || d; renMsg = ""; return m; };
 /* dall'editor dell'allenamento: esercizio nuovo → finestra con la scheda completa, già compilata con nome e parametri */
 function redrawEx(){ S.exDlg ? drawExDialog() : renderView(); }
 function drawExDialog(){
   const e = S.exEdit;
-  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="exd-form" style="max-width:560px"><header><h2>Aggiungi alla libreria</h2><button type="button" class="btn ghost icon" data-act="exd-close" aria-label="Chiudi">✕</button></header>
+  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="exd-form" style="max-width:560px"><header><h2>${S.exDlg?.edit ? "Modifica esercizio" : "Aggiungi alla libreria"}</h2><button type="button" class="btn ghost icon" data-act="exd-close" aria-label="Chiudi">✕</button></header>
     <div class="body form">${exFieldsHtml(e)}</div>
-    <footer><button type="button" class="btn ghost" data-act="exd-close">Annulla</button><span class="grow"></span><button class="btn pri">Salva nella libreria</button></footer></form></div>`;
-  $("#exd-form").onsubmit = async ev => { ev.preventDefault();
-    const lib = await saveExForm(e); if (!lib) return;
+    <footer><button type="button" class="btn ghost" data-act="exd-close">Annulla</button><span class="grow"></span><button class="btn pri">${S.exDlg?.edit ? "Salva" : "Salva nella libreria"}</button></footer></form></div>`;
+  $("#exd-form").onsubmit = async ev => { ev.preventDefault(); const sb = $("#exd-form .btn.pri"); if (sb.disabled) return; sb.disabled = true;
+    const lib = await saveExForm(e); sb.disabled = false; if (!lib) return;
     const x = S.editor?.w?.exercises?.[S.exDlg.i];
     if (x) { x.name = lib.name; delete x.alts;
       if (lib.cols.length && lib.cols.join() !== x.cols.join()) {   // parametri scelti nella scheda → anche in questo esercizio
         x.sets = x.sets.map(st => { const n = Object.fromEntries(lib.cols.map(c => [c, st[c] || ""])); if (st.type) n.type = st.type; return n; });
         x.cols = [...lib.cols]; }
       markDirty(); }
-    closeExDialog(); toast("Aggiunto alla libreria"); if (S.editor) drawEditor(); };
+    const ed = S.exDlg?.edit; closeExDialog(); toast(takeRenMsg(ed ? "Esercizio aggiornato" : "Aggiunto alla libreria")); if (S.editor) drawEditor(); };
 }
 function closeExDialog(){ S.exDlg = null; S.exEdit = null; $("#confirm").innerHTML = ""; }
 
@@ -2717,7 +2751,7 @@ function exEditorHtml(x, i, res, L){
       <button class="btn ghost icon danger" data-act="ex-rm" data-i="${i}" aria-label="Rimuovi esercizio">✕</button>
     </div>
     ${(sw => sw ? `<div class="done-box warnb swbox"><b>↔ L'atleta l'ha cambiato con «${esc(sw.name)}»</b><span>${esc(swapWhy(sw) || "nessun motivo indicato")}${sw.at ? ` · ${esc(fmtLong(sw.at.slice(0,10)))}` : ""}</span><div><button type="button" class="btn sm ghost" data-act="swap-undo" data-i="${i}">Annulla il cambio</button></div></div>` : "")(swapOf(S.editor.w, x))}
-    ${lib ? "" : x.name ? `<div class="faint" style="font-size:12px">Non è nella libreria: <button class="btn sm ghost" data-act="ex-tolib" data-i="${i}">Aggiungilo</button></div>` : ""}
+    ${lib ? `<div><button type="button" class="lnk libed" data-act="ex-libedit" data-i="${i}" title="Modifica la scheda di questo esercizio nella libreria (nome, categoria, pattern, parametri, alternative, video, indicazioni)">✎ Modifica scheda esercizio</button></div>` : x.name ? `<div class="faint" style="font-size:12px">Non è nella libreria: <button class="btn sm ghost" data-act="ex-tolib" data-i="${i}">Aggiungilo</button></div>` : ""}
     <div class="cols">${cols.map((c,k) => `<span class="c"><button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="-1" aria-label="Sposta ${COLS[c].l} a sinistra" ${k===0?"disabled":""}>‹</button>${COLS[c].l}<button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="1" aria-label="Sposta ${COLS[c].l} a destra" ${k===cols.length-1?"disabled":""}>›</button><button data-act="col-rm" data-i="${i}" data-c="${c}" aria-label="Togli ${COLS[c].l}">×</button></span>`).join("")}
       ${avail.length ? `<select aria-label="Aggiungi parametro" data-change="col-add" data-i="${i}"><option value="">+ parametro</option>${avail.map(c=>`<option value="${c}">${esc(COLS[c].l)}</option>`).join("")}<option value="__new">+ Nuovo parametro…</option></select>` : ""}</div>
     <div class="scroll-x"><table class="sets"><thead><tr><th>${cc ? (cc.fmt === "amrap" ? "" : "Giro") : ""}</th>${cc ? "" : `<th title="Tipo di serie: clicca per cambiare (Ramping, Work, Back-off, Down)">Tipo</th>`}${cols.map(c=>`<th>${COLS[c].l}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
@@ -4275,6 +4309,8 @@ const ACT = {
   "ex-tolib"(t){ const i = +t.dataset.i, x = S.editor.w.exercises[i];
     S.exDlg = {i}; S.exEdit = {isNew: true, name: x.name.trim(), category: "", pattern: "", cols: [...x.cols], alts: [], video: "", notes: ""};
     drawExDialog(); setTimeout(() => $("#x-cat")?.focus(), 30); },
+  "ex-libedit"(t){ const i = +t.dataset.i, lib = libByName(S.editor.w.exercises[i]?.name); if (!lib) return;
+    S.exDlg = {i, edit: true}; S.exEdit = clone(lib); drawExDialog(); setTimeout(() => $("#x-name")?.focus(), 30); },
   "exd-close"(){ closeExDialog(); },
   "col-rm"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const c = t.dataset.c; x.cols = x.cols.filter(k => k !== c); x.sets.forEach(s => delete s[c]); markDirty(); drawEditor(); },
   "set-dup"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const j = +t.dataset.j; x.sets.splice(j+1, 0, clone(x.sets[j])); markDirty(); drawEditor(); },
@@ -4304,8 +4340,8 @@ const ACT = {
   "param-edit"(t){ const k = t.dataset.k; const p = (S.params||[]).find(x => x.key === k)
       || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: BASE_COLS[k].txt || 0, pick: BASE_COLS[k].pick || 0, archived: false} : null);
     if (p) paramDialog(clone(p)); },
-  "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); setTimeout(()=>$("#x-name")?.focus(), 20); },
-  "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); },
+  "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); exFormIntoView(); },
+  "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); exFormIntoView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },
   "xalt-rm"(t){ const e = keepExForm(); e.alts = (e.alts||[]).filter((_,k) => k !== +t.dataset.k); redrawEx(); },
   /* alternative nell'editor allenamento: toccarle le rende "di questo allenamento" (la libreria non cambia) */

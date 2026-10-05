@@ -425,9 +425,12 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .aex .chow{font-size:13px;line-height:1.4;background:color-mix(in srgb,var(--circ) 10%,var(--surface));border-radius:8px;padding:8px 10px;color:var(--ink)}
 .aex.circbox .h .b,.crow .cnm b{color:var(--circ) !important}
 .aex .cscheme{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.clogwrap{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
+.clogwrap{display:flex;flex-direction:column;gap:10px;border-top:1.5px solid color-mix(in srgb,var(--circ) 45%,var(--line));padding-top:10px;margin-top:8px}
 .cgiro{display:flex;flex-direction:column;gap:6px}
-.cgh{font-family:var(--display);font-weight:700;font-size:16px;color:var(--circ);letter-spacing:.03em}
+.cgh{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.1;color:var(--circ);letter-spacing:.03em;margin-top:6px}
+.cgh .faint{font-family:var(--sans);font-size:13px;font-weight:500;letter-spacing:0}
+/* circuito: le spiegazioni sotto il nome rientrano un po' (allineate al nome, dopo la lettera A1, A2…) */
+.aex.circbox .sub > :not(.h){margin-left:30px}
 .crow{display:grid;grid-template-columns:minmax(0,1fr) 42px;grid-template-areas:"nm ck" "fs ck";gap:4px 8px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--surface2)}
 .crow.ok{background:var(--ok-soft)}
 .crow .cnm{grid-area:nm;font-size:13.5px;font-weight:600}
@@ -455,7 +458,7 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .aex .info b{color:var(--ink);font-weight:600}
 .aex .xnote{display:flex;flex-direction:column;gap:6px;margin-top:2px}.aex .xnote .btn{align-self:flex-end}.aex .xnote textarea{min-height:64px;font-size:16px}
 .done-box.xnote-c{background:var(--accent-soft)}
-.aex .xnbtn{font-size:12.5px;font-weight:600}.aex .xnote-v{border-left:3px solid var(--accent);padding-left:8px}
+.aex .xnbtn{font-size:12.5px;font-weight:600;text-align:left}.aex .xnote-v{border-left:3px solid var(--accent);padding-left:8px}
 .aex .histbtn{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--ink)}
 .aex .histrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px}
 .aex .histbtn .arr{font-size:15px;line-height:1;margin-left:2px;color:var(--muted)}
@@ -3721,13 +3724,14 @@ async function workoutPdf(sig){
   // esercizi, a blocchi (le superserie insieme)
   const L = exLabels(exs); const typesUsed = new Set();
   const bracket = (b1, b2, col) => {   // linea che collega le etichette di una superserie (B1 → B2), nel margine a sinistra
-    const x0 = M - 4; doc.setDrawColor(...col); doc.setLineWidth(0.7);
-    for (let p = b1.p; p <= b2.p; p++) { doc.setPage(p); const ya = p === b1.p ? b1.y : M, yb = p === b2.p ? b2.y : PH - 16;
+    const x0 = M - 4;
+    for (let p = b1.p; p <= b2.p; p++) { doc.setPage(p); doc.setDrawColor(...col); doc.setLineWidth(0.7); const ya = p === b1.p ? b1.y : M, yb = p === b2.p ? b2.y : PH - 16;
       doc.line(x0, ya, x0, yb); if (p === b1.p) doc.line(x0, b1.y, M, b1.y); if (p === b2.p) doc.line(x0, b2.y, M, b2.y); }
     doc.setPage(doc.getNumberOfPages()); doc.setLineWidth(0.3); };
   let gbar = null;
-  const drawBar = (a, bEnd) => { doc.setFillColor(...a.col);   // barra laterale del gruppo, nel margine a sinistra (anche su più pagine)
-    for (let p = a.p; p <= bEnd.p; p++) { doc.setPage(p); const ya = p === a.p ? a.y : M, yb = p === bEnd.p ? bEnd.y : PH - 16; if (yb > ya) doc.roundedRect(M - 5.5, ya, 1.4, yb - ya, 0.7, 0.7, "F"); }
+  const drawBar = (a, bEnd) => {   // barra laterale del gruppo, nel margine a sinistra (anche su più pagine)
+    for (let p = a.p; p <= bEnd.p; p++) { doc.setPage(p); doc.setFillColor(...a.col);   // il colore va rimesso su ogni pagina (jsPDF lo scrive nella pagina corrente)
+      const ya = p === a.p ? a.y : M, yb = p === bEnd.p ? bEnd.y : PH - 16; if (yb > ya) doc.roundedRect(M - 5.5, ya, 1.4, yb - ya, 0.7, 0.7, "F"); }
     doc.setPage(doc.getNumberOfPages()); };
   ssGroups(exs).forEach(g => { const badges = []; gbar = null;
     if (g.length > 1 || circOfGroup(exs, g)) { room(42); y -= 1.5;   // la barra del gruppo parte alla stessa distanza di quella dei singoli

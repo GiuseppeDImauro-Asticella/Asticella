@@ -205,7 +205,8 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .calsel kbd{font-family:inherit;font-size:11px;font-weight:700;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--surface)}
 .lasso{position:fixed;z-index:40;border:1.5px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:4px;pointer-events:none}
 body.nosel{user-select:none}
-@media (hover:none){.calsel:not(.on){display:none}}
+.calsel .selact{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:auto}.calsel .tch{display:none}
+@media (hover:none){.calsel .dsk{display:none}.calsel .tch{display:inline-flex}}   /* tablet: niente mouse → pulsante "Seleziona" */
 .cal .cell.past{background:color-mix(in srgb,var(--surface2) 40%,var(--surface))}
 .cal .dh{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);font-weight:600}
 .cal .dh .d{font-variant-numeric:tabular-nums}
@@ -1780,8 +1781,11 @@ function drawCalendar(){
     }
   }
   const nSel = [...S.calSel].filter(id => S.cache[a.email]?.[id]).length;
-  $("#calwrap").innerHTML = `<div class="calsel ${nSel ? "on" : ""}">${nSel ? `<b>${nSel} allenament${nSel === 1 ? "o" : "i"} selezionat${nSel === 1 ? "o" : "i"}</b><span>Trascinane uno per spostarli tutti · con <kbd>Ctrl</kbd> premuto li copi</span><button class="btn sm ghost" data-act="cal-unsel">Deseleziona</button>`
-    : `<span>Sul computer: <kbd>Ctrl</kbd> + trascina = copia · trascina su uno spazio vuoto per selezionare più allenamenti · <kbd>Ctrl</kbd> + clic per aggiungerne uno</span>`}</div>` + html + `</div>`;
+  $("#calwrap").innerHTML = `<div class="calsel ${nSel || S.calPick ? "on" : ""}">${nSel || S.calPick ? `<b>${nSel ? `${nSel} allenament${nSel === 1 ? "o" : "i"} selezionat${nSel === 1 ? "o" : "i"}` : "Tocca gli allenamenti da selezionare"}</b>
+      ${nSel ? `<span class="dsk">Trascinane uno per spostarli tutti · con <kbd>Ctrl</kbd> premuto li copi</span>` : ""}
+      <span class="selact"><button class="btn sm" data-act="sel-copy" ${nSel ? "" : "disabled"}>Copia in altre date / atleti…</button><button class="btn sm ghost danger" data-act="sel-del" ${nSel ? "" : "disabled"}>Elimina</button>
+      ${S.calPick ? `<button class="btn sm pri" data-act="sel-pick" data-v="0">Fine</button>` : `<button class="btn sm ghost" data-act="cal-unsel">Deseleziona</button>`}</span>`
+    : `<span class="dsk">Sul computer: <kbd>Ctrl</kbd> + trascina = copia · trascina su uno spazio vuoto per selezionare più allenamenti · <kbd>Ctrl</kbd> + clic per aggiungerne uno</span><button class="btn sm tch" data-act="sel-pick" data-v="1">☑ Seleziona più allenamenti</button>`}</div>` + html + `</div>`;
 }
 function cardHtml(email, w){
   const st = statusOf(w);
@@ -3904,13 +3908,14 @@ async function exXferDialog(i){
   };
   draw();
 }
+/* data e atleti partono sempre vuoti: si sceglie ogni volta, così non si copia per sbaglio nel posto sbagliato */
 function copyDialog({title, date, dateLabel, preselect, onCopy}){
   const gs = groups(); const ath = activeAthletes();
   const byG = [...gs, ""].map(g => [g, ath.filter(a => (a.group||"") === g)]).filter(([,l]) => l.length);
   $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="cp-form"><header><h2>${esc(title)}</h2></header><div class="body">
-    <div class="field"><label class="lbl" for="cp-date">${esc(dateLabel)}</label><input class="in" type="date" id="cp-date" value="${date}" required></div>
+    <div class="field"><label class="lbl" for="cp-date">${esc(dateLabel)}</label><input class="in" type="date" id="cp-date" value="" required></div>
     <div class="field"><span class="lbl">Per gli atleti</span><div class="checks">${byG.map(([g,l]) => `<div class="grp"><div class="row"><b>${esc(g||"Senza gruppo")}</b><button type="button" class="btn sm ghost" data-cpg="${esc(g)}">tutti</button></div>
-      ${l.map(a => `<label><input type="checkbox" name="cp" value="${esc(a.email)}" data-g="${esc(a.group||"")}" ${preselect.includes(a.email)?"checked":""}> ${esc(a.name)}</label>`).join("")}</div>`).join("")}</div></div>
+      ${l.map(a => `<label><input type="checkbox" name="cp" value="${esc(a.email)}" data-g="${esc(a.group||"")}" > ${esc(a.name)}</label>`).join("")}</div>`).join("")}</div></div>
     </div><footer><span class="grow"></span><button type="button" class="btn" id="cp-no">Annulla</button><button class="btn pri">Copia</button></footer></form></div>`;
   const f = $("#cp-form");
   f.querySelectorAll("[data-cpg]").forEach(b => b.onclick = () => f.querySelectorAll(`input[data-g="${CSS.escape(b.dataset.cpg)}"]`).forEach(c => c.checked = true));
@@ -4235,9 +4240,19 @@ const ACT = {
     try { await DB.saveWorkout(em, {id: w.id, hidden: w.hidden, updatedAt: w.updatedAt}); } catch(e) { console.error(e); w.hidden = !w.hidden; redraw(); toast("Non salvato: controlla la connessione"); } },
   "ed-vis"(){ const E = S.editor; E.w.hidden = !E.w.hidden; E.dirty = true; drawEditor(); },
   "open-w"(t, e){ const w = S.cache[t.dataset.e]?.[t.dataset.id]; if (!w) return;
-    if (e && (e.ctrlKey || e.metaKey) && t.classList.contains("wcard")) { const id = w.id; S.calSel.has(id) ? S.calSel.delete(id) : S.calSel.add(id); drawCalendar(); return; }   // Ctrl + clic: seleziona
+    if (((e && (e.ctrlKey || e.metaKey)) || S.calPick) && t.classList.contains("wcard")) { const id = w.id; S.calSel.has(id) ? S.calSel.delete(id) : S.calSel.add(id); drawCalendar(); return; }   // Ctrl + clic: seleziona
     openEditor(t.dataset.e, w); },
   "cal-unsel"(){ S.calSel.clear(); drawCalendar(); },
+  "sel-pick"(t){ S.calPick = t.dataset.v === "1"; if (!S.calPick) S.calSel.clear(); drawCalendar(); },
+  /* azioni sugli allenamenti selezionati nel calendario */
+  "sel-copy"(){ const a = athByEmail(S.calAthlete), list = [...S.calSel].map(id => S.cache[a.email]?.[id]).filter(Boolean).sort((x, y) => x.date.localeCompare(y.date)); if (!list.length) return;
+    copyDialog({title: `Copia ${list.length} allenament${list.length === 1 ? "o" : "i"}`, dateLabel: list.length > 1 ? `Il primo (${fmtD(list[0].date)}) va nel giorno — gli altri seguono con la stessa distanza` : "Nella data", preselect: [],
+      onCopy: async (d, emails) => { const n = await copyWorkouts(list, list[0].date, d, emails); S.calSel.clear(); S.calPick = false; return n; }}); },
+  async "sel-del"(){ const a = athByEmail(S.calAthlete), list = [...S.calSel].map(id => S.cache[a.email]?.[id]).filter(Boolean); if (!list.length) return;
+    const withRes = list.filter(w => w.results && Object.values(w.results).some(r => (r || []).some(x => x && !emptyRes(x)))).length;
+    if (!(await confirmBox(`Eliminare ${list.length} allenament${list.length === 1 ? "o" : "i"} di ${a.name}?${withRes ? ` ${withRes} ${withRes === 1 ? "ha" : "hanno"} già dati registrati dall'atleta: si perdono anche quelli.` : ""}`, "Elimina"))) return;
+    let err = 0; for (const w of list) { try { await DB.deleteWorkout(a.email, w.id); delete S.cache[a.email][w.id]; } catch(e) { console.error(e); err++; } }
+    S.calSel.clear(); S.calPick = false; toast(err ? `Eliminati ${list.length - err}, ${err} non riusciti` : `Eliminati ${list.length} allenamenti`); refreshCoach(); },
   "new-w"(t, ev){ ev.stopPropagation(); const w = {id: uid(), date: t.dataset.d, title:"", notes:"", exercises:[{...newExercise(), block:"A"}], status:"todo", results:{}}; openEditor(t.dataset.e, w, true); setTimeout(()=>$("#ed-title")?.focus(), 30); },
   "copy-week"(t){ const ws = t.dataset.ws; const a = athByEmail(S.calAthlete);
     const list = wIn(a.email, ws, addDays(ws,6));
@@ -4515,7 +4530,7 @@ document.addEventListener("change", async e => {
   if (k === "pg-edit") { const sets = pgManualSets(t.dataset.w, t.dataset.x); sets[+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "an-who") { anQ.who = t.value; anQ.sess = null; return renderView(); }
   if (k === "an-sess") { anQ.sess = t.value; return redrawSess(); }
-  if (k === "cal-ath") { S.calAthlete = t.value; S.calSel.clear(); return renderView(); }
+  if (k === "cal-ath") { S.calAthlete = t.value; S.calSel.clear(); S.calPick = false; return renderView(); }
   if (k === "d-q") { dataQ.from = $("#d-from").value || dataQ.from; dataQ.to = $("#d-to").value || dataQ.to; dataQ.who = $("#d-who").value; return renderView(); }
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;
     if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }

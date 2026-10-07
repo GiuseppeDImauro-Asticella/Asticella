@@ -808,6 +808,8 @@ tr.ok .ck svg{stroke:#fff}
 .slegend span{display:inline-flex;align-items:center;gap:6px}
 .slegend svg{flex:none}
 .sdet{margin-top:10px;font-size:13px}
+.allbox{display:flex;gap:10px;align-items:flex-start;background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.4;cursor:pointer}.allbox input{margin-top:3px;flex:none;width:18px;height:18px}
+.sempty{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .chartwrap .cpick rect{fill:var(--ink)}.chartwrap .cpick text{fill:var(--bg);font-size:11px;font-weight:800}
 .wcmp-hint{font-size:12px;color:var(--muted);margin-top:8px}
 .wcmp{display:grid;grid-template-columns:130px 1fr 1fr 110px;margin-top:12px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface2);font-size:13px;font-variant-numeric:tabular-nums}
@@ -1483,6 +1485,13 @@ function circScheme(x, maxReps){ const sets = x.sets || [], cols = x.cols || [];
   if (maxReps) out.unshift("max ripetizioni");
   return out.join(" · "); }
 /* valori previsti da registrare quando si spunta un giro (solo numeri o testi semplici, non intervalli tipo 8-10) */
+/* seduta chiusa senza serie spuntate: "fatto tutto come previsto" → tutte le serie previste registrate con i valori del programma */
+const anyLogged = w => Object.values(w.results || {}).some(a => (a || []).some(r => !emptyRes(r)));
+function plannedResults(w){ const res = clone(w.results || {});
+  (w.exercises || []).forEach(x => { const r = (res[x.id] ??= []); (x.sets || []).forEach((s, j) => { while (r.length <= j) r.push({});
+    const pv = circLogVals(x, s); delete pv.rpe; delete pv.rir;   // RPE / RIR no: sono sensazioni dell'atleta, non si inventano
+    r[j] = {...pv, ...Object.fromEntries(Object.entries(r[j] || {}).filter(([k, v]) => v !== "" && v != null && k !== "done")), done: true}; }); });
+  return res; }
 const circLogVals = (x, s) => Object.fromEntries((x.cols || []).filter(c => COLS[c]?.log && s?.[c] && !/[-–/]/.test(s[c])).map(c => [c, s[c]]));
 /* AMRAP: dai giri completati (+ ripetizioni in più) ricavo le serie di ogni esercizio, così analisi e cronologia funzionano */
 function circAmrapApply(w, exs, g){
@@ -2386,13 +2395,14 @@ function sessionPanelHtml(a, list, w){
       ${avg != null ? `<span>RPE medio serie: <b>${fmtN(avg, 1)}</b></span><span>picco: <b>${fmt1(peak.act.v)}</b> (${esc(peak.lab)} ${esc(peak.name)}, serie ${peak.n})</span>` : ""}
       ${w.sessionRpe ? `<span>RPE seduta: <b>${w.sessionRpe}</b></span>` : ""}${w.durationMin ? `<span>durata: <b>${w.durationMin}′</b></span>` : ""}
       ${w.sessionRpe && w.durationMin ? `<span>carico sRPE: <b>${fmtN(w.sessionRpe * w.durationMin)}</b> UA</span>` : ""}</div>
+    ${withR.length && withR.length < sets.length ? `<div class="faint" style="font-size:12px;margin-top:6px">Solo <b>${withR.length}</b> serie su ${sets.length} hanno l'RPE: le altre sono i cerchietti in basso (il grafico mostra solo l'RPE). Per vederle tutte aggiungi il parametro RPE (o RIR) a quegli esercizi.</div>` : ""}
     ${sets.length && !withR.length ? `<div class="note" style="margin-top:10px">In questa seduta nessuna serie ha RPE o RIR: per vedere l'andamento aggiungi il parametro <b>RPE</b> (o RIR) agli esercizi, così l'atleta lo compila a ogni serie.</div>` : ""}
     ${sets.length ? `<div class="chartwrap" id="an-schart"></div>
     ${(ls => ls.length ? `<div class="slegend">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}</div>` : "")(order.filter(n => withR.some(o => o.name === n)))}
     <div class="slegend"><span>${mk("bar", "var(--muted)")}RPE della serie</span><span>${mk("rbar", "var(--muted)")}ricavato dal RIR (10 − RIR)</span><span>${mk("plan")}RPE previsto da te</span>${w.sessionRpe ? `<span>${mk("sess")}RPE della seduta</span>` : ""}<span>${mk("none")}serie senza RPE</span><span><b style="font-size:10px">R W B D</b>&nbsp;tipo di serie</span></div>
     <details class="sdet"><summary>Vedi come tabella</summary><div class="scroll-x"><table class="nt"><thead><tr><th>#</th><th>Esercizio</th><th>Tipo</th><th>Eseguito</th><th>RPE</th><th>Previsto</th></tr></thead><tbody>
       ${sets.map((o, k) => `<tr><td class="num">${k+1}</td><td>${esc(o.lab)} ${esc(o.name)} <span class="faint">· serie ${o.n}${o.extra ? " extra" : ""}</span></td><td>${o.type ? SET_TYPES[o.type].s : "–"}</td><td>${esc(resultLine(o.r, o.cols) || "✓")}</td>
-        <td class="num">${o.act ? fmt1(o.act.v) + (o.act.from === "rir" ? " (da RIR)" : "") : "–"}</td><td class="num">${o.plan ? fmt1(o.plan.v) : "–"}</td></tr>`).join("")}</tbody></table></div></details>` : `<div class="muted" style="margin-top:10px;font-size:13px">In questa seduta non ci sono serie registrate.</div>`}
+        <td class="num">${o.act ? fmt1(o.act.v) + (o.act.from === "rir" ? " (da RIR)" : "") : "–"}</td><td class="num">${o.plan ? fmt1(o.plan.v) : "–"}</td></tr>`).join("")}</tbody></table></div></details>` : `<div class="muted sempty" style="margin-top:10px;font-size:13px">In questa seduta non ci sono serie registrate.<button class="btn sm" data-act="open-w" data-e="${esc(a.email)}" data-id="${w.id}">Apri la seduta ›</button></div>`}
   </section>`;
 }
 function sessListFor(a){
@@ -2411,7 +2421,7 @@ function drawSessionChart(el, w){
   const avail = Math.max(300, el.clientWidth || 700), band = Math.max(26, Math.min(56, (avail - padL - padR) / n));
   const W = padL + padR + band * n, H = padT + ih + padB;
   const y = v => padT + ih - v / 10 * ih, X = k => padL + band * k + band / 2, bw = Math.min(28, band * 0.62);   // barre: partono da 0
-  let svg = `<svg viewBox="0 0 ${W} ${H}" style="${W > avail ? `width:${W}px;max-width:none` : ""}" role="img" aria-label="RPE di ogni serie della seduta">
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:${W}px;${W > avail ? "max-width:none" : "max-width:100%"}" role="img" aria-label="RPE di ogni serie della seduta">
     <g class="grid">${[0,2,4,6,8,10].map(t => `<line x1="${padL}" x2="${W-padR}" y1="${y(t)}" y2="${y(t)}"/>`).join("")}</g>
     <g class="axis">${[0,2,4,6,8,10].map(t => `<text x="${padL-8}" y="${y(t)+4}" text-anchor="end">${t}</text>`).join("")}<text x="0" y="10" style="font-size:10px;font-weight:600">RPE</text></g>`;
   // bande degli esercizi (blocchi consecutivi)
@@ -3665,12 +3675,13 @@ function fixSession(){
     <div class="field"><label class="lbl" for="fs-date">Svolto il</label><input class="in" type="date" id="fs-date" value="${effDate(w)}" style="max-width:200px">
       <span class="faint" style="font-size:12px">Previsto: ${esc(fmtLong(w.date))}. Cambialo se l'atleta l'ha fatto un altro giorno.</span></div>
     <div class="field"><label class="lbl" for="fs-note">Nota dell'atleta</label><textarea class="in" id="fs-note">${esc(w.athleteNote||"")}</textarea></div>
+    ${!anyLogged(w) && (w.exercises || []).some(x => (x.sets || []).length) ? `<label class="allbox"><input type="checkbox" id="fs-all" checked><span><b>Segna come fatte tutte le serie previste</b> (con i valori del programma). Nessuna serie è ancora registrata: senza questa spunta la seduta conta solo per RPE e durata.</span></label>` : ""}
     </div><footer><span class="grow"></span><button type="button" class="btn" id="fs-no">Annulla</button><button class="btn pri">Salva correzioni</button></footer></form></div>`;
   $("#fs-no").onclick = () => $("#confirm").innerHTML = "";
   $("#fs-form").onsubmit = async e => { e.preventDefault();
     const rpe = parseInt($("#fs-rpe").value, 10), dur = parseInt($("#fs-dur").value, 10);
     if ($("#fs-rpe").value && !(rpe >= 1 && rpe <= 10)) return toast("L'RPE va da 1 a 10");
-    await saveCoachFix({status: $("#fs-st").value, sessionRpe: rpe || null, durationMin: dur || null, athleteNote: $("#fs-note").value.trim(),
+    await saveCoachFix({...($("#fs-all")?.checked && $("#fs-st").value === "done" ? {results: plannedResults(w)} : {}), status: $("#fs-st").value, sessionRpe: rpe || null, durationMin: dur || null, athleteNote: $("#fs-note").value.trim(),
       completedAt: w.completedAt || new Date().toISOString(), doneDate: ($("#fs-date").value && $("#fs-date").value !== w.date) ? $("#fs-date").value : null}); };
 }
 function markDirty(){ if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; } }
@@ -4206,6 +4217,7 @@ function finishSheet(skip=false){
           ${opt("other", "Un altro giorno", "", other)}</div>
           <input class="in" type="date" id="f-date" value="${def}" max="${TODAY()}" ${other ? "" : "hidden"} style="margin-top:8px;max-width:220px" aria-label="Data in cui l'hai svolto">
           ${w.date > TODAY() ? `<span class="faint" style="font-size:12px;margin-top:4px">Era previsto ${esc(fmtLong(w.date))}: se lo fai oggi, si sposta a oggi.</span>` : ""}</div>`; })()}`}
+      ${!skip && !anyLogged(w) && (w.exercises || []).some(x => (x.sets || []).length) ? `<label class="allbox"><input type="checkbox" id="f-all" checked><span><b>Non hai segnato nessuna serie.</b> Hai fatto tutto come previsto? Lascia la spunta e le segno io tutte come fatte (con i valori del programma). Togli la spunta se non è così.</span></label>` : ""}
       <div class="field"><label class="lbl" for="f-note">${skip?"Motivo (facoltativo)":"Nota per il coach (facoltativa)"}</label><textarea class="in" id="f-note" placeholder="${skip?"es. malato, esame, partita…":"Sensazioni, dolori, cosa è andato bene…"}">${esc(w.athleteNote||"")}</textarea></div>
     </div><footer><button class="btn pri grow" style="justify-content:center;padding:12px">${skip?"Segna come non svolto":"Salva e completa"}</button></footer></form></div>`;
   const f = $("#fin");
@@ -4224,6 +4236,7 @@ function finishSheet(skip=false){
       const dur = parseInt($("#f-dur").value, 10) || null;
       const when = $("#f-date")?.value; const doneDate = when && when !== w.date ? when : null;
       w.status = "done"; w.doneDate = doneDate;
+      if ($("#f-all")?.checked) w.results = plannedResults(w);
       await flushSave({sessionRpe: rpe, durationMin: dur, athleteNote: note, completedAt: new Date().toISOString(), doneDate});
       if (doneDate) { S.ath.day = doneDate; S.ath.ws = monday(doneDate); }
     }

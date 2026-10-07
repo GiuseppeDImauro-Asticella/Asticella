@@ -802,6 +802,7 @@ tr.ok .ck svg{stroke:#fff}
 #an-schart .splan{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;opacity:.8}
 #an-schart .vlab{fill:var(--ink);font-size:11px;font-weight:700}
 #an-schart .ssess{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55}
+#an-schart .sghost{stroke-width:1.5;stroke-dasharray:4 3;opacity:.7}#an-schart .vlab.gh{font-size:10px;font-weight:600;fill:var(--faint)}
 #an-schart .snone{fill:var(--surface);stroke:var(--faint);stroke-width:1.5}
 #an-schart .sband{stroke:var(--line);stroke-width:2;stroke-linecap:round}
 #an-schart .styp{font-weight:700;font-size:10px}
@@ -2414,7 +2415,7 @@ function sessionPanelHtml(a, list, w){
     ${sets.length ? `<div class="kfilt" role="group" aria-label="Cosa mostra il grafico"><span class="lbl">Grafico</span>${[["rpe", "Intensità (RPE)"], ["vol", "Volume"]].map(([k, l]) => `<button class="${sm === k ? "on" : ""}" data-act="an-smode" data-v="${k}" aria-pressed="${sm === k}">${l}</button>`).join("")}</div>` : ""}
     ${sets.length ? (vk => `<div class="kfilt sm-vol" role="group" aria-label="Voce di volume"><span class="lbl">Volume</span>${VOL_KEYS.map(q => { const nq = sets.filter(o => o.vol?.b === q).length;
       return `<button class="${vk === q ? "on" : ""} ${nq ? "" : "nodata"}" data-act="an-svk" data-v="${q}" aria-pressed="${vk === q}" ${nq ? `title="${nq} serie"` : `title="Nessuna serie di questo tipo nella seduta"`}>${SVOL_L[q]}</button>`; }).join("")}</div>
-    <div class="cdesc sm-vol">Volume di ogni serie per la voce scelta (stesse regole del Volume in Analisi). Le serie degli altri stimoli restano al loro posto come cerchietti in basso.</div>`)(sessVk(sets)) : ""}
+    <div class="cdesc sm-vol">Volume di ogni serie per la voce scelta (stesse regole del Volume in Analisi). Le barre piene seguono l'asse; quelle <b>tratteggiate</b> sono serie di un altro stimolo (con il loro valore e la loro unità, in proporzione tra loro): non seguono l'asse.</div>`)(sessVk(sets)) : ""}
     <div class="sstats"><span>tipo: <b>${KINDS[kindOf(w)].l}</b></span><span><b>${sets.length}</b> serie</span><span>con RPE: <b>${withR.length}</b></span>
       ${avg != null ? `<span>RPE medio serie: <b>${fmtN(avg, 1)}</b></span><span>picco: <b>${fmt1(peak.act.v)}</b> (${esc(peak.lab)} ${esc(peak.name)}, serie ${peak.n})</span>` : ""}
       ${w.sessionRpe ? `<span>RPE seduta: <b>${w.sessionRpe}</b></span>` : ""}${w.durationMin ? `<span>durata: <b>${w.durationMin}′</b></span>` : ""}
@@ -2456,6 +2457,9 @@ function drawSessionChart(el, w){
   const nL = Math.max(1, ...runs.map(r => r.lines.length)), padB = 40 + nL * 15, H = padT + ih + padB;
   // scala: RPE 0–10, oppure volume con una scala per esercizio (massimo = 90% dell'altezza)
   const val = o => VOL ? (o.vol?.b === VK ? o.vol.v : null) : (o.act ? o.act.v : null);
+  /* serie di un altro stimolo: barra "fantasma" (contorno tratteggiato) alta in proporzione al massimo della sua voce in questa seduta, con valore e unità */
+  const gu = q => q.v === 1 && q.b === "stacchi" ? "stacco" : q.v === 1 && q.b === "plio" ? "contatto" : q.b === "carico" ? "kg·rip" : SVOL_U[q.b];   // unità brevi sulle barre tratteggiate
+  const gmax = {}; if (VOL) sets.forEach(o => { if (o.vol && o.vol.b !== VK) gmax[o.vol.b] = Math.max(gmax[o.vol.b] || 0, o.vol.v); });
   const y = v => padT + ih - v / vtop * ih;
   let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:${W}px;max-width:none" role="img" aria-label="${VOL ? "Volume" : "RPE"} di ogni serie della seduta">
     ${(tk => `<g class="grid">${tk.map(t => `<line x1="${padL}" x2="${W-padR}" y1="${y(t)}" y2="${y(t)}"/>`).join("")}</g>
@@ -2470,6 +2474,7 @@ function drawSessionChart(el, w){
   sets.forEach((o, k) => { const cx = X(k), c = exColor(order, o.name), v = val(o);
     svg += `<g class="col" tabindex="0" data-k="${k}"><rect class="hit" x="${cx-band/2+1}" y="${padT-6}" width="${band-2}" height="${ih+12}" rx="4"/>
       ${v != null ? (!VOL && o.act.from === "rir" ? `<path d="${barPath(cx, y(v))}" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : `<path class="sbar" d="${barPath(cx, y(v))}" style="fill:${c}"/>`)
+        : VOL && o.vol && gmax[o.vol.b] ? (gt => `<path class="sghost" d="${barPath(cx, gt)}" style="stroke:${c};fill:color-mix(in srgb,${c} 10%,transparent)"/>${band >= 26 ? `<text class="vlab gh" x="${cx}" y="${gt - 6}" text-anchor="middle">${nf(Math.round(o.vol.v * 10) / 10)} ${esc(gu(o.vol))}</text>` : ""}`)(padT + ih - o.vol.v / gmax[o.vol.b] * ih * 0.6)
         : `<circle class="snone" cx="${cx}" cy="${padT+ih-5}" r="3.5"/>`}
       ${VOL && v != null && band >= 26 ? `<text class="vlab ${band < 40 ? "sm" : ""}" x="${cx}" y="${y(v)-6}" text-anchor="middle">${v >= 10000 ? compact(v) : nf(Math.round(v * 10) / 10)}</text>` : ""}
       ${k === peak ? `<text class="vlab" x="${cx}" y="${y(o.act.v)-7}" text-anchor="middle">${nf(o.act.v)}</text>` : ""}

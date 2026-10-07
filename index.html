@@ -2024,7 +2024,7 @@ const numv = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); ret
 const VOLK = {
   carico:  {l: "Carico",   u: "kg",  d: "Pesi: kg × ripetizioni delle serie registrate (con kg e ripetizioni compilati)."},
   rip:     {l: "Ripetizioni", u: "", d: "Corpo libero: ripetizioni totali degli esercizi senza kg, distanza o tempo che non sono salti (nordic, piegamenti, core a ripetizioni…), e delle serie con i kg lasciati vuoti."},
-  sprint:  {l: "Sprint",   u: "m",   d: "Metri ad alta intensità: esercizi con la distanza di categoria Velocità (o pattern Sprint / accelerazioni); senza categoria, le prove fino a 80 m. Distanza × ripetizioni."},
+  sprint:  {l: "Sprint",   u: "m",   d: "Metri ad alta intensità: esercizi con la distanza di categoria Velocità (o pattern Sprint / accelerazioni); anche con i kg (es. sprint con slitta). Distanza × ripetizioni."},
   corsa:   {l: "Corsa",    u: "m",   d: "Metri a intensità più bassa: tutti gli altri esercizi con la distanza (condizionamento, tempo run, corsa continua…). Distanza × ripetizioni."},
   plio:    {l: "Contatti", u: "",    d: "Pliometria: contatti a terra = ripetizioni degli esercizi di categoria Pliometria o pattern Salto / balzi (non i salti tecnici del salto in alto)."},
   stacchi: {l: "Stacchi",  u: "",    d: "Salti tecnici del salto in alto (pattern Salto in alto o categoria Tecnica salto): una ripetizione = uno stacco."},
@@ -2037,9 +2037,10 @@ const secOf = v => { const t = String(v ?? "").trim().replace(",", "."); if (!t)
 function volBucket(x, name){
   const l = libByName(name) || {}, c = ck(l.category), p = ck(l.pattern), cols = x.cols || [];
   if (/salto in alto/.test(p) || /tecnica salto/.test(c)) return "stacchi";
+  if (cols.includes("dist") && (/velocit|sprint|accelera/.test(c) || /sprint|accelera/.test(p))) return "sprint";   // Sprint = solo categoria Velocità o pattern Sprint/Accelerazione (anche con kg: slitta, traino)
   if (cols.includes("kg")) return "carico";
   if (/pliometr|balz|rimbalz/.test(c) || /^salt|pliometr|balz/.test(p)) return "plio";
-  if (cols.includes("dist")) return /velocit|sprint|accelera/.test(c) || /sprint|accelera/.test(p) ? "sprint" : /condiz|resisten|aerob|corsa|endur/.test(c) ? "corsa" : "dist?";
+  if (cols.includes("dist")) return "corsa";   // tutti gli altri metri (andature, allunghi, condizionamento…) → Corsa
   if (cols.includes("height")) return "plio";
   if (cols.includes("time")) return "tempo";
   if (cols.includes("reps")) return "rip";
@@ -2061,15 +2062,8 @@ function wStats(w){
       e.sets++; if (rp != null) { reps += rp; e.reps += rp; }
       if (k != null && rp != null) { vol += k*rp; e.vol += k*rp; }
       if (k != null) e.kgMax = Math.max(e.kgMax ?? 0, k);
-      { const d = numv(r.dist), n1 = rp ?? 1; let b = bk, v = null;   // volume per tipo di stimolo
-        if (b === "carico") { if (k != null && rp != null) v = k * rp;
-          else if (rp != null) { b = "rip"; v = rp; }                                             // kg lasciati vuoti: lavoro a corpo libero
-          else { const sc = secOf(r.time); if (sc != null) { b = "tempo"; v = sc / 60; } } }       // isometria con sovraccarico: conta il tempo
-        else if (b === "rip") v = rp;
-        else if (b === "sprint" || b === "corsa" || b === "dist?") { if (d != null) { v = d * n1; if (b === "dist?") b = d <= 80 ? "sprint" : "corsa"; } }
-        else if (b === "plio" || b === "stacchi") v = n1;
-        else if (b === "tempo") { const sc = secOf(r.time); v = sc != null ? sc * n1 / 60 : null; }
-        if (v) vb[b] = (vb[b] || 0) + v; } }); });
+      { const sv = setVolume(x, exName(w, x), r, x.sets[j]);   // volume per tipo di stimolo (tempo in minuti qui, in secondi nella singola serie)
+        if (sv && sv.v) vb[sv.b] = (vb[sv.b] || 0) + (sv.b === "tempo" ? sv.v / 60 : sv.v); } }); });
   const srpe = w.status === "done" && w.sessionRpe && w.durationMin ? w.sessionRpe * w.durationMin : 0;
   return {sets, vol, vb, reps, srpe, ex, types, typesH, hard, known, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
 }
@@ -2369,12 +2363,14 @@ function setRpe(o){ const r = rpeNum(o?.rpe); if (r != null && r > 0) return {v:
   const q = rpeNum(o?.rir); if (q != null) return {v: Math.max(1, 10 - q), from: "rir"}; return null; }
 /* volume di una singola serie, nell'unità del suo stimolo (stesse regole del Volume in Analisi) */
 const SVOL_U = {carico: "kg × rip", rip: "rip", sprint: "m", corsa: "m", plio: "contatti", stacchi: "stacchi", tempo: "s"};
-function setVolume(x, name, r){
-  let b = volBucket(x, name); const k = numv(r.kg), rp = numv(r.reps), d = numv(r.dist), n1 = rp ?? 1, sc = secOf(r.time);
+/* se l'atleta non ha riscritto distanza o tempo (spesso sono già nel programma: "30 m", "15″") si usa quello previsto */
+function setVolume(x, name, r, s){
+  let b = volBucket(x, name); const plan = c => (s && !/[-–/]/.test(String(s[c] ?? ""))) ? s[c] : null;
+  const k = numv(r.kg), rp = numv(r.reps), d = numv(r.dist) ?? numv(plan("dist")), n1 = rp ?? numv(plan("reps")) ?? 1, sc = secOf(r.time) ?? secOf(plan("time"));
   if (b === "carico") { if (k != null && rp != null) return {b, v: k * rp}; if (rp != null) return {b: "rip", v: rp}; if (sc != null) return {b: "tempo", v: sc}; return null; }
-  if (b === "sprint" || b === "corsa" || b === "dist?") { if (d == null) return null; if (b === "dist?") b = d <= 80 ? "sprint" : "corsa"; return {b, v: d * n1}; }
+  if (b === "sprint" || b === "corsa") { if (d == null) return rp != null ? {b: "rip", v: rp} : null; return {b, v: d * n1}; }   // senza distanza: contano le ripetizioni
   if (b === "plio" || b === "stacchi") return {b, v: n1};
-  if (b === "tempo") return sc != null ? {b, v: sc * n1} : null;
+  if (b === "tempo") return sc != null ? {b, v: sc * n1} : rp != null ? {b: "rip", v: rp} : null;
   if (b === "rip") return rp != null ? {b, v: rp} : null;
   return null;
 }
@@ -2386,7 +2382,7 @@ function sessionSets(w){
       if (!r || emptyRes(r)) return;
       const name = exName(w, x), s = x.sets[j] || {};
       if (!order.includes(name)) order.push(name);
-      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, x, cols: x.cols, act: setRpe(r), plan: setRpe(s), vol: setVolume(x, name, r)}); });
+      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, x, cols: x.cols, act: setRpe(r), plan: setRpe(s), vol: setVolume(x, name, r, s)}); });
   });
   return {sets: out, order};
 }

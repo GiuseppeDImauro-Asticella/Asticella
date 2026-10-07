@@ -795,6 +795,9 @@ tr.ok .ck svg{stroke:#fff}
 .sstats{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:13px;color:var(--muted)}
 .sstats b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
 #an-schart{overflow-x:auto;padding-bottom:4px}
+#an-sess.vol .sm-rpe{display:none}#an-sess:not(.vol) .sm-vol{display:none}
+#an-schart .sblab{fill:var(--muted);font-size:11.5px}#an-schart .sblab tspan.lb{font-weight:800}
+#an-schart .vlab.sm{font-size:10px;font-weight:600;fill:var(--muted)}
 #an-schart .sline{fill:none;stroke:var(--muted);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 #an-schart .splan{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;opacity:.8}
 #an-schart .vlab{fill:var(--ink);font-size:11px;font-weight:700}
@@ -2363,6 +2366,17 @@ const rpeNum = v => { const n = String(v ?? "").replace(/,/g, ".").match(/\d+(\.
   const a = n.slice(0, 2).map(Number), x = a.reduce((t, q) => t + q, 0) / a.length; return x >= 0 && x <= 10 ? x : null; };   // "7-8" → 7,5
 function setRpe(o){ const r = rpeNum(o?.rpe); if (r != null && r > 0) return {v: r, from: "rpe"};
   const q = rpeNum(o?.rir); if (q != null) return {v: Math.max(1, 10 - q), from: "rir"}; return null; }
+/* volume di una singola serie, nell'unità del suo stimolo (stesse regole del Volume in Analisi) */
+const SVOL_U = {carico: "kg × rip", rip: "rip", sprint: "m", corsa: "m", plio: "contatti", stacchi: "stacchi", tempo: "s"};
+function setVolume(x, name, r){
+  let b = volBucket(x, name); const k = numv(r.kg), rp = numv(r.reps), d = numv(r.dist), n1 = rp ?? 1, sc = secOf(r.time);
+  if (b === "carico") { if (k != null && rp != null) return {b, v: k * rp}; if (rp != null) return {b: "rip", v: rp}; if (sc != null) return {b: "tempo", v: sc}; return null; }
+  if (b === "sprint" || b === "corsa" || b === "dist?") { if (d == null) return null; if (b === "dist?") b = d <= 80 ? "sprint" : "corsa"; return {b, v: d * n1}; }
+  if (b === "plio" || b === "stacchi") return {b, v: n1};
+  if (b === "tempo") return sc != null ? {b, v: sc * n1} : null;
+  if (b === "rip") return rp != null ? {b, v: rp} : null;
+  return null;
+}
 function sessionSets(w){
   const out = [], order = [], ex = w.exercises || [], res = w.results || {}, L = exLabels(ex);
   ssGroups(ex).forEach(g => {
@@ -2371,35 +2385,45 @@ function sessionSets(w){
       if (!r || emptyRes(r)) return;
       const name = exName(w, x), s = x.sets[j] || {};
       if (!order.includes(name)) order.push(name);
-      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, cols: x.cols, act: setRpe(r), plan: setRpe(s)}); });
+      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, x, cols: x.cols, act: setRpe(r), plan: setRpe(s), vol: setVolume(x, name, r)}); });
   });
   return {sets: out, order};
 }
 const exColor = (order, name) => { const i = order.indexOf(name); return i >= 0 && i < 8 ? `var(--s${i+1})` : "var(--faint)"; };
+/* grafico della seduta: RPE (intensità) o volume; se nessuna serie ha l'RPE parte dal volume */
+const sessMode = sets => anQ.sm || (sets.some(o => o.act) ? "rpe" : "vol");
+/* voce di volume del grafico della seduta: quella scelta, se no quella con più serie in questa seduta */
+const sessVk = sets => { const c = {}; sets.forEach(o => { if (o.vol) c[o.vol.b] = (c[o.vol.b] || 0) + 1; });
+  return anQ.svk && c[anQ.svk] ? anQ.svk : VOL_KEYS.find(q => c[q]) || anQ.svk || "carico"; };   // in ordine: carico, ripetizioni, sprint…
+const SVOL_L = {carico: "Carico (kg × rip)", rip: "Ripetizioni", sprint: "Sprint (m)", corsa: "Corsa (m)", plio: "Contatti", stacchi: "Stacchi", tempo: "Tempo (s)"};
 function sessionPanelHtml(a, list, w){
   if (!list.length) return `<section class="panel chartcard"><h3>Andamento della seduta</h3><div class="cdesc">Nessuna seduta registrata da ${esc(a.name)} nel periodo scelto.</div></section>`;
   const {sets, order} = sessionSets(w);
   const withR = sets.filter(o => o.act), avg = withR.length ? withR.reduce((t, o) => t + o.act.v, 0) / withR.length : null;
   const peak = withR.reduce((m, o) => !m || o.act.v > m.act.v ? o : m, null);
-  const idx = list.indexOf(w);
+  const idx = list.indexOf(w), sm = sessMode(sets);
   const fmt1 = v => fmtN(v, Number.isInteger(v) ? 0 : 1);
   const mk = (kind, c) => `<svg width="18" height="12" aria-hidden="true">${kind === "bar" ? `<rect x="4" y="1" width="10" height="11" rx="2" fill="${c}"/>` : kind === "rbar" ? `<rect x="4.75" y="1.75" width="8.5" height="9.5" rx="2" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : kind === "dot" ? `<circle cx="9" cy="6" r="5" fill="${c}"/>` : kind === "ring" ? `<circle cx="9" cy="6" r="4" fill="var(--surface)" stroke="${c}" stroke-width="2"/>`
     : kind === "plan" ? `<line x1="2" x2="16" y1="6" y2="6" class="splan" style="stroke:var(--ink);stroke-width:2;opacity:.45"/>` : kind === "sess" ? `<line x1="1" x2="17" y1="6" y2="6" style="stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55"/>`
     : `<circle cx="9" cy="6" r="3" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/>`}</svg>`;
-  return `<section class="panel chartcard" id="an-sess">
-    <div class="sesshead"><div><h3>Andamento della seduta · ${esc(a.name)}</h3><div class="cdesc">Una barra per ogni serie, nell'ordine in cui è stata fatta, alta quanto il suo RPE: si vede come è cresciuta (o calata) l'intensità durante l'allenamento. Nelle superserie le serie sono alternate.</div></div>
+  return `<section class="panel chartcard ${sm === "vol" ? "vol" : ""}" id="an-sess">
+    <div class="sesshead"><div><h3>Andamento della seduta · ${esc(a.name)}</h3><div class="cdesc sm-rpe">Una barra per ogni serie, nell'ordine in cui è stata fatta, alta quanto il suo RPE: si vede come è cresciuta (o calata) l'intensità durante l'allenamento. Nelle superserie le serie sono alternate.</div></div>
       <div class="row"><button class="btn sm ghost icon" data-act="an-sess-step" data-d="1" aria-label="Seduta precedente" ${idx >= list.length - 1 ? "disabled" : ""}>‹</button>
         <select class="in" data-change="an-sess" aria-label="Seduta">${list.map(x => `<option value="${x.id}" ${x === w ? "selected" : ""}>${esc(fmtD(effDate(x)))} · ${esc(x.title || "Senza titolo")}${x.status === "done" ? "" : " (non completata)"}</option>`).join("")}</select>
         <button class="btn sm ghost icon" data-act="an-sess-step" data-d="-1" aria-label="Seduta successiva" ${idx <= 0 ? "disabled" : ""}>›</button></div></div>
+    ${sets.length ? `<div class="kfilt" role="group" aria-label="Cosa mostra il grafico"><span class="lbl">Grafico</span>${[["rpe", "Intensità (RPE)"], ["vol", "Volume"]].map(([k, l]) => `<button class="${sm === k ? "on" : ""}" data-act="an-smode" data-v="${k}" aria-pressed="${sm === k}">${l}</button>`).join("")}</div>` : ""}
+    ${sets.length ? (vk => `<div class="kfilt sm-vol" role="group" aria-label="Voce di volume"><span class="lbl">Volume</span>${VOL_KEYS.map(q => { const nq = sets.filter(o => o.vol?.b === q).length;
+      return `<button class="${vk === q ? "on" : ""} ${nq ? "" : "nodata"}" data-act="an-svk" data-v="${q}" aria-pressed="${vk === q}" ${nq ? `title="${nq} serie"` : `title="Nessuna serie di questo tipo nella seduta"`}>${SVOL_L[q]}</button>`; }).join("")}</div>
+    <div class="cdesc sm-vol">Volume di ogni serie per la voce scelta (stesse regole del Volume in Analisi). Le serie degli altri stimoli restano al loro posto come cerchietti in basso.</div>`)(sessVk(sets)) : ""}
     <div class="sstats"><span>tipo: <b>${KINDS[kindOf(w)].l}</b></span><span><b>${sets.length}</b> serie</span><span>con RPE: <b>${withR.length}</b></span>
       ${avg != null ? `<span>RPE medio serie: <b>${fmtN(avg, 1)}</b></span><span>picco: <b>${fmt1(peak.act.v)}</b> (${esc(peak.lab)} ${esc(peak.name)}, serie ${peak.n})</span>` : ""}
       ${w.sessionRpe ? `<span>RPE seduta: <b>${w.sessionRpe}</b></span>` : ""}${w.durationMin ? `<span>durata: <b>${w.durationMin}′</b></span>` : ""}
       ${w.sessionRpe && w.durationMin ? `<span>carico sRPE: <b>${fmtN(w.sessionRpe * w.durationMin)}</b> UA</span>` : ""}</div>
-    ${withR.length && withR.length < sets.length ? `<div class="faint" style="font-size:12px;margin-top:6px">Solo <b>${withR.length}</b> serie su ${sets.length} hanno l'RPE: le altre sono i cerchietti in basso (il grafico mostra solo l'RPE). Per vederle tutte aggiungi il parametro RPE (o RIR) a quegli esercizi.</div>` : ""}
-    ${sets.length && !withR.length ? `<div class="note" style="margin-top:10px">In questa seduta nessuna serie ha RPE o RIR: per vedere l'andamento aggiungi il parametro <b>RPE</b> (o RIR) agli esercizi, così l'atleta lo compila a ogni serie.</div>` : ""}
+    ${withR.length && withR.length < sets.length ? `<div class="faint sm-rpe" style="font-size:12px;margin-top:6px">Solo <b>${withR.length}</b> serie su ${sets.length} hanno l'RPE: le altre sono i cerchietti in basso (il grafico mostra solo l'RPE). Per vederle tutte aggiungi il parametro RPE (o RIR) a quegli esercizi.</div>` : ""}
+    ${sets.length && !withR.length ? `<div class="note sm-rpe" style="margin-top:10px">In questa seduta nessuna serie ha RPE o RIR: per vedere l'andamento aggiungi il parametro <b>RPE</b> (o RIR) agli esercizi, così l'atleta lo compila a ogni serie.</div>` : ""}
     ${sets.length ? `<div class="chartwrap" id="an-schart"></div>
-    ${(ls => ls.length ? `<div class="slegend">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}</div>` : "")(order.filter(n => withR.some(o => o.name === n)))}
-    <div class="slegend"><span>${mk("bar", "var(--muted)")}RPE della serie</span><span>${mk("rbar", "var(--muted)")}ricavato dal RIR (10 − RIR)</span><span>${mk("plan")}RPE previsto da te</span>${w.sessionRpe ? `<span>${mk("sess")}RPE della seduta</span>` : ""}<span>${mk("none")}serie senza RPE</span><span><b style="font-size:10px">R W B D</b>&nbsp;tipo di serie</span></div>
+    ${(ls => ls.length ? `<div class="slegend sm-rpe">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}</div>` : "")(order.filter(n => withR.some(o => o.name === n)))}
+    <div class="slegend sm-rpe"><span>${mk("bar", "var(--muted)")}RPE della serie</span><span>${mk("rbar", "var(--muted)")}ricavato dal RIR (10 − RIR)</span><span>${mk("plan")}RPE previsto da te</span>${w.sessionRpe ? `<span>${mk("sess")}RPE della seduta</span>` : ""}<span>${mk("none")}serie senza RPE</span><span><b style="font-size:10px">R W B D</b>&nbsp;tipo di serie</span></div>
     <details class="sdet"><summary>Vedi come tabella</summary><div class="scroll-x"><table class="nt"><thead><tr><th>#</th><th>Esercizio</th><th>Tipo</th><th>Eseguito</th><th>RPE</th><th>Previsto</th></tr></thead><tbody>
       ${sets.map((o, k) => `<tr><td class="num">${k+1}</td><td>${esc(o.lab)} ${esc(o.name)} <span class="faint">· serie ${o.n}${o.extra ? " extra" : ""}</span></td><td>${o.type ? SET_TYPES[o.type].s : "–"}</td><td>${esc(resultLine(o.r, o.cols) || "✓")}</td>
         <td class="num">${o.act ? fmt1(o.act.v) + (o.act.from === "rir" ? " (da RIR)" : "") : "–"}</td><td class="num">${o.plan ? fmt1(o.plan.v) : "–"}</td></tr>`).join("")}</tbody></table></div></details>` : `<div class="muted sempty" style="margin-top:10px;font-size:13px">In questa seduta non ci sono serie registrate.<button class="btn sm" data-act="open-w" data-e="${esc(a.email)}" data-id="${w.id}">Apri la seduta ›</button></div>`}
@@ -2417,41 +2441,50 @@ function redrawSess(){   // cambia solo il riquadro della seduta, senza ricarica
 function drawSessionChart(el, w){
   if (!el) return;
   const {sets, order} = sessionSets(w); const n = sets.length; if (!n) return;
-  const padL = 30, padR = 10, padT = 26, ih = 200, padB = 58;
-  const avail = Math.max(300, el.clientWidth || 700), band = Math.max(26, Math.min(56, (avail - padL - padR) / n));
-  const W = padL + padR + band * n, H = padT + ih + padB;
-  const y = v => padT + ih - v / 10 * ih, X = k => padL + band * k + band / 2, bw = Math.min(28, band * 0.62);   // barre: partono da 0
-  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:${W}px;${W > avail ? "max-width:none" : "max-width:100%"}" role="img" aria-label="RPE di ogni serie della seduta">
-    <g class="grid">${[0,2,4,6,8,10].map(t => `<line x1="${padL}" x2="${W-padR}" y1="${y(t)}" y2="${y(t)}"/>`).join("")}</g>
-    <g class="axis">${[0,2,4,6,8,10].map(t => `<text x="${padL-8}" y="${y(t)+4}" text-anchor="end">${t}</text>`).join("")}<text x="0" y="10" style="font-size:10px;font-weight:600">RPE</text></g>`;
-  // bande degli esercizi (blocchi consecutivi)
-  const runs = []; sets.forEach((o, k) => { const last = runs[runs.length-1]; if (last && last.grp === o.grp) last.to = k; else runs.push({grp: o.grp, from: k, to: k, lead: o.lead, names: []}); const r = runs[runs.length-1]; if (!r.names.includes(o.name)) r.names.push(o.name); });
-  runs.forEach(r => { const x1 = X(r.from) - band/2 + 4, x2 = X(r.to) + band/2 - 4, wd = x2 - x1;
-    let t = `${r.lead ? r.lead + " · " : ""}${r.names.join(" + ")}`; const max = Math.floor(wd / 6.3); if (t.length > max) t = max > 3 ? t.slice(0, max - 1) + "…" : r.lead;
-    svg += `<line class="sband" x1="${x1}" x2="${x2}" y1="${padT+ih+30}" y2="${padT+ih+30}"/><g class="axis"><text x="${x1}" y="${padT+ih+46}">${esc(t)}</text></g>`; });
-  // RPE della seduta
-  if (w.sessionRpe) svg += `<line class="ssess" x1="${padL}" x2="${W-padR}" y1="${y(+w.sessionRpe)}" y2="${y(+w.sessionRpe)}"/>`;
-  const peak = sets.reduce((m, o, k) => o.act && (m < 0 || o.act.v > sets[m].act.v) ? k : m, -1);
-  const barPath = (cx, v) => { const top = y(v), h = padT + ih - top, r = Math.min(4, h, bw/2), x0 = cx - bw/2, x1 = cx + bw/2;
+  const VOL = sessMode(sets) === "vol", VK = VOL ? sessVk(sets) : null;
+  const ink = c => c, wrapTxt = (t, max) => { const out = []; let cur = ""; String(t).split(/\s+/).forEach(wd => { if ((cur + " " + wd).trim().length > max && cur) { out.push(cur); cur = wd; } else cur = (cur + " " + wd).trim(); }); if (cur) out.push(cur); return out; };
+  const vmaxRaw = VOL ? Math.max(0, ...sets.filter(o => o.vol?.b === VK).map(o => o.vol.v)) : 10, vtop = VOL ? (v => ["rip", "plio", "stacchi"].includes(VK) || v < 40 ? Math.max(4, Math.ceil(v / 4) * 4) : v)(niceMax(vmaxRaw || 1)) : 10;   // conteggi: righe su numeri interi
+  const vticks = [0, .25, .5, .75, 1].map(f => f * vtop), tl = v => VOL ? (v >= 10000 ? compact(v) : fmtN(v, v % 1 ? 1 : 0)) : String(v);
+  const padL = VOL ? Math.max(30, 10 + 6.5 * Math.max(...vticks.map(t => tl(t).length))) : 30, padR = 10, padT = 26, ih = 200;
+  const avail = Math.max(300, el.clientWidth || 700), band = Math.max(30, (avail - padL - padR) / n);   // occupa tutta la larghezza; con tante serie scorre di lato
+  const W = padL + padR + band * n;
+  const X = k => padL + band * k + band / 2, bw = Math.min(34, band * 0.55);
+  // bande degli esercizi (blocchi consecutivi) con i nomi interi, a capo su più righe
+  const runs = []; sets.forEach((o, k) => { const last = runs[runs.length-1]; if (last && last.grp === o.grp) last.to = k; else runs.push({grp: o.grp, from: k, to: k, lead: o.lead, items: []}); const r = runs[runs.length-1]; if (!r.items.some(q => q.name === o.name)) r.items.push({name: o.name, lab: o.lab, u: o.vol ? SVOL_U[o.vol.b] : ""}); });
+  runs.forEach(r => { const wd = X(r.to) - X(r.from) + band - 8, max = Math.max(4, Math.floor(wd / 6.6));
+    r.lines = r.items.flatMap(q => wrapTxt(`${q.lab} · ${q.name}`, max).map((t, k) => ({t, lab: k === 0 ? q.lab : ""}))); });
+  const nL = Math.max(1, ...runs.map(r => r.lines.length)), padB = 40 + nL * 15, H = padT + ih + padB;
+  // scala: RPE 0–10, oppure volume con una scala per esercizio (massimo = 90% dell'altezza)
+  const val = o => VOL ? (o.vol?.b === VK ? o.vol.v : null) : (o.act ? o.act.v : null);
+  const y = v => padT + ih - v / vtop * ih;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:${W}px;max-width:none" role="img" aria-label="${VOL ? "Volume" : "RPE"} di ogni serie della seduta">
+    ${(tk => `<g class="grid">${tk.map(t => `<line x1="${padL}" x2="${W-padR}" y1="${y(t)}" y2="${y(t)}"/>`).join("")}</g>
+    <g class="axis">${tk.map(t => `<text x="${padL-8}" y="${y(t)+4}" text-anchor="end">${tl(t)}</text>`).join("")}<text x="0" y="10" style="font-size:10px;font-weight:600">${VOL ? esc(SVOL_L[VK]) : "RPE"}</text></g>`)(VOL ? vticks : [0,2,4,6,8,10])}`;
+  runs.forEach(r => { const x1 = X(r.from) - band/2 + 4, x2 = X(r.to) + band/2 - 4;
+    svg += `<line class="sband" x1="${x1}" x2="${x2}" y1="${padT+ih+30}" y2="${padT+ih+30}"/><text class="sblab" x="${x1}" y="${padT+ih+46}">${r.lines.map((l, k) => `<tspan x="${x1}" dy="${k ? 15 : 0}">${l.lab ? `<tspan class="lb" style="fill:${exColor(order, r.items.find(q => q.lab === l.lab)?.name)}">${esc(l.lab)}</tspan>${esc(l.t.slice(l.lab.length))}` : esc(l.t)}</tspan>`).join("")}</text>`; });
+  if (!VOL && w.sessionRpe) svg += `<line class="ssess" x1="${padL}" x2="${W-padR}" y1="${y(+w.sessionRpe)}" y2="${y(+w.sessionRpe)}"/>`;
+  const peak = VOL ? -1 : sets.reduce((m, o, k) => o.act && (m < 0 || o.act.v > sets[m].act.v) ? k : m, -1);
+  const barPath = (cx, top) => { const h = padT + ih - top, r = Math.min(4, h, bw/2), x0 = cx - bw/2, x1 = cx + bw/2;
     return h <= 0 ? "" : `M${x0},${padT+ih} V${top+r} Q${x0},${top} ${x0+r},${top} H${x1-r} Q${x1},${top} ${x1},${top+r} V${padT+ih} Z`; };
-  sets.forEach((o, k) => { const cx = X(k), c = exColor(order, o.name);
+  const nf = v => fmtN(v, Number.isInteger(v) ? 0 : 1);
+  sets.forEach((o, k) => { const cx = X(k), c = exColor(order, o.name), v = val(o);
     svg += `<g class="col" tabindex="0" data-k="${k}"><rect class="hit" x="${cx-band/2+1}" y="${padT-6}" width="${band-2}" height="${ih+12}" rx="4"/>
-      ${o.act ? (o.act.from === "rir" ? `<path d="${barPath(cx, o.act.v)}" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : `<path class="sbar" d="${barPath(cx, o.act.v)}" style="fill:${c}"/>`)
-        : `<circle class="snone" cx="${cx}" cy="${y(0)-5}" r="3.5"/>`}
-      ${k === peak ? `<text class="vlab" x="${cx}" y="${y(o.act.v)-7}" text-anchor="middle">${fmtN(o.act.v, Number.isInteger(o.act.v) ? 0 : 1)}</text>` : ""}
-      ${o.plan ? `<line class="splan" x1="${cx-bw/2-4}" x2="${cx+bw/2+4}" y1="${y(o.plan.v)}" y2="${y(o.plan.v)}"/>` : ""}
+      ${v != null ? (!VOL && o.act.from === "rir" ? `<path d="${barPath(cx, y(v))}" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : `<path class="sbar" d="${barPath(cx, y(v))}" style="fill:${c}"/>`)
+        : `<circle class="snone" cx="${cx}" cy="${padT+ih-5}" r="3.5"/>`}
+      ${VOL && v != null && band >= 26 ? `<text class="vlab ${band < 40 ? "sm" : ""}" x="${cx}" y="${y(v)-6}" text-anchor="middle">${v >= 10000 ? compact(v) : nf(Math.round(v * 10) / 10)}</text>` : ""}
+      ${k === peak ? `<text class="vlab" x="${cx}" y="${y(o.act.v)-7}" text-anchor="middle">${nf(o.act.v)}</text>` : ""}
+      ${!VOL && o.plan ? `<line class="splan" x1="${cx-bw/2-4}" x2="${cx+bw/2+4}" y1="${y(o.plan.v)}" y2="${y(o.plan.v)}"/>` : ""}
       <text class="styp t-${o.type}" x="${cx}" y="${padT+ih+17}" text-anchor="middle" style="fill:${o.type === "W" ? "var(--ink)" : "var(--muted)"}">${o.type || (o.extra ? "+" : "")}</text></g>`; });
-  // valore del picco e sessione RPE come etichette dirette (poche)
-  if (w.sessionRpe) svg += `<g class="axis"><text x="${padL+4}" y="${y(+w.sessionRpe)-6}" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round">RPE seduta ${w.sessionRpe}</text></g>`;
+  if (!VOL && w.sessionRpe) svg += `<g class="axis"><text x="${padL+4}" y="${y(+w.sessionRpe)-6}" style="paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round">RPE seduta ${w.sessionRpe}</text></g>`;
   svg += `</svg><div class="ctip" hidden></div>`;
   el.innerHTML = svg;
   const tip = el.querySelector(".ctip");
   const show = g => { const o = sets[+g.dataset.k]; const b = g.getBoundingClientRect(), p = el.getBoundingClientRect();
     const line = (cls, txt) => { const d2 = document.createElement("div"); d2.className = cls; d2.textContent = txt; return d2; };
-    tip.replaceChildren(line("tv", o.act ? `RPE ${fmtN(o.act.v, Number.isInteger(o.act.v) ? 0 : 1)}${o.act.from === "rir" ? ` (da RIR ${o.r.rir})` : ""}` : "RPE non indicato"),
+    tip.replaceChildren(line("tv", VOL ? (o.vol ? `${nf(Math.round(o.vol.v * 10) / 10)} ${SVOL_U[o.vol.b]}${o.vol.b !== VK ? ` · ${SVOL_L[o.vol.b]}` : ""}` : "Volume non calcolabile") : o.act ? `RPE ${nf(o.act.v)}${o.act.from === "rir" ? ` (da RIR ${o.r.rir})` : ""}` : "RPE non indicato"),
       line("tl", `${o.lab} ${o.name} · serie ${o.n}${o.extra ? " extra" : ""}${o.type ? " · " + SET_TYPES[o.type].l : ""}`),
       line("tl", `Eseguito: ${resultLine(o.r, o.cols) || "✓"}`));
-    if (o.plan) tip.append(line("tl", `Previsto: RPE ${fmtN(o.plan.v, Number.isInteger(o.plan.v) ? 0 : 1)}`));
+    if (!VOL && o.plan) tip.append(line("tl", `Previsto: RPE ${nf(o.plan.v)}`));
     tip.hidden = false;
     let x = b.left - p.left + el.scrollLeft + b.width/2 - tip.offsetWidth/2; x = Math.max(el.scrollLeft, Math.min(x, el.scrollLeft + p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 4) + "px"; };
@@ -4327,6 +4360,8 @@ const ACT = {
   "an-vk"(t){ anQ.vk = t.dataset.v; renderView(); },
   "an-kind"(t){ if (anQ.metric === "volume") anQ.kv = t.dataset.v; else anQ.ks = t.dataset.v; renderView(); },
   "an-pick"(t){ anQ.who = t.dataset.e; anQ.sess = null; renderView(); scrollTo(0,0); },
+  "an-svk"(t){ anQ.svk = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
+  "an-smode"(t){ anQ.sm = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-sess-step"(t){ const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));
     const nw = list[i + +t.dataset.d]; if (nw) { anQ.sess = nw.id; redrawSess(); } },
   "meso-new"(){ const a = athByEmail(S.calAthlete); const ms = a.mesos || [];

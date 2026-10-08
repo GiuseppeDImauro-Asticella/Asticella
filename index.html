@@ -2039,7 +2039,7 @@ const VOLK = {
   rip:     {l: "Ripetizioni", u: "", d: "Corpo libero: ripetizioni totali degli esercizi senza kg, distanza o tempo che non sono salti (nordic, piegamenti, core a ripetizioni…), e delle serie in cui manca il dato principale (kg lasciati vuoti, metri non scritti né programmati)."},
   sprint:  {l: "Sprint",   u: "m",   d: "Metri ad alta intensità: esercizi con la distanza di categoria Velocità (o pattern Sprint / accelerazioni); anche con i kg (es. sprint con slitta). Distanza × ripetizioni."},
   corsa:   {l: "Corsa",    u: "m",   d: "Metri a intensità più bassa: tutti gli altri esercizi con la distanza (condizionamento, tempo run, corsa continua…). Distanza × ripetizioni."},
-  plio:    {l: "Contatti", u: "",    d: "Pliometria: contatti a terra degli esercizi di categoria Pliometria, pattern Salto / balzi o con il parametro \"Contatti a terra\" (non i salti tecnici del salto in alto). Con il parametro: ripetizioni × contatti per ripetizione (es. 3 rip × 10 contatti = 30); senza: 1 ripetizione = 1 contatto."},
+  plio:    {l: "Contatti", u: "",    d: "Pliometria: contatti a terra degli esercizi di categoria Pliometria o pattern Salto / balzi (1 ripetizione = 1 contatto), e di qualsiasi esercizio in cui il parametro \"Contatti a terra\" è compilato: ripetizioni × contatti per ripetizione (es. 3 rip × 10 contatti = 30). Se \"Contatti a terra\" è vuoto valgono gli altri parametri (minuti, metri…). Non i salti tecnici del salto in alto."},
   stacchi: {l: "Stacchi",  u: "",    d: "Salti tecnici del salto in alto (pattern Salto in alto o categoria Tecnica salto): una ripetizione = uno stacco."},
   durata:  {l: "Durata",   u: "min", d: "Attività continue misurate con il parametro Durata (minuti): corsa lenta, marcia, bici, mobilità a tempo lungo…; durata × ripetizioni. Se l'esercizio ha anche la Distanza contano i metri (Sprint / Corsa); se i metri mancano, contano i minuti."},
   tempo:   {l: "Tempo",    u: "s",   d: "Sforzi brevi sotto tensione: esercizi con il parametro Tempo e senza distanza (isometrie, core, plank…; anche le isometrie con sovraccarico): secondi × ripetizioni. Le attività continue in minuti stanno in Durata."},
@@ -2059,7 +2059,7 @@ function volBucket(x, name){
   if (/salto in alto/.test(p) || /tecnica salto/.test(c)) return "stacchi";
   if (cols.includes("dist") && (/velocit|sprint|accelera/.test(c) || /sprint|accelera/.test(p))) return "sprint";   // Sprint = solo categoria Velocità o pattern Sprint/Accelerazione (anche con kg: slitta, traino)
   if (cols.includes("kg")) return "carico";
-  if (/pliometr|balz|rimbalz/.test(c) || /^salt|pliometr|balz/.test(p) || contCol(cols)) return "plio";   // con "Contatti a terra" contano i contatti, anche se ha la distanza
+  if (/pliometr|balz|rimbalz/.test(c) || /^salt|pliometr|balz/.test(p)) return "plio";
   if (cols.includes("dist")) return "corsa";   // tutti gli altri metri (andature, allunghi, condizionamento…) → Corsa
   if (cols.includes("height")) return "plio";
   if (durCol(cols)) return "durata";
@@ -2482,13 +2482,14 @@ const SVOL_U = {carico: "kg × rip", rip: "rip", sprint: "m", corsa: "m", plio: 
 /* se l'atleta non ha riscritto distanza o tempo (spesso sono già nel programma: "30 m", "15″") si usa quello previsto */
 function setVolume(x, name, r, s){
   let b = volBucket(x, name); const plan = c => (s && !/[-–/]/.test(String(s[c] ?? ""))) ? s[c] : null;
+  /* "Contatti a terra" compilato (dall'atleta o nel programma): la serie conta come Contatti = rip × contatti per rip. Se non è compilato valgono le altre regole (categoria, pattern, parametri) */
+  { const ck2 = b !== "stacchi" ? contCol(x.cols) : null, ct = ck2 ? numv(r[ck2]) ?? oneNum(plan(ck2)) : null;
+    if (ct != null) return {b: "plio", v: ct * (numv(r.reps) ?? numv(plan("reps")) ?? 1)}; }
   const k = numv(r.kg), rp = numv(r.reps), d = numv(r.dist) ?? numv(plan("dist")), n1 = rp ?? numv(plan("reps")) ?? 1, sc = secOf(r.time) ?? secOf(plan("time"));
   if (b === "carico") { if (k != null && rp != null) return {b, v: k * rp}; if (rp != null) return {b: "rip", v: rp}; if (sc != null) return {b: "tempo", v: sc}; return null; }
   if (b === "sprint" || b === "corsa") { if (d == null) { const dk = durCol(x.cols), mn = dk ? minOf(r[dk]) ?? minOf(plan(dk)) : null;   // senza metri: i minuti di Durata, poi le ripetizioni (il Tempo qui è la prestazione, non conta)
       return mn != null ? {b: "durata", v: mn * n1} : rp != null ? {b: "rip", v: rp} : null; } return {b, v: d * n1}; }   // senza distanza: contano le ripetizioni
-  if (b === "plio") { const ck2 = contCol(x.cols), ct = ck2 ? numv(r[ck2]) ?? oneNum(plan(ck2)) : null;   // contatti = ripetizioni × contatti per ripetizione (se c'è il parametro), altrimenti 1 rip = 1 contatto
-    return {b, v: ct != null ? ct * n1 : n1}; }
-  if (b === "stacchi") return {b, v: n1};
+  if (b === "plio" || b === "stacchi") return {b, v: n1};   // senza "Contatti a terra" compilato: 1 ripetizione = 1 contatto / 1 stacco
   if (b === "durata") { const dk = durCol(x.cols), mn = minOf(r[dk]) ?? minOf(plan(dk)); return mn != null ? {b, v: mn * n1} : sc != null ? {b: "tempo", v: sc * n1} : rp != null ? {b: "rip", v: rp} : null; }
   if (b === "tempo") return sc != null ? {b, v: sc * n1} : rp != null ? {b: "rip", v: rp} : null;
   if (b === "rip") return rp != null ? {b, v: rp} : null;

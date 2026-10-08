@@ -766,8 +766,8 @@ tr.ok .ck svg{stroke:#fff}
 
 
 /* analisi */
-.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:14px}
-@media (max-width:1180px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:2px;position:relative}
 .kpi:hover{border-color:var(--faint)}
 .kpi.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
@@ -2021,10 +2021,9 @@ function drawExDialog(){
 function closeExDialog(){ S.exDlg = null; S.exEdit = null; $("#confirm").innerHTML = ""; }
 
 /* ---------- ANALISI ---------- */
-const anQ = {cmpA: null, cmpB: null, dA: null, dB: null, wtOpen: false, ptOpen: false, patM: "sets", gran: "week", dws: null, kv: "all", vk: "carico", ks: "all", who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume", ik: "kg"};
+const anQ = {cmpA: null, cmpB: null, dA: null, dB: null, wtOpen: false, ptOpen: false, patM: "vol", gran: "week", dws: null, kv: "all", vk: "serie", ks: "all", who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume", ik: "kg"};
 const METRICS = {
   volume: {get l(){ return "Volume · " + VOLK[anQ.vk].l; }, get u(){ return VOLK[anQ.vk].u; }, get d(){ return VOLK[anQ.vk].d; }},
-  sets:   {l:"Serie", u:"", d:"Numero di serie registrate: spuntate o compilate, extra comprese."},
   hard:   {l:"Serie allenanti", u:"", d:"Serie registrate con RPE ≥ 7 o RIR ≤ 3. Contano solo le serie in cui l'atleta ha scritto RPE o RIR. In questa vista anche tipi di serie e pattern motori (sotto il grafico) contano solo le serie allenanti."},
   int:    {get l(){ return "Intensità · " + INTK[anQ.ik].l; }, u: "%", get d(){ return anQ.ik === "kg"
     ? "% e1RM medio della settimana: kg di ogni serie ÷ e1RM stimato dell'atleta in quell'esercizio (il migliore delle 12 settimane prima della seduta; ≈ MTL, carico massimo di allenamento, ricavato da kg, rip e RPE/RIR delle serie con RPE ≥ 7 e max 10 rip). Serie Ramping escluse. Il punto è la media, la linea va dalla serie più leggera alla più pesante."
@@ -2035,6 +2034,7 @@ const METRICS = {
 const numv = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isNaN(n) ? null : n; };
 /* VOLUME per tipo di stimolo (letteratura: carico esterno con l'unità giusta per ogni stimolo; sRPE per confrontarli tutti) */
 const VOLK = {
+  serie:   {l: "Serie",    u: "",    d: "Numero di serie registrate (spuntate o compilate, extra comprese), di qualsiasi esercizio e stimolo: è la voce \"totale\" del volume; le altre voci dividono le serie per tipo di stimolo."},
   carico:  {l: "Carico",   u: "kg",  d: "Pesi: kg × ripetizioni delle serie registrate (con kg e ripetizioni compilati)."},
   rip:     {l: "Ripetizioni", u: "", d: "Corpo libero: ripetizioni totali degli esercizi senza kg, distanza o tempo che non sono salti (nordic, piegamenti, core a ripetizioni…), e delle serie in cui manca il dato principale (kg lasciati vuoti, metri non scritti né programmati)."},
   sprint:  {l: "Sprint",   u: "m",   d: "Metri ad alta intensità: esercizi con la distanza di categoria Velocità (o pattern Sprint / accelerazioni); anche con i kg (es. sprint con slitta). Distanza × ripetizioni."},
@@ -2045,6 +2045,7 @@ const VOLK = {
   tempo:   {l: "Tempo",    u: "s",   d: "Sforzi brevi sotto tensione: esercizi con il parametro Tempo e senza distanza (isometrie, core, plank…; anche le isometrie con sovraccarico): secondi × ripetizioni. Le attività continue in minuti stanno in Durata."},
 };
 const VOL_KEYS = Object.keys(VOLK);
+const SVOL_KEYS = VOL_KEYS.filter(q => q !== "serie");   // grafico della seduta: una barra per serie, quindi la voce "Serie" non serve
 /* parametro "Durata" creato dal coach (nome con "durat" o unità in minuti) */
 const durCol = cols => (cols || []).find(k => k !== "time" && k !== "rest" && COLS[k] && (/durat/i.test(COLS[k].l || "") || /^min/i.test(COLS[k].u || "")));
 const minOf = v => /['′:"″]/.test(String(v ?? "")) ? (secOf(v) ?? 0) / 60 || null : numv(v);
@@ -2080,10 +2081,11 @@ function wStats(w){
       e.sets++; if (rp != null) { reps += rp; e.reps += rp; }
       if (k != null && rp != null) { vol += k*rp; e.vol += k*rp; }
       if (k != null) e.kgMax = Math.max(e.kgMax ?? 0, k);
+      vb.serie = (vb.serie || 0) + 1; e.vb.serie = (e.vb.serie || 0) + 1; if (hd) e.h.vb.serie = (e.h.vb.serie || 0) + 1;   // voce "Serie" del volume
       { const sv = setVolume(x, exName(w, x), r, x.sets[j]);   // volume per tipo di stimolo
         if (sv && sv.v) { vb[sv.b] = (vb[sv.b] || 0) + sv.v; e.vb[sv.b] = (e.vb[sv.b] || 0) + sv.v; if (hd) e.h.vb[sv.b] = (e.h.vb[sv.b] || 0) + sv.v; } }
       if (ik) { const q = setInt(em, w, x, exName(w, x), r, x.sets[j]);   // intensità relativa (% e1RM / record); Ramping escluse per i pesi
-        if (q?.pct != null && !(q.k === "kg" && ty === "R")) { ints.push({k: q.k, pct: q.pct, cat: catOfName(exName(w, x))});
+        if (q?.pct != null && !(q.k === "kg" && ty === "R")) { ints.push({k: q.k, pct: q.pct, cat: catOfName(exName(w, x)), h: !!hd});
           [e, ...(hd ? [e.h] : [])].forEach(t => { t.is[q.k] = (t.is[q.k] || 0) + q.pct; t.in[q.k] = (t.in[q.k] || 0) + 1; }); } } }); });
   const srpe = w.status === "done" && w.sessionRpe && w.durationMin ? w.sessionRpe * w.durationMin : 0;
   return {sets, vol, vb, reps, srpe, ex, types, typesH, hard, known, ints, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
@@ -2105,7 +2107,7 @@ const SUBK = "\u0001";
 const patKeys = n => { const pt = patOfName(n); if (pt === "Senza pattern") return [pt]; return [pt, pt + SUBK + (libByName(n)?.category?.trim() || "Senza categoria")]; };
 const addPat = (m, n, e) => patKeys(n).forEach(k => { const q = (m[k] ??= {sets:0, reps:0, vol:0, vb:{}, is:{}, in:{}}); q.sets += e.sets; q.reps += e.reps; q.vol += e.vol;
   Object.entries(e.vb || {}).forEach(([v, x]) => q.vb[v] = (q.vb[v] || 0) + x); Object.entries(e.is || {}).forEach(([v, x]) => { q.is[v] = (q.is[v] || 0) + x; q.in[v] = (q.in[v] || 0) + e.in[v]; }); });
-const PATM = {sets: {l: "Serie", u: ""}, vol: {l: "Volume", get u(){ return VOLK[anQ.vk].u; }}, int: {l: "Intensità", u: ""}};
+const PATM = {vol: {l: "Volume", get u(){ return VOLK[anQ.vk].u; }}, int: {l: "Intensità", u: ""}};
 /* valore di un pattern per la voce scelta: Volume = la voce scelta sopra il grafico (kg, m, min…), Intensità = % medio */
 const patV = (q, m) => !q ? 0 : m === "vol" ? (q.vb?.[anQ.vk] || 0) : m === "int" ? (q.in?.[anQ.ik] ? q.is[anQ.ik] / q.in[anQ.ik] : 0) : (q[m] || 0);
 const patOrder = pats => { const d = DEF_OPTS.pat.map(x => x.toLowerCase()), i = x => x === "Senza pattern" ? 1e4 : (d.indexOf(x.toLowerCase()) + 1 || 1e3);
@@ -2120,10 +2122,15 @@ function accumLoad(o, list){
     b.volume += vSel; b.sets += st.sets; b.srpe += st.srpe; b.n++; if (w.status === "done") b.done++;
     if (inK(anQ.kv, k)) o.volume += vSel; if (inK(anQ.ks, k)) { o.sets += st.sets; o.hard = (o.hard || 0) + st.hard; } o.srpe += st.srpe; if (w.status === "done") o.done++;
     const IS = (o.intS ??= {kg: [], spr: [], jmp: []}), IC = (o.intC ??= {kg: {}, spr: {}, jmp: {}});   // intensità relativa di ogni serie, anche per categoria
-    st.ints.forEach(q => { IS[q.k].push(q.pct); (IC[q.k][q.cat] ??= []).push(q.pct); });
-    Object.entries(st.ex).forEach(([n, e]) => { const c = (b.cat[catOfName(n)] ??= {sets: 0, hard: 0, vb: {}}); c.sets += e.sets; c.hard += e.h.sets;   // per "Dividi per categoria"
-      Object.entries(e.vb).forEach(([q, v]) => c.vb[q] = (c.vb[q] || 0) + v); }); });
-  o.intS ??= {kg: [], spr: [], jmp: []}; o.intC ??= {kg: {}, spr: {}, jmp: {}};
+    const ISH = (o.intSH ??= {kg: [], spr: [], jmp: []}), ICH = (o.intCH ??= {kg: {}, spr: {}, jmp: {}});   // … e solo delle serie allenanti (vista "Serie allenanti")
+    st.ints.forEach(q => { IS[q.k].push(q.pct); (IC[q.k][q.cat] ??= []).push(q.pct); if (q.h) { ISH[q.k].push(q.pct); (ICH[q.k][q.cat] ??= []).push(q.pct); } });
+    const vbH = (b.vbH ??= {});
+    Object.entries(st.ex).forEach(([n, e]) => { const c = (b.cat[catOfName(n)] ??= {sets: 0, hard: 0, vb: {}, vbH: {}}); c.sets += e.sets; c.hard += e.h.sets;   // per "Dividi per categoria"
+      Object.entries(e.vb).forEach(([q, v]) => c.vb[q] = (c.vb[q] || 0) + v);
+      Object.entries(e.h.vb).forEach(([q, v]) => { c.vbH[q] = (c.vbH[q] || 0) + v; vbH[q] = (vbH[q] || 0) + v; }); }); });
+  o.intS ??= {kg: [], spr: [], jmp: []}; o.intC ??= {kg: {}, spr: {}, jmp: {}}; o.intSH ??= {kg: [], spr: [], jmp: []}; o.intCH ??= {kg: {}, spr: {}, jmp: {}};
+  const rng = L => L.length ? {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), min: Math.min(...L), n: L.length} : null;
+  o.intRH = Object.fromEntries(INT_KEYS.map(k => [k, rng(o.intSH[k])]));
   o.intR = Object.fromEntries(INT_KEYS.map(k => { const L = o.intS[k]; return [k, L.length ? {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), min: Math.min(...L), n: L.length} : null]; }));
   o.int = o.intR[anQ.ik]?.avg || 0;
   return o;
@@ -2136,6 +2143,7 @@ function dailySeries(email, ws){
 }
 function niceMax(v){ if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
 async function viewAnalysis(m){
+  if (!METRICS[anQ.metric]) anQ.metric = "volume";
   const ath = activeAthletes();
   if (!ath.length) { m.innerHTML = `<div class="pagehead"><h1>Analisi</h1></div><div class="empty">Aggiungi prima un atleta dalla sezione <b>Atleti</b>.</div>`; return; }
   if (!anQ.who || !athByEmail(anQ.who)) anQ.who = S.calAthlete && athByEmail(S.calAthlete) ? S.calAthlete : ath[0].email;
@@ -2199,7 +2207,7 @@ async function viewAnalysis(m){
   // confronto atleti
   const cmp = ath.map(x => { const s = weeklySeries(x.email, from, to); const f = s.filter(o => !o.cut && !o.open);
     const tot = k => s.reduce((t,o) => t + o[k], 0); const pl = tot("planned"), dn = tot("done");
-    return {x, planned: pl, done: dn, sets: tot("sets"), volume: tot("volume"), srpeAvg: f.length ? f.reduce((t,o) => t + o.srpe, 0) / f.length : 0}; });
+    return {x, planned: pl, done: dn, sets: tot("sets"), setsAll: s.reduce((t, o) => t + Object.values(o.byK).reduce((a, b) => a + b.sets, 0), 0), volume: tot("volume"), srpeAvg: f.length ? f.reduce((t,o) => t + o.srpe, 0) / f.length : 0}; });
   $("#an-body").innerHTML = `
     <div class="kpis">${Object.entries(METRICS).map(([k, mm]) => `<button class="kpi ${anQ.metric===k?"on":""}" data-act="an-metric" data-v="${k}" aria-pressed="${anQ.metric===k}">
       <span class="k-l">${mm.l} · media settimanale${kFilt(k) ? ` · <b style="color:var(--ink)">${KINDS[kFilt(k)].l}</b>` : ""}${CF && k === anQ.metric ? ` · <b style="color:var(--ink)">${esc(CF)}</b>` : ""}</span><span class="k-v num">${compact(avg(k))}${mm.u ? `<small>${mm.u}</small>` : ""}</span>
@@ -2227,10 +2235,10 @@ async function viewAnalysis(m){
         ${exRows.map(([n, e]) => `<tr><td>${esc(n)}</td><td class="num">${e.sessions}</td><td class="num">${e.sets}</td><td class="num">${e.reps ? fmtN(e.reps) : "–"}</td><td class="num">${e.vol ? fmtN(e.vol) : "–"}</td><td class="num">${best(e)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nessun dato registrato nel periodo.</td></tr>`}
         </tbody></table></div></section>
       <section class="panel"><h3>Confronto atleti</h3><div class="cdesc">${fmtD(from)} – ${fmtD(to)} · clicca un nome per vederne l'analisi</div>
-        <div class="scroll-x"><table class="nt"><thead><tr><th>Atleta</th><th>Sedute fatte</th><th>Serie${kFilt("sets") ? ` <span class="faint">(${KINDS[kFilt("sets")].l})</span>` : ""}</th><th>${esc(VOLK[anQ.vk].l)}${VOLK[anQ.vk].u ? " " + VOLK[anQ.vk].u : ""}${kFilt("volume") ? ` <span class="faint">(${KINDS[kFilt("volume")].l})</span>` : ""}</th><th>sRPE medio sett.</th></tr></thead><tbody>
+        <div class="scroll-x"><table class="nt"><thead><tr><th>Atleta</th><th>Sedute fatte</th>${anQ.vk === "serie" ? "" : `<th>Serie</th>`}<th>${esc(VOLK[anQ.vk].l)}${VOLK[anQ.vk].u ? " " + VOLK[anQ.vk].u : ""}${kFilt("volume") ? ` <span class="faint">(${KINDS[kFilt("volume")].l})</span>` : ""}</th><th>sRPE medio sett.</th></tr></thead><tbody>
         ${cmp.map(c => `<tr class="${c.x.email===a.email?"sel":""}"><td><button class="lk" data-act="an-pick" data-e="${esc(c.x.email)}">${esc(c.x.name)}</button><div class="faint" style="font-size:11px">${esc(c.x.group||"")}</div></td>
           <td class="num">${c.done}/${c.planned}<span class="meter" aria-hidden="true"><i style="width:${c.planned ? Math.round(c.done/c.planned*100) : 0}%"></i></span></td>
-          <td class="num">${fmtN(c.sets)}</td><td class="num">${c.volume ? fmtN(c.volume) : "–"}</td><td class="num">${c.srpeAvg ? fmtN(c.srpeAvg) : "–"}</td></tr>`).join("")}
+          ${anQ.vk === "serie" ? "" : `<td class="num">${fmtN(c.setsAll)}</td>`}<td class="num">${c.volume ? fmtN(c.volume) : "–"}</td><td class="num">${c.srpeAvg ? fmtN(c.srpeAvg) : "–"}</td></tr>`).join("")}
         </tbody></table></div></section>
     </div>
     ${intRefsHtml(a, to)}`;
@@ -2260,12 +2268,13 @@ const kFilt0 = k => { const f = k === "volume" ? anQ.kv : k === "sets" || k === 
 function weekNums(o, key){ const f = kFilt0(key), ks = f ? [f] : Object.keys(o.byK), sum = q => ks.reduce((t, k) => t + (o.byK[k]?.[q] || 0), 0);
   const H = key === "hard", pat = {}; ks.forEach(k => Object.entries((H ? o.byK[k]?.patH : o.byK[k]?.pat) || {}).forEach(([pt, q]) => { const t = (pat[pt] ??= {sets:0, reps:0, vol:0, vb:{}, is:{}, in:{}}); t.sets += q.sets; t.reps += q.reps; t.vol += q.vol;
     Object.entries(q.vb || {}).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); Object.entries(q.is || {}).forEach(([v, x]) => { t.is[v] = (t.is[v] || 0) + x; t.in[v] = (t.in[v] || 0) + q.in[v]; }); }));
-  const cat = {}; ks.forEach(k => Object.entries(o.byK[k]?.cat || {}).forEach(([c, q]) => { const t = (cat[c] ??= {sets: 0, hard: 0, vb: {}}); t.sets += q.sets; t.hard += q.hard; Object.entries(q.vb).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); }));
-  const intC = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries(o.intC?.[k] || {}).map(([c, L]) => [c, {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), n: L.length}]))]));
+  /* vista "Serie allenanti": volume, serie, categorie e intensità contano solo le serie allenanti (RPE ≥ 7 o RIR ≤ 3) */
+  const cat = {}; ks.forEach(k => Object.entries(o.byK[k]?.cat || {}).forEach(([c, q]) => { const t = (cat[c] ??= {sets: 0, hard: 0, vb: {}}); t.sets += H ? q.hard : q.sets; t.hard += q.hard; Object.entries((H ? q.vbH : q.vb) || {}).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); }));
+  const intC = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries((H ? o.intCH : o.intC)?.[k] || {}).map(([c, L]) => [c, {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), n: L.length}]))]));
   const types = {}, rpes = [], vb = {}; let hard = 0, known = 0;
-  ks.forEach(k => { const b = o.byK[k]; if (!b) return; Object.entries(b.vb || {}).forEach(([q, v]) => vb[q] = (vb[q] || 0) + v); Object.entries((H ? b.typesH : b.types) || {}).forEach(([t, n]) => types[t] = (types[t] || 0) + n); hard += b.hard || 0; known += b.known || 0; rpes.push(...(b.rpes || [])); });
+  ks.forEach(k => { const b = o.byK[k]; if (!b) return; Object.entries((H ? b.vbH : b.vb) || {}).forEach(([q, v]) => vb[q] = (vb[q] || 0) + v); Object.entries((H ? b.typesH : b.types) || {}).forEach(([t, n]) => types[t] = (types[t] || 0) + n); hard += b.hard || 0; known += b.known || 0; rpes.push(...(b.rpes || [])); });
   const rpe = rpes.length ? {avg: rpes.reduce((t, v) => t + v, 0) / rpes.length, min: Math.min(...rpes), max: Math.max(...rpes), n: rpes.length} : null;
-  return {pat, cat, intC, types, vb, hard, known, rpe, int: o.intR || {}, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
+  return {pat, cat, intC, types, vb, hard, known, rpe, H, int: (H ? o.intRH : o.intR) || {}, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: H ? hard : sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
 const cmpKeys = day => day ? ["dA", "dB"] : ["cmpA", "cmpB"];
 const dPts = (a, b) => !a || !b ? "" : (d => d === 0 ? `<span class="faint">=</span>` : `<span class="${d > 0 ? "up" : "dn"}">${d > 0 ? "+" : "−"}${Math.abs(d)} punti</span>`)(Math.round(b.avg) - Math.round(a.avg));
 /* categorie presenti per una voce (sottorighe "↳ categoria" di tabella e confronto: solo se sono almeno 2) */
@@ -2285,14 +2294,14 @@ function weekCmpHtml(ser, key, a){
   const sed = n => `<b>${n.done}</b> <span class="faint">/ ${n.planned} previste</span>${n.kinds.length ? `<div class="faint wk">${n.kinds.map(q => `${KINDS[q.k].l} ${q.done}${q.done !== q.n ? `/${q.n}` : ""}`).join(" · ")}</div>` : ""}`;
   const tys = TYPE_KEYS.filter(t => nA.types[t] || nB?.types[t]);
   const vks = VOL_KEYS;   // tutte le voci, anche a zero: si vede cosa è stato allenato e cosa no
-  const rows = [["Sedute fatte", sed, (x, y) => dAbs(x.done, y.done)], ...(vks.length ? [["§Volume"], ...vks.flatMap(q => [[`${VOLK[q].l}${VOLK[q].u ? ` <span class="faint">(${VOLK[q].u})</span>` : ""}`, n => n.vb[q] ? `<b>${fmtN(n.vb[q])}</b>` : `<span class="faint">–</span>`, (x, y) => dPct(x.vb[q] || 0, y.vb[q] || 0), 1],
-      ...catsFor([nA, nB], c => c.vb[q]).map(c => [`↳ ${esc(c)}`, n => n.cat[c]?.vb[q] ? fmtN(n.cat[c].vb[q]) : `<span class="faint">–</span>`, (x, y) => dPct(x.cat[c]?.vb[q] || 0, y.cat[c]?.vb[q] || 0), 1, 1])])] : []), ...(vks.length ? [["§Serie"]] : []), [vks.length ? "Totali" : "Serie", n => `<b>${fmtN(n.sets)}</b>`, (x, y) => dPct(x.sets, y.sets)],
-    ...catsFor([nA, nB], c => c.sets).map(c => [`↳ ${esc(c)}`, n => n.cat[c]?.sets ? fmtN(n.cat[c].sets) : `<span class="faint">–</span>`, (x, y) => dAbs(x.cat[c]?.sets || 0, y.cat[c]?.sets || 0), 1, 1]),
+  const HO = nA.H ? ` <span class="honly">solo serie allenanti</span>` : "";
+  const rows = [["Sedute fatte", sed, (x, y) => dAbs(x.done, y.done)], ...(vks.length ? [[`§Volume${HO}`], ...vks.flatMap(q => [[`${VOLK[q].l}${VOLK[q].u ? ` <span class="faint">(${VOLK[q].u})</span>` : ""}`, n => n.vb[q] ? `<b>${fmtN(n.vb[q])}</b>` : `<span class="faint">–</span>`, (x, y) => dPct(x.vb[q] || 0, y.vb[q] || 0), 1],
+      ...catsFor([nA, nB], c => c.vb[q]).map(c => [`↳ ${esc(c)}`, n => n.cat[c]?.vb[q] ? fmtN(n.cat[c].vb[q]) : `<span class="faint">–</span>`, (x, y) => dPct(x.cat[c]?.vb[q] || 0, y.cat[c]?.vb[q] || 0), 1, 1])])] : []), 
     ...(tys.length && (tys.length > 1 || tys[0]) ? [[`§${anQ.metric === "hard" ? "Serie allenanti per tipo" : "Serie per tipo"}`], ...tys.map(t => [typeLbl(t), n => `<b>${n.types[t] || 0}</b>`, (x, y) => dAbs(x.types[t] || 0, y.types[t] || 0), 1])] : []),
     ["§Intensità"], ["Serie allenanti", n => `<b>${n.hard}</b> <span class="faint">su ${n.known} con RPE/RIR</span>`, (x, y) => dAbs(x.hard, y.hard), 1],
     ...catsFor([nA, nB], c => c.hard).map(c => [`↳ ${esc(c)}`, n => n.cat[c]?.hard ? fmtN(n.cat[c].hard) : `<span class="faint">–</span>`, (x, y) => dAbs(x.cat[c]?.hard || 0, y.cat[c]?.hard || 0), 1, 1]),
     ["RPE seduta", n => n.rpe ? `<b>${fmt1(n.rpe.avg)}</b>${n.rpe.n > 1 ? ` <span class="faint">${n.rpe.min === n.rpe.max ? "tutte " + fmt1(n.rpe.min) : `da ${fmt1(n.rpe.min)} a ${fmt1(n.rpe.max)}`}</span>` : ""}` : `<span class="faint">–</span>`, (x, y) => dRpe(x.rpe, y.rpe), 1],
-    ...INT_KEYS.filter(k => nA.int[k] || nB?.int[k]).flatMap(k => [[intRowLbl(k), n => n.int[k] ? `<b>${fmtN(n.int[k].avg)}%</b> <span class="faint">max ${fmtN(n.int[k].max)}% · ${n.int[k].n} serie</span>` : `<span class="faint">–</span>`, (x, y) => dPts(x.int[k], y.int[k]), 1],
+    ...INT_KEYS.filter(k => nA.int[k] || nB?.int[k]).flatMap(k => [[intRowLbl(k) + (nA.H ? ` <span class="faint">(allenanti)</span>` : ""), n => n.int[k] ? `<b>${fmtN(n.int[k].avg)}%</b> <span class="faint">max ${fmtN(n.int[k].max)}% · ${n.int[k].n} serie</span>` : `<span class="faint">–</span>`, (x, y) => dPts(x.int[k], y.int[k]), 1],
       ...intCats([nA, nB], k).map(c => [`↳ ${esc(c)}`, n => n.intC[k]?.[c] ? `${fmtN(n.intC[k][c].avg)}% <span class="faint">max ${fmtN(n.intC[k][c].max)}%</span>` : `<span class="faint">–</span>`, (x, y) => dPts(x.intC[k]?.[c], y.intC[k]?.[c]), 1, 1])]),
     ["Carico sRPE", n => `<b>${fmtN(n.srpe)}</b> UA`, (x, y) => dPct(x.srpe, y.srpe), 1]];
   return `<div class="wcmp ${B ? "two" : ""}">
@@ -2317,7 +2326,7 @@ function patCmpHtml(nA, nB){
   const all = Object.keys({...nA.pat, ...(nB?.pat || {})}).length;
   const mx = Math.max(1, ...pats.flatMap(pt => [patV(nA.pat[pt], m), patV(nB?.pat[pt], m)]));
   const cell = (v, b, sub) => `<div class="pv pr ${sub ? "sub" : ""}">${v ? `<b>${patVal(v, m)}</b><span class="pbar ${b ? "b" : ""}" style="width:${Math.max(3, Math.round(v / mx * 90))}px"></span>` : `<span class="faint">–</span>`}</div>`;
-  const dd = (x, y) => !x && y ? `<span class="up">nuovo</span>` : x && !y ? `<span class="dn">tolto</span>` : m === "int" ? dPts({avg: x}, {avg: y}) : m === "vol" ? dPct(x, y) : dAbs(x, y);
+  const dd = (x, y) => !x && y ? `<span class="up">nuovo</span>` : x && !y ? `<span class="dn">tolto</span>` : m === "int" ? dPts({avg: x}, {avg: y}) : m === "vol" && anQ.vk !== "serie" ? dPct(x, y) : dAbs(x, y);
   return `<div class="sec">Per pattern motorio${anQ.metric === "hard" ? ` <span class="honly">solo serie allenanti</span>` : ""} ${patMBtns()}</div>
     ${pats.length ? pats.flatMap(pt => [pt, ...subs(pt)]).map(k => { const a = patV(nA.pat[k], m), b = patV(nB?.pat[k], m), sub = k.includes(SUBK);
       return `<div class="k pk pr ${sub ? "sub" : ""}">${sub ? `↳ ${esc(k.split(SUBK)[1])}` : esc(k)}</div>${cell(a, 0, sub)}${nB ? `${cell(b, 1, sub)}<div class="d pr ${sub ? "sub" : ""}">${dd(a, b)}</div>` : `<div class="pr ${sub ? "sub" : ""}"></div>`}`; }).join("")
@@ -2347,24 +2356,23 @@ function weekTableHtml(ser, key, g){
   const row = (lab, cell, sub) => `<div class="wtl ${sub ? "sub" : ""}">${lab}</div><div class="wtr ${g.band < 34 ? "sm" : ""} ${sub ? "sub" : ""}" style="${cols}"><span></span>${ser.map((o, k) => `<span class="${o.open || o.cut ? "part" : ""} ${o.ws === anQ[ka] || o.ws === anQ[kb] ? "pk" : ""}">${cell(N[k], k && !day ? N[k - 1] : null)}</span>`).join("")}</div>`;
   return `<details class="sdet wtab" ${anQ.wtOpen ? "open" : ""}><summary>Vedi tabella ${day ? "giorni" : "settimane"}</summary><div class="wtbl">
     ${row("Sedute fatte / previste", (n, p) => `<b>${n.done}</b><i>/${n.planned}</i>${p ? `<small>${dAbs(p.done, n.done)}</small>` : ""}`)}
-    ${(vks => vks.length ? `<div class="wts">Volume</div>${vks.map(q => { const bigU = VOLK[q].u === "kg" || VOLK[q].u === "m";
+    ${N[0]?.H ? `<div class="faint" style="font-size:11.5px;margin:2px 0 6px">Vista <b>Serie allenanti</b>: volume, serie, categorie, intensità e pattern contano solo le serie con RPE ≥ 7 o RIR ≤ 3. Sedute, RPE seduta e sRPE restano della seduta intera.</div>` : ""}
+    ${(vks => vks.length ? `<div class="wts">Volume${N[0]?.H ? " · solo allenanti" : ""}</div>${vks.map(q => { const bigU = VOLK[q].u === "kg" || VOLK[q].u === "m";
       return row(`${VOLK[q].l}${VOLK[q].u ? ` (${thin && bigU ? (VOLK[q].u === "kg" ? "migliaia di kg" : "km") : VOLK[q].u})` : ""}`, (n, p) => { const v = n.vb[q] || 0;
         return v ? `<b>${bigU ? big(v) : fmtN(v)}</b>${p ? (bigU ? pc(p.vb[q] || 0, v) : `<small>${dAbs(Math.round(p.vb[q] || 0), Math.round(v))}</small>`) : ""}` : `<i>–</i>`; })
-        + catsFor(N, c => c.vb[q]).map(c => row(`↳ ${esc(c)}`, n => { const v = n.cat[c]?.vb[q] || 0; return v ? (bigU ? big(v) : fmtN(v)) : `<i>–</i>`; }, 1)).join(""); }).join("")}<div class="wts">Serie</div>` : "")(VOL_KEYS)}
-    ${row("Totali", (n, p) => `<b>${fmtN(n.sets)}</b>${p ? thin ? `<small>${dAbs(p.sets, n.sets)}</small>` : pc(p.sets, n.sets) : ""}`)}
-    ${catsFor(N, c => c.sets).map(c => row(`↳ ${esc(c)}`, n => n.cat[c]?.sets ? fmtN(n.cat[c].sets) : `<i>–</i>`, 1)).join("")}
+        + catsFor(N, c => c.vb[q]).map(c => row(`↳ ${esc(c)}`, n => { const v = n.cat[c]?.vb[q] || 0; return v ? (bigU ? big(v) : fmtN(v)) : `<i>–</i>`; }, 1)).join(""); }).join("")}` : "")(VOL_KEYS)}
     ${tys.length && (tys.length > 1 || tys[0]) ? `<div class="wts">${anQ.metric === "hard" ? "Serie allenanti per tipo" : "Serie per tipo"}</div>${tys.map(t => row(typeLbl(t), (n, p) => n.types[t] ? `<b>${n.types[t]}</b>${p ? `<small>${dAbs(p.types[t] || 0, n.types[t])}</small>` : ""}` : `<i>–</i>${p && p.types[t] ? `<small>${dAbs(p.types[t], 0)}</small>` : ""}`)).join("")}` : ""}
     <div class="wts">Intensità</div>
     ${row("Serie allenanti <i>(con RPE/RIR scritto)</i>", (n, p) => n.known ? `<b>${n.hard}</b><i>/${n.known}</i>${p ? `<small>${dAbs(p.hard, n.hard)}</small>` : ""}` : `<i>–</i>`)}
     ${catsFor(N, c => c.hard).map(c => row(`↳ ${esc(c)}`, n => n.cat[c]?.hard ? fmtN(n.cat[c].hard) : `<i>–</i>`, 1)).join("")}
     ${row("RPE seduta <i>(media e da–a)</i>", n => n.rpe ? `<b>${fmt1(n.rpe.avg)}</b>${n.rpe.min !== n.rpe.max ? `<small class="faint">${fmt1(n.rpe.min)}–${fmt1(n.rpe.max)}</small>` : ""}` : `<i>–</i>`)}
-    ${INT_KEYS.filter(k => N.some(n => n.int[k])).map(k => row(`${intRowLbl(k)} <i>(media e max)</i>`, n => n.int[k] ? `<b>${fmtN(n.int[k].avg)}%</b><small class="faint">max ${fmtN(n.int[k].max)}%</small>` : `<i>–</i>`)
+    ${INT_KEYS.filter(k => N.some(n => n.int[k])).map(k => row(`${intRowLbl(k)} <i>(${N[0]?.H ? "serie allenanti, " : ""}media e max)</i>`, n => n.int[k] ? `<b>${fmtN(n.int[k].avg)}%</b><small class="faint">max ${fmtN(n.int[k].max)}%</small>` : `<i>–</i>`)
       + intCats(N, k).map(c => row(`↳ ${esc(c)}`, n => n.intC[k]?.[c] ? fmtN(n.intC[k][c].avg) + "%" : `<i>–</i>`, 1)).join("")).join("")}
     ${row(`Carico sRPE (${thin ? "migliaia di UA" : "UA"})`, (n, p) => `<b>${big(n.srpe)}</b>${p ? pc(p.srpe, n.srpe) : ""}`)}
     <div class="faint" style="font-size:11px;margin-top:6px">${day ? "Numeri del giorno in cui gli allenamenti sono stati svolti." : "Sotto ogni numero: la differenza con la settimana prima."}${thin ? " Schermo stretto: volume e sRPE in migliaia (2,5 = 2.500), senza le percentuali; ruota il telefono o usa il confronto A / B per vederle." : ""}${kFilt0(key) ? ` Solo sedute ${KINDS[kFilt0(key)].l} (filtro del grafico).` : ""}</div></div></details>`;
 }
 function drawBarChart(el, ser, key, a){
-  if (!PATM[anQ.patM]) anQ.patM = "sets";
+  if (!PATM[anQ.patM]) anQ.patM = "vol";
   const INT = key === "int", CAT = !INT && anQ.split === "cat" && ["volume", "sets", "hard"].includes(key), CFb = CAT && anQ.cf && anQ.cf !== "all" ? anQ.cf : "", stacked = !INT && !CFb && (CAT || key === "srpe" || !kFilt0(key));
   /* "Dividi per categoria": pezzi della colonna = categorie degli esercizi (dalla libreria), stessi colori in tutte le colonne */
   const NW = CAT ? ser.map(o => weekNums(o, key)) : null, cv = (n, c) => !n.cat[c] ? 0 : key === "volume" ? (n.cat[c].vb[anQ.vk] || 0) : key === "sets" ? n.cat[c].sets : n.cat[c].hard;
@@ -2372,7 +2380,7 @@ function drawBarChart(el, ser, key, a){
   const W = Math.max(320, el.clientWidth || 700), H = 240, padL = 44, padR = 8, padT = 18, padB = 46;
   const iw = W - padL - padR, ih = H - padT - padB;
   let max = niceMax(Math.max(...ser.map(o => o[key]), 0));
-  if (key === "sets" || key === "hard") max = Math.max(4, Math.ceil(max / 4) * 4);   // numeri interi: righe del grafico su valori interi (niente 2,5 → "3")
+  if (key === "sets" || key === "hard" || (key === "volume" && anQ.vk === "serie")) max = Math.max(4, Math.ceil(max / 4) * 4);   // numeri interi: righe del grafico su valori interi (niente 2,5 → "3")
   const band = iw / ser.length, bw = Math.min(24, band * 0.62);
   /* intensità (%): asse che non parte da 0 (punto = media, linea = dalla serie più bassa alla più alta), 100% = riferimento */
   const IR = INT ? ser.map(o => o.intR?.[anQ.ik]).filter(Boolean) : [];
@@ -2549,7 +2557,7 @@ const sessIp = sets => anQ.sip === "pct" && sets.some(o => o.int?.pct != null) ?
 const sessPctLbl = sets => { const ks = new Set(sets.filter(o => o.int).map(o => o.int.k)); return ks.has("kg") && (ks.has("spr") || ks.has("jmp")) ? "% e1RM / record" : ks.has("kg") || !ks.size ? "% e1RM" : "% record"; };
 /* voce di volume del grafico della seduta: quella scelta, se no quella con più serie in questa seduta */
 const sessVk = sets => { const c = {}; sets.forEach(o => { if (o.vol) c[o.vol.b] = (c[o.vol.b] || 0) + 1; });
-  return anQ.svk && c[anQ.svk] ? anQ.svk : VOL_KEYS.find(q => c[q]) || anQ.svk || "carico"; };   // in ordine: carico, ripetizioni, sprint…
+  return anQ.svk && c[anQ.svk] ? anQ.svk : SVOL_KEYS.find(q => c[q]) || anQ.svk || "carico"; };   // in ordine: carico, ripetizioni, sprint…
 const SVOL_L = {carico: "Carico (kg × rip)", rip: "Ripetizioni", sprint: "Sprint (m)", corsa: "Corsa (m)", plio: "Contatti", stacchi: "Stacchi", durata: "Durata (min)", tempo: "Tempo (s)"};
 function sessionPanelHtml(a, list, w){
   if (!list.length) return `<section class="panel chartcard"><h3>Andamento della seduta</h3><div class="cdesc">Nessuna seduta registrata da ${esc(a.name)} nel periodo scelto.</div></section>`;
@@ -2570,7 +2578,7 @@ function sessionPanelHtml(a, list, w){
       <div class="kfilt sm-int" role="group" aria-label="Parametro di intensità"><span class="lbl">Parametro</span>${[["rpe", "RPE"], ["pct", sessPctLbl(sets)]].map(([k, l]) => { const has = k === "rpe" || hasPct;
         return `<button class="${ip === k ? "on" : ""} ${has ? "" : "nodata"}" data-act="an-sip" data-v="${k}" aria-pressed="${ip === k}" ${has ? "" : `title="Nessuna serie con un riferimento: servono esercizi con kg e ripetizioni (e RPE/RIR nelle sedute precedenti), sprint con il tempo o salti con l'altezza, già fatti nelle 12 settimane prima"`}>${l}</button>`; }).join("")}</div>
       <div class="cdesc sm-pct">Una barra per ogni serie: quanto è vicina al <b>riferimento</b> dell'atleta, cioè il suo migliore delle 12 settimane prima di questa seduta, nello stesso esercizio. <b>Pesi</b>: kg ÷ e1RM stimato (≈ MTL, carico massimo di allenamento, ricavato da kg, rip e RPE/RIR delle serie con RPE ≥ 7 e max 10 rip). <b>Sprint</b>: miglior tempo ÷ tempo, alla stessa distanza. <b>Salti</b>: altezza ÷ miglior altezza. ★ = nuovo record (diventa il riferimento delle sedute dopo).</div>` : ""}
-    ${sets.length ? (vk => `<div class="kfilt sm-vol" role="group" aria-label="Voce di volume"><span class="lbl">Volume</span>${VOL_KEYS.map(q => { const nq = sets.filter(o => o.vol?.b === q).length;
+    ${sets.length ? (vk => `<div class="kfilt sm-vol" role="group" aria-label="Voce di volume"><span class="lbl">Volume</span>${SVOL_KEYS.map(q => { const nq = sets.filter(o => o.vol?.b === q).length;
       return `<button class="${vk === q ? "on" : ""} ${nq ? "" : "nodata"}" data-act="an-svk" data-v="${q}" aria-pressed="${vk === q}" ${nq ? `title="${nq} serie"` : `title="Nessuna serie di questo tipo nella seduta"`}>${SVOL_L[q]}</button>`; }).join("")}</div>
     <div class="cdesc sm-vol">Volume di ogni serie per la voce scelta (stesse regole del Volume in Analisi). Le barre piene seguono l'asse; quelle <b>tratteggiate</b> sono serie di un altro stimolo (con il loro valore e la loro unità, in proporzione tra loro): non seguono l'asse.</div>`)(sessVk(sets)) : ""}
     <div class="sstats"><span>tipo: <b>${KINDS[kindOf(w)].l}</b></span><span><b>${sets.length}</b> serie</span><span>con RPE: <b>${withR.length}</b></span>

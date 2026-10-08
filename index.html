@@ -897,7 +897,8 @@ table.nt{width:100%;border-collapse:collapse;font-size:13px}
 .nt button.lk:hover{color:var(--accent)}
 .meter{display:inline-block;width:48px;height:6px;border-radius:3px;background:var(--surface2);vertical-align:middle;margin-left:6px;overflow:hidden}
 .meter i{display:block;height:100%;background:var(--ok);border-radius:3px}
-@media (max-width:860px){.kpis{grid-template-columns:minmax(0,1fr)}.antables{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:860px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.antables{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.kpis{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:860px){
   .shell{grid-template-columns:1fr;gap:12px}
   .side{position:static;flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:4px}
@@ -2035,12 +2036,12 @@ const numv = v => { const n = parseFloat(String(v ?? "").replace(",", ".")); ret
 /* VOLUME per tipo di stimolo (letteratura: carico esterno con l'unità giusta per ogni stimolo; sRPE per confrontarli tutti) */
 const VOLK = {
   carico:  {l: "Carico",   u: "kg",  d: "Pesi: kg × ripetizioni delle serie registrate (con kg e ripetizioni compilati)."},
-  rip:     {l: "Ripetizioni", u: "", d: "Corpo libero: ripetizioni totali degli esercizi senza kg, distanza o tempo che non sono salti (nordic, piegamenti, core a ripetizioni…), e delle serie con i kg lasciati vuoti."},
+  rip:     {l: "Ripetizioni", u: "", d: "Corpo libero: ripetizioni totali degli esercizi senza kg, distanza o tempo che non sono salti (nordic, piegamenti, core a ripetizioni…), e delle serie in cui manca il dato principale (kg lasciati vuoti, metri non scritti né programmati)."},
   sprint:  {l: "Sprint",   u: "m",   d: "Metri ad alta intensità: esercizi con la distanza di categoria Velocità (o pattern Sprint / accelerazioni); anche con i kg (es. sprint con slitta). Distanza × ripetizioni."},
   corsa:   {l: "Corsa",    u: "m",   d: "Metri a intensità più bassa: tutti gli altri esercizi con la distanza (condizionamento, tempo run, corsa continua…). Distanza × ripetizioni."},
   plio:    {l: "Contatti", u: "",    d: "Pliometria: contatti a terra = ripetizioni degli esercizi di categoria Pliometria o pattern Salto / balzi (non i salti tecnici del salto in alto)."},
   stacchi: {l: "Stacchi",  u: "",    d: "Salti tecnici del salto in alto (pattern Salto in alto o categoria Tecnica salto): una ripetizione = uno stacco."},
-  durata:  {l: "Durata",   u: "min", d: "Attività continue misurate con il parametro Durata (minuti): corsa lenta, marcia, bici, mobilità a tempo lungo…; durata × ripetizioni. Se l'esercizio ha anche i metri contano i metri (Sprint / Corsa)."},
+  durata:  {l: "Durata",   u: "min", d: "Attività continue misurate con il parametro Durata (minuti): corsa lenta, marcia, bici, mobilità a tempo lungo…; durata × ripetizioni. Se l'esercizio ha anche la Distanza contano i metri (Sprint / Corsa); se i metri mancano, contano i minuti."},
   tempo:   {l: "Tempo",    u: "s",   d: "Sforzi brevi sotto tensione: esercizi con il parametro Tempo e senza distanza (isometrie, core, plank…; anche le isometrie con sovraccarico): secondi × ripetizioni. Le attività continue in minuti stanno in Durata."},
 };
 const VOL_KEYS = Object.keys(VOLK);

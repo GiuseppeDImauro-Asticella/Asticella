@@ -839,6 +839,8 @@ tr.ok .ck svg{stroke:#fff}
 .wcmp .sec{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;background:var(--surface);color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .kfilt.pmb{display:inline-flex;margin:0;letter-spacing:0;text-transform:none}.pnot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}.pnot .lbl{margin-right:4px}
 .pnot span:not(.lbl){font-size:12px;border:1px dashed var(--line);border-radius:99px;padding:2px 9px;color:var(--muted)}.pnot i{font-size:12px;color:var(--faint)}
+.modal.sdlg{max-width:1100px;width:calc(100vw - 32px)}.modal.sdlg .body{padding:12px}.modal.sdlg #an-sess{margin:0;border:0;padding:4px}.modal.sdlg #an-sess h3{display:none}
+.pssv{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}.pssv svg{width:15px;height:15px}
 select.in.pmsel{height:28px;padding:0 26px 0 8px;font-size:12px;width:auto;max-width:220px;display:inline-block;margin-left:6px;vertical-align:middle}.kfilt.pmb button{padding:2px 9px;font-size:11.5px}
 .honly{text-transform:none;letter-spacing:0;font-weight:700;font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 8px}
 .wcmp .pk{text-transform:none;letter-spacing:0;font-size:12px}
@@ -2543,7 +2545,7 @@ function pctKg(email, x, name, s, date){ const p = oneNum(s?.pct); if (!p || p <
   const ref = intRef(email, intKey("kg", name, s, s), date); if (!ref) return null;
   return {kg: Math.round(ref.v * p / 100 / 2.5) * 2.5, pct: p, ref}; }
 function sessionSets(w){
-  const out = [], order = [], ex = w.exercises || [], res = w.results || {}, L = exLabels(ex), em = anQ.who || wEmail(w);
+  const out = [], order = [], ex = w.exercises || [], res = w.results || {}, L = exLabels(ex), em = (S.sessDlg && $("#sd-body") ? S.sessDlg.email : null) || anQ.who || wEmail(w);
   ssGroups(ex).forEach(g => {
     const len = Math.max(0, ...g.map(i => Math.max(ex[i].sets.length, (res[ex[i].id] || []).length)));
     for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], r = (res[x.id] || [])[j];
@@ -2605,7 +2607,18 @@ function sessListFor(a){
   return wIn(a.email, anQ.from, anQ.to).filter(w => w.status === "done" || Object.values(w.results || {}).some(rr => (rr || []).some(r => !emptyRes(r))))
     .sort((x, y) => effDate(y).localeCompare(effDate(x)) || (y.completedAt || "").localeCompare(x.completedAt || ""));
 }
+/* "Andamento della seduta" in una finestra sopra la Progressione: la seduta di riferimento (e le altre dello stesso tipo, con le frecce) */
+function openSessDlg(email, id, ids){ S.sessDlg = {email, id, ids: ids && ids.length ? ids : [id]};
+  $("#confirm").innerHTML = `<div class="back" style="z-index:85" data-act="sd-back"><div class="modal sdlg" role="dialog" aria-label="Andamento della seduta"><header><h2 id="sd-title">Andamento della seduta</h2><button type="button" class="btn ghost icon" data-act="sd-close" aria-label="Chiudi">✕</button></header><div class="body" id="sd-body"></div></div></div>`;
+  drawSessDlg(); }
+function drawSessDlg(){ const D = S.sessDlg, b = $("#sd-body"); if (!D || !b) return;
+  const a = athByEmail(D.email), list = D.ids.map(id => S.cache[D.email]?.[id]).filter(Boolean), w = list.find(x => x.id === D.id) || list[0];
+  if (!a || !w) { b.innerHTML = `<div class="muted">Seduta non trovata.</div>`; return; }
+  const t = $("#sd-title"); if (t) t.textContent = `Andamento della seduta · ${a.name}`;
+  b.innerHTML = sessionPanelHtml(a, list, w); drawSessionChart(b.querySelector("#an-schart"), w); }
+function closeSessDlg(){ S.sessDlg = null; $("#confirm").innerHTML = ""; }
 function redrawSess(){   // cambia solo il riquadro della seduta, senza ricaricare tutta la pagina
+  if (S.sessDlg && $("#sd-body")) return drawSessDlg();
   const a = athByEmail(anQ.who), el = $("#an-sess"); if (!a || !el) return renderView();
   const list = sessListFor(a), w = list.find(x => x.id === anQ.sess) || list.find(x => x.status === "done") || list[0];
   el.outerHTML = sessionPanelHtml(a, list, w); if (w) drawSessionChart($("#an-schart"), w);
@@ -3575,6 +3588,7 @@ function drawProgSess(G, a){
         <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${inProg && editable ? "in corso: le serie già fatte restano, le altre si possono ancora cambiare" : editable && w.date < TODAY() ? "non registrata: trascina i punti per cambiare i valori" : editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}${G.edit ? ` · <b style="color:var(--accent)">dall'allenamento aperto</b>` : ""}</span></div>
         <div class="kfilt"><span class="lbl">Confronta con</span>${[["kind", `Seduta più recente (stesso tipo · ${KINDS[kindOf(w)].l})`], ["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${esc(l)}</button>`).join("")}</div>
         ${G.psRef === "kind" ? (({KS, RS}) => RS ? `<div class="kfilt psk"><span class="lbl">Riferimento</span><select class="in" data-change="ps-kref" aria-label="Seduta di riferimento">${KS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")}${q === KS[0] ? " (la più recente)" : ""}</option>`).join("")}</select>
+          <button type="button" class="btn sm ghost pssv" data-act="ps-sessview" data-id="${RS.id}" title="Vedi l'andamento di questa seduta (intensità e volume serie per serie) senza uscire da qui">${ICON.data} Andamento</button>
           <span class="faint" style="font-size:12px">Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE).</span></div>`
           : `<div class="faint" style="font-size:12px;margin-top:6px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)} con dati registrati.</div>`)(kindRefOf(G, w)) : ""}
         ${!namedEx(w).length ? (({RS}) => `<div class="psempty"><b>Questa seduta è ancora vuota.</b> ${RS && G.psRef === "kind" ? `Nel grafico vedi cosa è stato fatto ${esc(DAYS[dayIdx(effDate(RS))].toLowerCase())} ${esc(fmtD(effDate(RS)))} · ${esc(RS.title || "")}: puoi partire da lì${editable ? `, cambiando se vuoi gli esercizi (in cima quelli dello stesso pattern), e poi i numeri.
@@ -4568,9 +4582,13 @@ const ACT = {
   "an-split"(t){ anQ.split = t.dataset.v; if (anQ.split === "cat") { anQ.kv = "all"; anQ.ks = "all"; } else anQ.cf = "all"; renderView(); },   // un solo filtro alla volta: per tipo di seduta o per categoria
   "an-cf"(t){ anQ.cf = t.dataset.v; renderView(); },
   "an-ik"(t){ anQ.ik = t.dataset.v; renderView(); },
+  "ps-sessview"(t){ const G = S.prog; if (!G) return; const w = progW(G, G.wid) || S.cache[G.email]?.[G.wid]; const {KS} = w ? kindRefOf(G, w) : {KS: []}; openSessDlg(G.email, t.dataset.id, KS.map(q => q.id)); },
+  "sd-close"(){ closeSessDlg(); },
+  "sd-back"(t, e){ if (e?.target === t) closeSessDlg(); },
   "an-sip"(t){ anQ.sip = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-smode"(t){ anQ.sm = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
-  "an-sess-step"(t){ const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));
+  "an-sess-step"(t){ if (S.sessDlg && t.closest("#sd-body")) { const D = S.sessDlg, n = D.ids[Math.max(0, D.ids.indexOf(D.id)) + +t.dataset.d]; if (n) { D.id = n; drawSessDlg(); } return; }
+    const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));
     const nw = list[i + +t.dataset.d]; if (nw) { anQ.sess = nw.id; redrawSess(); } },
   "meso-new"(){ const a = athByEmail(S.calAthlete); const ms = a.mesos || [];
     const last = ms[ms.length-1]; const from = last ? addDays(last.from, 7*last.weeks) : S.ws;
@@ -4793,6 +4811,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && $("#vid").innerHTML) { closeVideo(); return; }
+  if (e.key === "Escape" && S.sessDlg && $("#sd-body")) { closeSessDlg(); return; }
   if (e.key === "Escape" && S.view === "calendar" && S.calSel.size && !$("#modal").innerHTML) { S.calSel.clear(); drawCalendar(); return; }
   if (e.key === "Enter" && e.target.matches(".wcard")) ACT["open-w"](e.target, e);
   if (S.editor && e.key === "Escape" && !$("#confirm").innerHTML) closeEditor();
@@ -4829,7 +4848,7 @@ document.addEventListener("change", async e => {
   if (k === "ps-edit") { S.prog.sess.sets[t.dataset.x][+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "pg-edit") { const sets = pgManualSets(t.dataset.w, t.dataset.x); sets[+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "an-who") { anQ.who = t.value; anQ.sess = null; return renderView(); }
-  if (k === "an-sess") { anQ.sess = t.value; return redrawSess(); }
+  if (k === "an-sess") { if (S.sessDlg && t.closest("#sd-body")) { S.sessDlg.id = t.value; return drawSessDlg(); } anQ.sess = t.value; return redrawSess(); }
   if (k === "cal-ath") { S.calAthlete = t.value; S.calSel.clear(); S.calPick = false; return renderView(); }
   if (k === "d-q") { dataQ.from = $("#d-from").value || dataQ.from; dataQ.to = $("#d-to").value || dataQ.to; dataQ.who = $("#d-who").value; return renderView(); }
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;

@@ -873,7 +873,7 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 #per-chart .pfut{fill:var(--surface2);opacity:.45}#per-chart .ptoday{stroke:var(--accent);stroke-width:1.5;opacity:.6}
 #per-chart .phit{fill:transparent;cursor:pointer}#per-chart .phit:hover{fill:var(--surface2);opacity:.5}#per-chart .pwn{fill:var(--faint);font-size:10.5px}#per-chart .pwn.cur{fill:var(--accent);font-weight:700}
 #per-chart .grid line{stroke:var(--line)}#per-chart .axis text{fill:var(--faint);font-size:11px}
-.pc.mic{position:relative;margin:3px 2px;border:0;border-radius:6px}.mtag{position:absolute;top:2px;right:2px;min-width:12px;height:12px;border-radius:3px;font-size:8.5px;font-weight:800;line-height:12px;color:#0C0F14;padding:0 2px}
+.pc.mic{position:relative;margin:3px 2px;border:0;border-radius:6px}.pc.mic.now{box-shadow:none}.mtag{position:absolute;top:2px;right:2px;min-width:12px;height:12px;border-radius:3px;font-size:8.5px;font-weight:800;line-height:12px;color:#0C0F14;padding:0 2px}
 /* microcicli: settimana tipo (Periodizzazione) e piano del giorno (Calendario) */
 .pblk.pmod{pointer-events:none;z-index:1;align-self:center}
 .pl .lk.mlk{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
@@ -915,10 +915,10 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .mday{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:8px;min-height:150px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .mday .dn{font-weight:800;font-size:12.5px;color:var(--muted)}
-.mrow{border:1px solid var(--line);border-left:4px solid var(--bc);border-radius:8px;padding:5px;background:var(--surface);display:flex;flex-direction:column;gap:5px}
-.mrow select{padding:4px 6px;font-size:12.5px;font-weight:700;min-width:0;width:100%}
-.mrr{display:flex;align-items:center;gap:4px}.mrr label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--faint);flex:1}
-.mrr input{width:58px;padding:3px 6px;font-weight:800;text-align:center;color:var(--ink)}
+.mrow{min-width:0;overflow:hidden;border:1px solid var(--line);border-left:4px solid var(--bc);border-radius:8px;padding:5px;background:var(--surface);display:flex;flex-direction:column;gap:5px}
+.mrow select{padding:4px 6px;font-size:12.5px;font-weight:700;min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+.mrr{display:flex;align-items:center;gap:4px}.mrr label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--faint);flex:none}
+
 .madd{border:1px dashed var(--line);border-radius:8px;padding:5px;text-align:center;color:var(--faint);font:inherit;font-weight:700;font-size:12px;background:none;cursor:pointer;margin-top:auto}
 .madd:hover{color:var(--accent);border-color:var(--accent)}
 .mrest{flex:1;display:flex;align-items:center;justify-content:center;color:var(--faint);font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
@@ -928,9 +928,19 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .shp .c{display:flex;align-items:flex-end;justify-content:center;gap:5px;height:60px}
 .shp .c div{width:20px;border-radius:4px 4px 0 0}.shp .c .z{width:36px;height:2px;background:var(--line)}
 .shd span{text-align:center;font-size:10.5px;color:var(--faint);font-weight:700;padding-top:3px}
-@media (max-width:900px){ .mgrid{grid-template-columns:1fr} .mday{min-height:0} .mday .mrow{flex-direction:row;align-items:center} .mday .mrow select{flex:1} .mrest{padding:4px 0} }
+/* la griglia dei giorni si adatta alla larghezza della finestra (non dello schermo): 7 colonne compatte, 4 colonne, 1 colonna */
+.mcdlg .body{container-type:inline-size}
+.mrr label{display:none}
+@container (max-width:1000px){ .mgrid{grid-template-columns:repeat(4,minmax(0,1fr))} .mday{min-height:120px} .mrr label{display:flex} }
+@container (max-width:560px){ .mgrid{grid-template-columns:1fr} .mday{min-height:0} .mday .mrow{flex-direction:row;align-items:center;flex-wrap:wrap} .mday .mrow select{flex:1} .mrest{padding:4px 0} }
+.nstep{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);vertical-align:middle}
+.nstep .in{border:0;border-radius:0;text-align:center;font-weight:700;-moz-appearance:textfield;appearance:textfield;min-width:0;background:transparent;color:var(--ink)}
+.nstep .in::-webkit-outer-spin-button,.nstep .in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.nstep button{border:0;background:var(--surface2);color:var(--ink);font:inherit;font-size:16px;font-weight:700;min-width:30px;cursor:pointer;padding:0 6px;touch-action:manipulation}
+.nstep button:hover{background:var(--accent-soft);color:var(--accent)}
+.mrr .nstep{flex:1;min-width:0}.mrr .nstep .in{width:100%;min-width:28px;padding:3px 0}.mrr .nstep button{min-width:24px;padding:0 4px;font-size:14px}.mrr .btn{padding:2px 5px;flex:none}
 .pmpop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
-.pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{width:52px}
+.pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{min-width:64px;white-space:nowrap}
 .pmpop button{border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-weight:700;padding:4px 9px;cursor:pointer;min-width:30px}
 .pmpop button.on{outline:2px solid var(--accent);outline-offset:1px}
 .pprog{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted);margin-left:10px;text-transform:none;letter-spacing:0;font-weight:500}
@@ -1131,7 +1141,7 @@ const daysBetween = (a, b) => Math.round((parse(b) - parse(a)) / 864e5);
 function getPath(o, p){ return p.split(".").reduce((x,k)=>x?.[k], o); }
 function setPath(o, p, v){ const ks = p.split("."); const last = ks.pop(); const t = ks.reduce((x,k)=>x[k], o); t[last] = v; }
 let toastT;
-function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>t.hidden = true, 2400); }
+function toast(msg, ms = 2400){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>t.hidden = true, ms); }
 function confirmBox(msg, ok="Conferma", danger=true){
   return new Promise(res => {
     const c = $("#confirm");
@@ -1203,6 +1213,7 @@ function LocalDB(){
     async deleteWorkout(e, id){ delete st.workouts[e]?.[id]; save(); return wait(true); },
     async saveResults(e, id, patch){ Object.assign(st.workouts[e][id], clone(patch)); save(); return wait(true); },
     async listPlans(){ return wait(Object.values(st.plans || {})); },
+    async getPlan(id){ return wait(st.plans?.[id] || null); },
     async savePlan(p){ (st.plans ??= {})[p.id] = clone(p); save(); return wait(p); },
     async deletePlan(id){ delete st.plans?.[id]; save(); return wait(true); },
   };
@@ -1235,7 +1246,8 @@ function FirebaseDB(F, db){
     async deleteTemplate(id){ await F.deleteDoc(F.doc(db, "templates", id)); },
     async listWorkouts(e, from, to){ const q = F.query(W(e), F.where("date", ">=", from), F.where("date", "<=", to)); return docs(await fast(() => F.getDocs(q), () => F.getDocsFromCache(q))); },
     async listAllWorkouts(e){ return docs(await F.getDocs(W(e))); },   // tutti, dal server (per rinominare un esercizio ovunque)
-    async listPlans(){ return docs(await F.getDocs(F.collection(db, "plans"))); },   // piani di periodizzazione (solo coach)
+    async listPlans(){ const c = F.collection(db, "plans"); let s; try { s = await F.getDocsFromServer(c); } catch(e) { s = await F.getDocs(c); } return docs(s); },   // piani di periodizzazione (solo coach): sempre la versione del server, così due dispositivi vedono le stesse cose
+    async getPlan(id){ const r = F.doc(db, "plans", id); let s; try { s = await F.getDocFromServer(r); } catch(e) { s = await F.getDoc(r); } return s.exists() ? {...s.data(), id: s.id} : null; },
     async savePlan(p){ await F.setDoc(F.doc(db, "plans", p.id), cleanObj(p)); return p; },
     async deletePlan(id){ await F.deleteDoc(F.doc(db, "plans", id)); },
     async createWorkout(e, w){ await F.setDoc(F.doc(W(e), w.id), cleanObj(w)); return w; },
@@ -1913,16 +1925,24 @@ function perView(){
 }
 const perMembers = key => key?.startsWith("g:") ? activeAthletes().filter(a => a.group === key.slice(2)) : [athByEmail(key?.slice(2))].filter(Boolean);
 const perKeyName = key => key?.startsWith("g:") ? `gruppo ${key.slice(2)}` : athByEmail(key?.slice(2))?.name || "";
+/* salva un piano; se nel frattempo un altro dispositivo l'ha cambiato (numero di revisione più alto) non lo sovrascrive:
+   carica l'ultima versione e chiede di rifare la modifica (così non si perdono, per esempio, i modelli creati dal tablet) */
 async function perSave(p){
-  const i = S.plans.findIndex(x => x.id === p.id); if (i >= 0) S.plans[i] = p; else S.plans.push(p);
-  try { await DB.savePlan(p); } catch(e) { console.error(e); toast(/permission/i.test(String(e?.code || e?.message)) ? "Non salvato: aggiorna le regole di Firebase (sezione plans)" : "Errore nel salvataggio del piano"); }
+  const put = q => { const i = S.plans.findIndex(x => x.id === q.id); if (i >= 0) S.plans[i] = q; else S.plans.push(q); };
+  try { const remote = await DB.getPlan(p.id);
+    if (remote && (remote.rev || 0) > (p.rev || 0)) { put(remote); toast("Questo piano era stato cambiato da un altro dispositivo: ora vedi l'ultima versione. Rifai la modifica.", 6000);
+      setTimeout(() => { if (S.view === "period") drawPer(); else if (S.view === "calendar") drawCalendar(); }, 0); return false; }
+  } catch(e) { console.warn(e); }
+  p.rev = (p.rev || 0) + 1; put(p);
+  try { await DB.savePlan(p); return true; } catch(e) { console.error(e); toast(/permission/i.test(String(e?.code || e?.message)) ? "Non salvato: aggiorna le regole di Firebase (sezione plans)" : "Errore nel salvataggio del piano"); }
 }
 async function viewPeriod(m){
   S.per ??= {key: null, pid: null, vk: "serie", ik: "rpe", m: "vi", prog: true};
   if (S.per.vk === "srpe") S.per.vk = "serie"; if (!PER_MODES[S.per.m]) S.per.m = "vi";
   if (!S.plans) { m.innerHTML = `<div class="pagehead"><h1>Periodizzazione</h1></div><div class="muted" style="padding:20px">Caricamento…</div>`;
-    try { S.plans = await DB.listPlans(); } catch(e) { console.error(e); S.plans = []; toast("Piani non caricati: controlla le regole di Firebase (sezione plans)"); }
+    try { S.plans = await DB.listPlans(); S.plansAt = Date.now(); } catch(e) { console.error(e); S.plans = []; toast("Piani non caricati: controlla le regole di Firebase (sezione plans)"); }
     if (S.view !== "period") return; }
+  else if (Date.now() - (S.plansAt || 0) > 15000) { try { S.plans = await DB.listPlans(); S.plansAt = Date.now(); } catch(e) { console.warn(e); } if (S.view !== "period") return; }   // piani ricaricati se sono di più di 15 secondi fa (modifiche da un altro dispositivo)
   const gs = groups(), ath = activeAthletes();
   const valid = k => k && (k.startsWith("g:") ? gs.includes(k.slice(2)) : !!athByEmail(k.slice(2)));
   if (!valid(S.per.key)) { const withPlan = gs.find(g => plansOf("g:" + g).length); S.per.key = withPlan ? "g:" + withPlan : gs.length ? "g:" + gs[0] : ath[0] ? "a:" + ath[0].email : null; }   // si parte da un gruppo che ha già un piano
@@ -1952,7 +1972,9 @@ function drawPer(){
   b.innerHTML = perGridHtml(plan, ed) + perChartHtml(plan);
   drawPerChart(plan);
   const W2 = [...b.querySelectorAll(".perwrap")]; W2.forEach(w => w.scrollLeft = keep != null ? keep : Math.max(0, (perIdx(plan, TODAY()) - 4) * PER_CW));
-  let lock = false; W2.forEach(w => w.addEventListener("scroll", () => { if (lock) return; lock = true; W2.forEach(o => { if (o !== w) o.scrollLeft = w.scrollLeft; }); requestAnimationFrame(() => lock = false); }));   // griglia e grafico scorrono insieme
+  /* griglia e grafico scorrono insieme: comanda solo quello che si sta toccando (niente "rimbalzi" con lo scorrimento a inerzia del tablet) */
+  let src = null; W2.forEach(w => { ["pointerdown", "touchstart", "wheel", "mouseenter"].forEach(ev => w.addEventListener(ev, () => src = w, {passive: true}));
+    w.addEventListener("scroll", () => { if (src && src !== w) return; W2.forEach(o => { if (o !== w && Math.abs(o.scrollLeft - w.scrollLeft) > 0.5) o.scrollLeft = w.scrollLeft; }); }, {passive: true}); });
   b.style.minHeight = ""; window.scrollTo(0, y);
 }
 function perGridHtml(p, ed){
@@ -2117,7 +2139,7 @@ function perPlanDialog(edit){
     <div class="faint" style="font-size:12px;margin-bottom:8px">Piano di ${esc(perKeyName(key))}${key.startsWith("g:") ? ": lo vedono tutti gli atleti del gruppo che non hanno un piano personale." : "."}</div>
     <div class="field"><label class="lbl" for="pp-name">Nome</label><input class="in" id="pp-name" value="${esc(p?.name || "Stagione " + new Date().getFullYear() + "/" + String(new Date().getFullYear() + 1).slice(2))}" required></div>
     <div class="row"><div class="field grow"><label class="lbl" for="pp-start">Inizia la settimana del</label><input class="in" type="date" id="pp-start" value="${p?.start || monday(TODAY())}" required></div>
-      <div class="field"><label class="lbl" for="pp-weeks">Settimane</label><input class="in" type="number" id="pp-weeks" min="4" max="60" value="${p?.weeks || 40}" style="width:90px" required></div></div>
+      <div class="field"><label class="lbl" for="pp-weeks">Settimane</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pp-weeks" min="4" max="60" value="${p?.weeks || 40}" style="width:64px" required><button type="button" data-step="1" aria-label="Più">+</button></span></div></div>
     ${!p && others.length ? `<div class="field"><label class="lbl" for="pp-copy">Parti da</label><select class="in" id="pp-copy"><option value="">Piano vuoto (Forza, Velocità, Potenza, Resistenza)</option>${others.map(x => `<option value="${x.id}">Copia di «${esc(x.name)}» · ${esc(perKeyName((x.scope === "group" ? "g:" : "a:") + x.key))}</option>`).join("")}</select></div>` : ""}
     ${p ? `<div class="faint" style="font-size:12px">Se cambi l'inizio, i blocchi restano sulle stesse settimane del piano (sett. 1, 2…), cioè si spostano con le date.</div>` : ""}
     </div><footer>${p ? `<button type="button" class="btn ghost danger" id="pp-del">Elimina piano</button>` : ""}<span class="grow"></span><button type="button" class="btn" id="pp-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
@@ -2132,7 +2154,7 @@ function perPlanDialog(edit){
     else { const src = others.find(x => x.id === $("#pp-copy")?.value);
       np = src ? {...clone(src), id: uid(), name, start, weeks, scope: key.startsWith("g:") ? "group" : "athlete", key: key.slice(2)} : newPlan(key.startsWith("g:") ? "group" : "athlete", key.slice(2), name, start, weeks);
       if (src) np.abil = np.abil.map(ab => ({...ab, id: uid(), blocks: ab.blocks.map(b => ({...b, id: uid()}))})); }
-    $("#confirm").innerHTML = ""; S.per.pid = np.id; await perSave(np); renderView(); toast(p ? "Piano aggiornato" : "Piano creato"); };
+    $("#confirm").innerHTML = ""; S.per.pid = np.id; const ok = await perSave(np); renderView(); if (ok) toast(p ? "Piano aggiornato" : "Piano creato"); };
 }
 /* toglie o accorcia i blocchi della stessa riga che si sovrappongono a quello nuovo */
 const perTrim = (list, nb) => list.filter(b => b.id !== nb.id).flatMap(b => { if (b.to < nb.from || b.from > nb.to) return [b];
@@ -2142,8 +2164,8 @@ function perBlockDialog(rowId, bk, i0){
   const list = isMa ? (p.macro ??= []) : isPh ? p.phases : ab.blocks, b = bk || {from: i0, to: Math.min(p.weeks - 1, i0 + (isMa ? 25 : 3)), name: "", lvl: "p"}, sug = isMa ? PER_SUG.macro : isPh ? PER_SUG.phase : PER_SUG[ab.name] || PER_SUG.other;
   $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="pb-form"><header><h2>${bk ? "Blocco" : "Nuovo blocco"} · ${esc(isMa ? "Macrociclo" : isPh ? "Periodo" : ab.name)}</h2></header><div class="body">
     <div class="field"><label class="lbl" for="pb-name">${isMa ? "Nome del macrociclo" : isPh ? "Periodo" : "Obiettivo del blocco"}</label><input class="in" id="pb-name" value="${esc(b.name)}" list="pb-list" required placeholder="${esc(sug[0])}"><datalist id="pb-list">${sug.map(x => `<option value="${esc(x)}"></option>`).join("")}</datalist></div>
-    <div class="row"><div class="field"><label class="lbl" for="pb-from">Dalla settimana</label><input class="in" type="number" id="pb-from" min="1" max="${p.weeks}" value="${b.from + 1}" style="width:100px"></div>
-      <div class="field"><label class="lbl" for="pb-to">Alla settimana</label><input class="in" type="number" id="pb-to" min="1" max="${p.weeks}" value="${b.to + 1}" style="width:100px"></div>
+    <div class="row"><div class="field"><label class="lbl" for="pb-from">Dalla settimana</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pb-from" min="1" max="${p.weeks}" value="${b.from + 1}" style="width:64px"><button type="button" data-step="1" aria-label="Più">+</button></span></div>
+      <div class="field"><label class="lbl" for="pb-to">Alla settimana</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pb-to" min="1" max="${p.weeks}" value="${b.to + 1}" style="width:64px"><button type="button" data-step="1" aria-label="Più">+</button></span></div>
       <div class="field grow"><span class="lbl">&nbsp;</span><span class="faint" id="pb-dates" style="font-size:12px"></span></div></div>
     ${isPh ? "" : `<div class="field"><span class="lbl">Importanza in questo periodo</span><div class="pseg">${Object.entries(PLVL).map(([k, l]) => `<label><input type="radio" name="pb-lvl" value="${k}" ${(b.lvl || "p") === k ? "checked" : ""}> ${l}</label>`).join("")}</div>
       <div class="faint" style="font-size:12px;margin-top:4px">Prioritaria = obiettivo principale del blocco · secondaria = allenata ma non al centro · mantenimento = solo per non perderla.</div></div>`}
@@ -2184,7 +2206,7 @@ const kShort = k => k === "correttivi" ? "Correttivi" : KINDS[k]?.l || "?";
 function mcCol(p, m){ const n = m?.name || "";
   if (/scaric/i.test(n)) return "#3DC88B"; if (/gar/i.test(n)) return "#E6AA3C"; if (/transiz|recuper/i.test(n)) return "#8A93A3";
   const others = (p?.models || []).filter(x => !/scaric|gar|transiz|recuper/i.test(x.name)); return MC_COLS[Math.max(0, others.indexOf(m)) % MC_COLS.length]; }
-async function ensurePlans(){ if (S.plans) return; try { S.plans = await DB.listPlans(); } catch(e) { console.error(e); S.plans = []; } }
+async function ensurePlans(){ if (S.plans && Date.now() - (S.plansAt || 0) < 15000) return; try { S.plans = await DB.listPlans(); S.plansAt = Date.now(); } catch(e) { console.error(e); S.plans ??= []; } }
 const planCovers = (p, ws) => p.start <= ws && perWs(p, p.weeks) > ws;
 /* il piano che vale per l'atleta in quella settimana: il suo, se no quello del gruppo */
 function planAt(a, ws){ const own = plansOf("a:" + a.email).find(p => planCovers(p, ws)); if (own) return own;
@@ -2226,7 +2248,7 @@ function mcBandHtml(a, ws, mc){
 function mcDaysHtml(D){
   return `<div class="mgrid">${D.map((items, i) => `<div class="mday"><div class="dn">${MC_DAYS[i]}</div>${items.length ? "" : `<div class="mrest">Riposo</div>`}
     ${items.map((it, j) => `<div class="mrow" style="--bc:${kindColor(it.k)}"><select class="in" data-mc="k" data-d="${i}" data-j="${j}" aria-label="Tipo di seduta">${KIND_KEYS.map(k => `<option value="${k}" ${it.k === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select>
-      <div class="mrr"><label>RPE <input class="in" type="number" inputmode="decimal" min="1" max="10" step="0.5" value="${it.rpe}" data-mc="rpe" data-d="${i}" data-j="${j}"></label><button type="button" class="btn sm ghost" data-mc="del" data-d="${i}" data-j="${j}" aria-label="Togli la seduta" title="Togli la seduta">✕</button></div></div>`).join("")}
+      <div class="mrr"><label>RPE</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" inputmode="decimal" min="1" max="10" step="0.5" value="${it.rpe}" data-mc="rpe" data-d="${i}" data-j="${j}" aria-label="RPE previsto"><button type="button" data-step="1" aria-label="Più">+</button></span><button type="button" class="btn sm ghost" data-mc="del" data-d="${i}" data-j="${j}" aria-label="Togli la seduta" title="Togli la seduta">✕</button></div></div>`).join("")}
     <button type="button" class="madd" data-mc="add" data-d="${i}">+ seduta</button></div>`).join("")}</div>`;
 }
 const mcShpHtml = D => `<div class="shl">Forma del microciclo <span class="faint">· altezza = RPE previsto</span></div><div class="shp">${D.map((items, i) => `<div class="c" title="${MC_DAYS[i]}">${items.length ? items.map(it => `<div style="height:${Math.max(3, it.rpe / 10 * 56)}px;background:${kindColor(it.k)}" title="${esc(KINDS[it.k].l)} · RPE ${fmt1(it.rpe)}"></div>`).join("") : `<div class="z"></div>`}</div>`).join("")}</div>
@@ -2272,7 +2294,7 @@ function mcModelsDialog(selId){
     else if (a === "no") close();
     else if (a === "save") { M.forEach(m => m.name = (m.name || "").trim() || "Senza nome"); p.models = M;
       const ids = new Set(M.map(m => m.id)); Object.keys(p.wmod || {}).forEach(i => { if (!ids.has(p.wmod[i])) delete p.wmod[i]; });
-      close(); await perSave(p); drawPer(); toast("Modelli salvati"); } });
+      close(); if (await perSave(p)) toast("Modelli salvati"); drawPer(); } });
   draw();
 }
 /* popover della riga Modello: sceglie il modello per una o più settimane */
@@ -2281,7 +2303,7 @@ function perModPop(t){
   const d = document.createElement("div"); d.className = "pmpop"; d.id = "pmpop";
   d.innerHTML = `<div class="pmh">Settimana ${i + 1} · ${esc(fmtRange(perWs(p, i)))}</div>
     ${ms.length ? `<div class="pmr"><span class="lbl">Modello</span>${ms.map(m => `<button class="${cur === m.id ? "on" : ""}" data-act="per-mod-set" data-i="${i}" data-v="${m.id}" style="border-left:4px solid ${mcCol(p, m)}">${esc(m.name)}</button>`).join("")}<button data-act="per-mod-set" data-i="${i}" data-v="" title="Nessun modello">–</button></div>
-      <div class="pmr"><span class="lbl">Fino a</span><label class="faint" style="font-size:12px">settimana <input class="in" type="number" id="pm-to" min="${i + 1}" max="${p.weeks}" value="${i + 1}" style="width:64px;padding:3px 6px"></label><span class="faint" style="font-size:11.5px">per assegnarlo a più settimane</span></div>`
+      <div class="pmr"><span class="lbl">Fino a</span><label class="faint" style="font-size:12px">settimana <span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pm-to" min="${i + 1}" max="${p.weeks}" value="${i + 1}" style="width:52px;padding:3px 6px"><button type="button" data-step="1" aria-label="Più">+</button></span></label><span class="faint" style="font-size:11.5px">per assegnarlo a più settimane</span></div>`
       : `<div class="faint" style="font-size:12.5px;max-width:260px">Non hai ancora modelli di microciclo.</div>`}
     <div class="pmr"><button data-act="mc-models">✎ ${ms.length ? "Modifica i modelli…" : "Crea un modello…"}</button></div>`;
   document.body.append(d);
@@ -2302,9 +2324,9 @@ function mcOvDialog(a, ws){
   if ($("#mo-reset")) $("#mo-reset").onclick = () => { close(); mcReset(a, ws); };
   $("#mo-ok").onclick = async () => { close(); let doc = mcOvDoc(a.email);
     if (!doc) doc = {id: uid(), scope: "mcov", key: a.email, name: "Microcicli personalizzati", weeks: {}};
-    (doc.weeks ??= {})[ws] = D; await perSave(doc); drawCalendar(); toast(`Settimana personalizzata per ${first}`); };
+    (doc.weeks ??= {})[ws] = D; if (await perSave(doc)) toast(`Settimana personalizzata per ${first}`); drawCalendar(); };
 }
-async function mcReset(a, ws){ const doc = mcOvDoc(a.email); if (!doc?.weeks?.[ws]) return; delete doc.weeks[ws]; await perSave(doc); drawCalendar(); toast("Torna il modello del piano"); }
+async function mcReset(a, ws){ const doc = mcOvDoc(a.email); if (!doc?.weeks?.[ws]) return; delete doc.weeks[ws]; if (await perSave(doc)) toast("Torna il modello del piano"); drawCalendar(); }
 
 
 function weekNav(act){
@@ -5405,6 +5427,10 @@ document.addEventListener("click", e => {
 document.addEventListener("scroll", hideTapTip, true);
 /* ---------- eventi delegati ---------- */
 document.addEventListener("click", e => {
+  const stp = e.target.closest("[data-step]");   // pulsanti − / + dei campi numerici (sul tablet le freccine non ci sono)
+  if (stp) { const inp = stp.parentElement.querySelector("input"); if (inp) { const st = parseFloat(inp.step) || 1, mn = inp.min !== "" ? +inp.min : -Infinity, mx = inp.max !== "" ? +inp.max : Infinity;
+    const v = Math.min(mx, Math.max(mn, (parseFloat(String(inp.value).replace(",", ".")) || (stp.dataset.step > 0 ? mn - st : mn + st) || 0) + st * +stp.dataset.step));
+    inp.value = Math.round(v * 100) / 100; inp.dispatchEvent(new Event("input", {bubbles: true})); inp.dispatchEvent(new Event("change", {bubbles: true})); } return; }
   if (document.getElementById("pmpop") && !e.target.closest("#pmpop, [data-act=per-mic], [data-act=per-mod]")) perPopClose();
   const t = e.target.closest("[data-act]"); if (!t) return;
   if (t.tagName === "BUTTON" && t.closest("form")) e.preventDefault();
@@ -5541,7 +5567,7 @@ async function refreshData(silent=false){
     if (saveT) await flushSave();
     S.loaded = {};
     if (S.user.role === "coach") {
-      await loadCoachData();
+      await loadCoachData(); S.plansAt = 0;   // anche i piani di periodizzazione
       if (S.editor && !S.editor.dirty && !S.editor.tpl && !S.editor.isNew) { await ensureWeeks(S.editor.email, monday(S.editor.w.date), 1); const fresh = S.cache[S.editor.email]?.[S.editor.w.id]; if (fresh) { S.editor.w = clone(fresh); drawEditor(); } }
       await renderView();
     } else {

@@ -964,7 +964,7 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .scmph .btn{margin-left:auto}.scmph.main{margin-top:8px}
 .scmp{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line)}
 .scmpt th.main{color:var(--accent)}.scmpt thead tr:first-child th{border-bottom:0}table.scmpt td,table.scmpt th{white-space:nowrap;text-align:left}table.scmpt td.num{text-align:right}table.scmpt thead tr:last-child th:not(.sg){text-align:right}.scmpt .sg{border-left:2px solid var(--line);padding-left:12px}
-.ctip .tdelta{font-weight:800;margin-bottom:3px}.ctip .tdelta.up{color:var(--ok)}.ctip .tdelta.down{color:var(--bad)}.ctip .tdelta.eq{color:var(--muted)}.ctip .tdelta.base{color:var(--accent)}
+.ctip .tdelta{font-weight:800;margin-bottom:3px}.ctip .tdelta.up{color:var(--ok)}.ctip .tdelta.down{color:var(--bad)}.ctip .tdelta.eq{color:var(--muted);font-weight:600}.ctip .tdelta.base{color:var(--accent)}.ctip .tdelta.nu{color:#7D97FF}
 :is(#an-schart,.an-scc) .col.hov .hit{fill:color-mix(in srgb,var(--accent) 10%,transparent)}
 .pmpop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
 .pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{min-width:64px;white-space:nowrap}
@@ -3309,16 +3309,19 @@ function drawSessCharts(a, w){ const others = sessCmpList(a, w), sh = sessShared
   const main = $("#an-schart"); drawSessionChart(main, w, sh);
   const els = others.map(x => { const el = document.querySelector(`.an-scc[data-id="${x.id}"]`); drawSessionChart(el, x, sh); if (el) el._date = effDate(x); return el; }).filter(Boolean);
   if (!els.length || !main) return;
-  /* passando sulla serie k di un grafico: la serie k in tutti; nelle sedute confrontate la differenza con la seduta scelta,
-     letta nel tempo (dalla più vecchia alla più recente): ▲ verde = è salito, ▼ rosso = è sceso */
-  const all = [main, ...els], day = fmtD(effDate(w));
-  const link = k => { const b = main._val(k);
-    all.forEach(el => { if (el === main) return el._show(k, b ? {cls: "base", txt: "Seduta scelta (" + day + ")"} : null);
-      const o = el._val(k); let ex = null;
-      if (o && b) { if (o.name !== b.name) ex = {cls: "eq", txt: `Esercizio diverso dal ${day}: non confrontabile`};
-        else if (o.v != null && b.v != null) { const older = el._date < effDate(w), d = older ? b.v - o.v : o.v - b.v, span = older ? `dal ${fmtD(el._date)} al ${day}` : `dal ${day} al ${fmtD(el._date)}`;   // sempre dalla seduta più vecchia alla più recente
-          ex = Math.abs(d) < 0.05 ? {cls: "eq", txt: `= uguale ${span}`} : d > 0 ? {cls: "up", txt: `▲ +${el._fd(d)} ${span}`} : {cls: "down", txt: `▼ −${el._fd(d)} ${span}`}; } }
-      el._show(k, ex); }); };
+  /* passando sulla serie k di un grafico: la serie k in tutti. La differenza va nella seduta PIÙ RECENTE di ogni coppia (scelta / confrontata),
+     con i valori veri prima → dopo. Colori: % del riferimento ▲ verde / ▼ rosso (prestazione); RPE e volume in blu, perché "di più" non è né meglio né peggio */
+  const all = [main, ...els], wd = effDate(w);
+  const link = k => { const b = main._val(k), add = new Map(all.map(el => [el, []]));
+    els.forEach(el => { const o = el._val(k); if (!o || !b) return;
+      const newer = el._date > wd ? el : main, oldV = newer === main ? o : b, newV = newer === main ? b : o, oldDay = fmtD(newer === main ? el._date : wd);
+      if (o.name !== b.name) { add.get(newer).push({cls: "eq", txt: `Il ${oldDay} in questa posizione c'era un altro esercizio (${oldV.name})`}); return; }
+      if (oldV.v == null || newV.v == null) return;
+      const d = newV.v - oldV.v, good = main._mode === "pct", cls = Math.abs(d) < 0.05 ? "eq" : good ? (d > 0 ? "up" : "down") : "nu";
+      add.get(newer).push({cls, txt: Math.abs(d) < 0.05 ? `= uguale al ${oldDay} (${main._fv(newV.v)})` : `${d > 0 ? "▲" : "▼"} rispetto al ${oldDay}: ${main._fv(oldV.v)} → ${main._fv(newV.v)}`});
+      if (oldV.raw && oldV.raw !== newV.raw) add.get(newer).push({cls: "eq", txt: `Il ${oldDay}: ${oldV.raw}`});
+      else if (Math.abs(d) >= 0.05 && main._mode === "pct") add.get(newer).push({cls: "eq", txt: `Stessa prestazione del ${oldDay}: è cambiato il riferimento`}); });
+    all.forEach(el => { const L = add.get(el); if (el === main) L.unshift({cls: "base", txt: `Seduta scelta (${fmtD(wd)})`}); el._show(k, L.length ? L : null); }); };
   all.forEach(el => el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => link(+g.dataset.k)); g.addEventListener("focus", () => link(+g.dataset.k));
     g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") all.forEach(x => x._hide()); }); g.addEventListener("blur", () => all.forEach(x => x._hide())); }));
 }
@@ -3421,7 +3424,7 @@ function drawSessionChart(el, w, sh = null){
     if (!VOL && !PCT && o.plan) tip.append(line("tl", `Previsto: RPE ${nf(o.plan.v)}`));
     if (PCT && o.int?.ref) tip.append(line("tl", `Riferimento: ${intRefTxt(o.int.ref)}`));
     if (PCT && o.int?.rec && o.int.k === "kg") tip.append(line("tl", `Nuovo e1RM stimato: ${fmtN(e1rmOf(o.r), 1)} kg`));
-    if (ex) { const d2 = line("tdelta " + ex.cls, ex.txt); tip.prepend(d2); }   // confronto: differenza con la seduta scelta
+    if (ex) [].concat(ex).reverse().forEach(e => tip.prepend(line("tdelta " + e.cls, e.txt)));   // confronto: differenze con le sedute precedenti
     tip.hidden = false;
     let x = b.left - p.left + el.scrollLeft + b.width/2 - tip.offsetWidth/2; x = Math.max(el.scrollLeft, Math.min(x, el.scrollLeft + p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 4) + "px"; };
@@ -3430,8 +3433,9 @@ function drawSessionChart(el, w, sh = null){
   /* per il confronto: mostra la serie k (con una riga in più), valore della serie k, formato delle differenze */
   el._show = (k, ex) => { el.querySelectorAll(".col.hov").forEach(x => x.classList.remove("hov")); const g = el.querySelector(`.col[data-k="${k}"]`); if (!g) { tip.hidden = true; return; } g.classList.add("hov"); show(g, ex); };
   el._hide = () => { tip.hidden = true; el.querySelectorAll(".col.hov").forEach(x => x.classList.remove("hov")); };
-  el._val = k => { const o = sets[k]; return o ? {v: val(o), name: o.name} : null; };
-  el._fd = d => VOL ? `${nf(Math.round(Math.abs(d) * 10) / 10)} ${SVOL_U[VK]}` : PCT ? `${fmtN(Math.abs(d))} punti %` : nf(Math.round(Math.abs(d) * 10) / 10);
+  el._val = k => { const o = sets[k]; return o ? {v: val(o), name: o.name, raw: resultLine(o.r, o.cols) || ""} : null; };
+  el._mode = VOL ? "vol" : PCT ? "pct" : "rpe";
+  el._fv = v => VOL ? `${nf(Math.round(v * 10) / 10)} ${SVOL_U[VK]}` : PCT ? `${fmtN(v)}%` : `RPE ${nf(v)}`;
 }
 
 /* riquadro a destra della pagina Esercizi: Parametri · Categorie · Pattern motori */

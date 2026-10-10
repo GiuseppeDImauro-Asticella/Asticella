@@ -971,6 +971,16 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .ctip .tc.up{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
 .ctip .tc.down{background:color-mix(in srgb,var(--bad) 22%,transparent);color:var(--bad)}
 .ctip .tc.nu{background:color-mix(in srgb,#7D97FF 20%,transparent);color:#7D97FF}
+.wcard .nex{display:none;font-weight:600;color:var(--faint);text-transform:none;letter-spacing:0}
+.cal.compact .wcard ol,.cal.compact .wcard .hidl{display:none}
+.cal.compact .wcard .nex{display:inline}
+.cal.compact .wcard{padding:5px 7px}.cal.compact .wcard .t{font-size:12.5px}
+.cal.compact .cell{min-height:86px;gap:4px}
+.cal.compact .mslot{padding:4px 7px}
+.btn.calcmp.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.cal.compact .rail .wk{writing-mode:horizontal-tb;transform:none;font-size:13px;text-align:center;line-height:1.15}
+.cal.compact .rail .wk small{display:block;margin:2px 0 0;font-size:10px}
+.cal.compact .rail{padding:6px 3px;gap:4px;justify-content:flex-start}.cal.compact .rail .btn{margin-top:auto;padding:2px 6px;font-size:11px}
 .pmpop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
 .pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{min-width:64px;white-space:nowrap}
 .pmpop button{border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-weight:700;padding:4px 9px;cursor:pointer;min-width:30px}
@@ -1486,7 +1496,7 @@ const S = {
   view: "overview",
   athletes: [], exercises: [], templates: [], tplQuery: "", params: [],
   ws: monday(TODAY()),   // settimana di riferimento (lunedì)
-  calAthlete: null, calSel: new Set(), calWeeks: (() => { try { return +localStorage.getItem("asticella-weeks") || 4; } catch(e) { return 4; } })(),
+  calAthlete: null, calSel: new Set(), calCompact: (() => { try { return localStorage.getItem("asticella-calcompact") === "1"; } catch(e) { return false; } })(), calWeeks: (() => { try { return +localStorage.getItem("asticella-weeks") || 4; } catch(e) { return 4; } })(),
   group: "Tutti",
   cache: {}, loaded: {},  // cache[email][id] = workout ; loaded[email] = Set(lunedì caricati)
   editor: null, athEdit: null, exEdit: null, exQuery: "",
@@ -1903,9 +1913,17 @@ function render(){
     <main id="main"></main></div>`;
   renderView();
 }
+/* ridisegnare la stessa sezione (un clic su un filtro, una voce…) non deve riportare la pagina in cima:
+   durante il ridisegno l'altezza resta quella di prima e poi si torna allo stesso punto */
 async function renderView(){
-  const m = $("#main"); if (!m) return; PCM = null; INTM = null;
-  const v = S.view;
+  const m = $("#main"); if (!m) return;
+  const v = S.view, same = S._rv === v, y = window.scrollY; S._rv = v;
+  if (same) m.style.minHeight = m.offsetHeight + "px";
+  try { await renderSection(m, v); }
+  finally { if (same) { window.scrollTo(0, y); m.style.minHeight = ""; } }
+}
+async function renderSection(m, v){
+  PCM = null; INTM = null;
   if (v === "overview") return viewOverview(m);
   if (v === "calendar") return viewCalendar(m);
   if (v === "templates") return viewTemplates(m);
@@ -2475,6 +2493,7 @@ async function viewCalendar(m){
       <button class="btn" data-act="pg-open" title="Come progrediscono gli esercizi nel periodo: previsto e fatto davvero">↗ Progressione</button>
       <button class="btn" data-act="as-athlete" title="Apri l'app come la vede ${esc(a.name)} (solo da guardare: non si salva niente)">👁 Vedi come ${esc(a.name.split(" ")[0])}</button>
       <span class="stepper" title="Settimane visibili"><button data-act="cal-n" data-d="-1" aria-label="Una settimana in meno" ${S.calWeeks<=1?"disabled":""}>−</button><span class="num" style="padding:0 8px">${S.calWeeks} sett.</span><button data-act="cal-n" data-d="1" aria-label="Una settimana in più" ${S.calWeeks>=16?"disabled":""}>+</button></span>
+      <button class="btn icon calcmp ${S.calCompact ? "on" : ""}" data-act="cal-compact" aria-pressed="${S.calCompact}" aria-label="${S.calCompact ? "Vista normale" : "Vista compatta"}" title="${S.calCompact ? "Vista normale: le sedute con tutti gli esercizi" : "Vista compatta: solo titolo, tipo e stato delle sedute (più settimane sullo schermo)"}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${S.calCompact ? '<rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/>' : '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>'}</svg></button>
     </div></div><div class="scroll-x" id="calwrap"><div class="muted" style="padding:20px">Caricamento…</div></div>`;
   await Promise.all([ensureWeeks(a.email, S.ws, S.calWeeks), ensurePlans()]);
   if (S.view !== "calendar") return;
@@ -2482,7 +2501,7 @@ async function viewCalendar(m){
 }
 function drawCalendar(){
   const a = athByEmail(S.calAthlete); const today = TODAY(), curWs = monday(today);
-  let html = `<div class="cal">`, anyMc = false;
+  let html = `<div class="cal ${S.calCompact ? "compact" : ""}">`, anyMc = false;
   for (let k=0;k<S.calWeeks;k++){
     const ws = addDays(S.ws, k*7);
     const n = wIn(a.email, ws, addDays(ws,6)).length;
@@ -2515,7 +2534,7 @@ function cardHtml(email, w, pl){
   return `<div class="wcard st-${st} ${pl ? "mk" : ""} ${S.calSel.has(w.id) ? "sel" : ""} ${w.hidden ? "hid" : ""}" ${pl ? `style="--kc:${kindColor(kindOf(w))}"` : ""} draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <div class="t"><span class="dot st-${st}"></span><span class="tt">${esc(w.title||"Senza titolo")}</span><button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></div>
     ${w.hidden ? `<div class="hidl">Nascosto all'atleta</div>` : ""}
-    <div class="kindt" title="Tipo di seduta${hasKind(w) ? "" : " (dedotto dagli esercizi: sceglilo nell'allenamento)"}"><span>${KINDS[kindOf(w)].l}${hasKind(w) ? "" : " ?"}</span></div>${plh}
+    <div class="kindt" title="Tipo di seduta${hasKind(w) ? "" : " (dedotto dagli esercizi: sceglilo nell'allenamento)"}"><span>${KINDS[kindOf(w)].l}${hasKind(w) ? "" : " ?"}</span><span class="nex"> · ${(w.exercises || []).length} eserc.</span></div>${plh}
     ${miniListHtml(w.exercises, w)}
     ${st==="done" ? `<div class="meta">✓ ${w.sessionRpe?`RPE ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin}′`:""}</div>` : ""}
     ${w.doneDate && w.doneDate !== w.date ? `<div class="moved">↷ previsto ${esc(DAYS[dayIdx(w.date)].toLowerCase())} ${parse(w.date).getDate()}</div>` : ""}</div>`;
@@ -5315,6 +5334,7 @@ const ACT = {
   /* demo */
   async "demo-reset"(){ if (!(await confirmBox("Cancellare le modifiche e ripristinare i dati demo?", "Ripristina"))) return; DB.reset(); S.cache = {}; S.loaded = {}; S.demoRole = "coach"; await loadCoachData(); setDemoRole("coach"); },
   /* navigazione coach */
+  "cal-compact"(){ S.calCompact = !S.calCompact; try { localStorage.setItem("asticella-calcompact", S.calCompact ? "1" : "0"); } catch(e) {} renderView(); },
   "nav-mini"(t){ const sh = $(".shell"), on = !sh.classList.contains("mini"); sh.classList.toggle("mini", on);
     try { localStorage.setItem("asticella-navmini", on ? "1" : "0"); } catch(e) {}
     t.setAttribute("aria-pressed", on); t.title = t.ariaLabel = on ? "Apri il menu" : "Stringi il menu (più spazio per le pagine)";
@@ -5366,7 +5386,7 @@ const ACT = {
   "an-dws"(t){ anQ.dws = addDays(anQ.dws, 7 * +t.dataset.d); renderView(); },
   "an-vk"(t){ anQ.vk = t.dataset.v; renderView(); },
   "an-kind"(t){ if (anQ.metric === "volume") anQ.kv = t.dataset.v; else anQ.ks = t.dataset.v; renderView(); },
-  "an-pick"(t){ anQ.who = t.dataset.e; anQ.sess = null; renderView(); scrollTo(0,0); },
+  "an-pick"(t){ anQ.who = t.dataset.e; anQ.sess = null; S._rv = null; renderView(); scrollTo(0,0); },
   "an-svk"(t){ anQ.svk = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-split"(t){ anQ.split = t.dataset.v; if (anQ.split === "cat") { anQ.kv = "all"; anQ.ks = "all"; } else anQ.cf = "all"; renderView(); },   // un solo filtro alla volta: per tipo di seduta o per categoria
   "an-cf"(t){ anQ.cf = t.dataset.v; renderView(); },

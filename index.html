@@ -796,20 +796,20 @@ tr.ok .ck svg{stroke:#fff}
 .sesshead select{max-width:300px}
 .sstats{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:13px;color:var(--muted)}
 .sstats b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
-#an-schart{overflow-x:auto;padding-bottom:4px}
+:is(#an-schart,.an-scc){overflow-x:auto;padding-bottom:4px}
 #an-sess.vol .sm-rpe{display:none}#an-sess:not(.vol) .sm-vol{display:none}#an-sess.vol .sm-int{display:none}#an-sess.pct .sm-rpe{display:none}#an-sess:not(.pct) .sm-pct{display:none}
-#an-schart .sblab{fill:var(--muted);font-size:11.5px}#an-schart .sblab tspan.lb{font-weight:800}
-#an-schart .vlab.sm{font-size:10px;font-weight:600;fill:var(--muted)}
-#an-schart .sline{fill:none;stroke:var(--muted);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-#an-schart .splan{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;opacity:.8}
-#an-schart .vlab{fill:var(--ink);font-size:11px;font-weight:700}#an-schart .vlab.srec{fill:var(--ok);font-size:13px}
-#an-schart .ssess{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55}
-#an-schart .sghost{stroke-width:1.5;stroke-dasharray:4 3;opacity:.7}#an-schart .vlab.gh{font-size:10px;font-weight:600;fill:var(--faint)}
-#an-schart .snone{fill:var(--surface);stroke:var(--faint);stroke-width:1.5}
-#an-schart .sband{stroke:var(--line);stroke-width:2;stroke-linecap:round}
-#an-schart .styp{font-weight:700;font-size:10px}
-#an-schart .styp.t-W{fill:var(--ink)}
-#an-schart .col:hover .hit,#an-schart .col:focus .hit{fill:color-mix(in srgb,var(--ink) 5%,transparent)}
+:is(#an-schart,.an-scc) .sblab{fill:var(--muted);font-size:11.5px}:is(#an-schart,.an-scc) .sblab tspan.lb{font-weight:800}
+:is(#an-schart,.an-scc) .vlab.sm{font-size:10px;font-weight:600;fill:var(--muted)}
+:is(#an-schart,.an-scc) .sline{fill:none;stroke:var(--muted);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+:is(#an-schart,.an-scc) .splan{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;opacity:.8}
+:is(#an-schart,.an-scc) .vlab{fill:var(--ink);font-size:11px;font-weight:700}:is(#an-schart,.an-scc) .vlab.srec{fill:var(--ok);font-size:13px}
+:is(#an-schart,.an-scc) .ssess{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55}
+:is(#an-schart,.an-scc) .sghost{stroke-width:1.5;stroke-dasharray:4 3;opacity:.7}:is(#an-schart,.an-scc) .vlab.gh{font-size:10px;font-weight:600;fill:var(--faint)}
+:is(#an-schart,.an-scc) .snone{fill:var(--surface);stroke:var(--faint);stroke-width:1.5}
+:is(#an-schart,.an-scc) .sband{stroke:var(--line);stroke-width:2;stroke-linecap:round}
+:is(#an-schart,.an-scc) .styp{font-weight:700;font-size:10px}
+:is(#an-schart,.an-scc) .styp.t-W{fill:var(--ink)}
+:is(#an-schart,.an-scc) .col:hover .hit,:is(#an-schart,.an-scc) .col:focus .hit{fill:color-mix(in srgb,var(--ink) 5%,transparent)}
 .slegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:12px;color:var(--muted)}
 .slegend span{display:inline-flex;align-items:center;gap:6px}
 .slegend svg{flex:none}
@@ -915,8 +915,8 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .mday{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:8px;min-height:150px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .mday .dn{font-weight:800;font-size:12.5px;color:var(--muted)}
-.mrow{min-width:0;overflow:hidden;border:1px solid var(--line);border-left:4px solid var(--bc);border-radius:8px;padding:5px;background:var(--surface);display:flex;flex-direction:column;gap:5px}
-.mrow select{padding:4px 6px;font-size:12.5px;font-weight:700;min-width:0;width:100%;max-width:100%;box-sizing:border-box}
+.mcr{min-width:0;overflow:hidden;border:1px solid var(--line);border-left:4px solid var(--bc);border-radius:8px;padding:5px;background:var(--surface);display:flex;flex-direction:column;gap:5px}
+.mcr select{padding:4px 6px;font-size:12.5px;font-weight:700;min-width:0;width:100%;max-width:100%;box-sizing:border-box}
 .mrr{display:flex;align-items:center;gap:4px}.mrr label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--faint);flex:none}
 
 .madd{border:1px dashed var(--line);border-radius:8px;padding:5px;text-align:center;color:var(--faint);font:inherit;font-weight:700;font-size:12px;background:none;cursor:pointer;margin-top:auto}
@@ -932,13 +932,38 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .mcdlg .body{container-type:inline-size}
 .mrr label{display:none}
 @container (max-width:1000px){ .mgrid{grid-template-columns:repeat(4,minmax(0,1fr))} .mday{min-height:120px} .mrr label{display:flex} }
-@container (max-width:560px){ .mgrid{grid-template-columns:1fr} .mday{min-height:0} .mday .mrow{flex-direction:row;align-items:center;flex-wrap:wrap} .mday .mrow select{flex:1} .mrest{padding:4px 0} }
+@container (max-width:560px){ .mgrid{grid-template-columns:1fr} .mday{min-height:0} .mday .mcr{flex-direction:row;align-items:center;flex-wrap:wrap} .mday .mcr select{flex:1} .mrest{padding:4px 0} }
 .nstep{display:inline-flex;align-items:stretch;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);vertical-align:middle}
 .nstep .in{border:0;border-radius:0;text-align:center;font-weight:700;-moz-appearance:textfield;appearance:textfield;min-width:0;background:transparent;color:var(--ink)}
 .nstep .in::-webkit-outer-spin-button,.nstep .in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .nstep button{border:0;background:var(--surface2);color:var(--ink);font:inherit;font-size:16px;font-weight:700;min-width:30px;cursor:pointer;padding:0 6px;touch-action:manipulation}
 .nstep button:hover{background:var(--accent-soft);color:var(--accent)}
 .mrr .nstep{flex:1;min-width:0}.mrr .nstep .in{width:100%;min-width:28px;padding:3px 0}.mrr .nstep button{min-width:24px;padding:0 4px;font-size:14px}.mrr .btn{padding:2px 5px;flex:none}
+.dprev thead th{position:sticky;top:0;z-index:2;background:var(--surface2);box-shadow:0 1px 0 var(--line)}
+.antl{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:8px 12px 10px;margin:0 0 14px}
+.tltop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tltop .lbl{margin:0 4px 0 0}
+.tltop .tlsea{width:auto;padding:3px 8px;font-size:12.5px}.tltop .tlsn{font-size:12.5px}
+.tltop .tlsum{margin-left:auto;font-size:12.5px;color:var(--muted)}.tltop .tlsum b{color:var(--ink)}
+.mchip.tladd{--mc:var(--accent);border-style:solid;color:var(--ink)}.mchip.tladd.on{color:var(--accent-ink)}
+.tlbody{display:grid;grid-template-columns:72px minmax(0,1fr);margin-top:6px}
+.tllab{display:flex;flex-direction:column}.tllab span{height:30px;display:flex;align-items:center;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.tllab span:first-child{height:20px}
+.tlsc{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.tlin{position:relative;padding-bottom:5px}
+.tlax{position:relative;height:20px;font-size:10.5px;color:var(--faint)}.tlax span{position:absolute;top:0;padding-left:3px;border-left:1px solid var(--line);line-height:14px}
+.tlr{position:relative;height:30px}
+.tlb{position:absolute;top:3px;height:24px;border:0;border-radius:6px;padding:0 8px;font:inherit;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
+  background:color-mix(in srgb,var(--bc) 30%,var(--surface));color:var(--ink);opacity:.85;margin-left:2px;transform-origin:left}
+.tlb:hover{background:color-mix(in srgb,var(--bc) 40%,var(--surface));color:var(--ink)}
+.tlb.on{background:var(--bc);color:#0C0F14;opacity:1}
+.tlsel{position:absolute;top:16px;bottom:0;pointer-events:none;background:color-mix(in srgb,var(--accent) 5%,transparent);border-radius:4px}
+.tlsel::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:2px;background:var(--accent)}
+.tlnow{position:absolute;top:16px;bottom:0;width:2px;margin-left:-1px;background:var(--ink);opacity:.35;pointer-events:none}
+.scmph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:13px;margin:4px 0 2px}.scmph .sstats{margin:0;display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.scmph .btn{margin-left:auto}.scmph.main{margin-top:8px}
+.scmp{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line)}
+.scmpt th.main{color:var(--accent)}.scmpt thead tr:first-child th{border-bottom:0}table.scmpt td,table.scmpt th{white-space:nowrap;text-align:left}table.scmpt td.num{text-align:right}table.scmpt thead tr:last-child th:not(.sg){text-align:right}.scmpt .sg{border-left:2px solid var(--line);padding-left:12px}
 .pmpop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
 .pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{min-width:64px;white-space:nowrap}
 .pmpop button{border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-weight:700;padding:4px 9px;cursor:pointer;min-width:30px}
@@ -2201,6 +2226,54 @@ const daysEnc = D => (D || []).map(items => ({s: Array.isArray(items) ? items : 
 const daysDec = D => Array.from({length: 7}, (_, i) => { const x = D?.[i]; return Array.isArray(x) ? x : x?.s || []; });
 function planEnc(p){ (p.models || []).forEach(m => m.days = daysEnc(m.days)); if (p.scope === "mcov" && p.weeks) Object.keys(p.weeks).forEach(k => p.weeks[k] = daysEnc(p.weeks[k])); return p; }
 function planDec(p){ (p.models || []).forEach(m => m.days = daysDec(m.days)); if (p.scope === "mcov" && p.weeks) Object.keys(p.weeks).forEach(k => p.weeks[k] = daysDec(p.weeks[k])); return p; }
+/* stagione di una seduta: non si salva sulla seduta, si ricava dal piano di Periodizzazione che copre quella data
+   (quello dell'atleta, se no quello del suo gruppo): nome del piano, settimana, macrociclo, periodo, modello di microciclo */
+function planInfo(a, date){ const ws = monday(date), p = planAt(a, ws); if (!p) return {};
+  const i = perIdx(p, ws), blk = L => (L || []).find(b => b.from <= i && b.to >= i)?.name || "", ov = mcOvDoc(a.email)?.weeks?.[ws];
+  return {season: p.name, week: i + 1, macro: blk(p.macro), phase: blk(p.phases), model: ov ? "Personalizzato" : (p.models || []).find(m => m.id === p.wmod?.[i])?.name || ""}; }
+const planEnd = p => addDays(p.start, 7 * p.weeks - 1);
+/* i piani (stagioni) che valgono per un atleta: i suoi e quelli del suo gruppo; per "tutti": tutti i piani */
+const seasonsOf = a => (a ? [...plansOf("a:" + a.email), ...(a.group ? plansOf("g:" + a.group) : [])] : (S.plans || []).filter(p => p.scope === "group" || p.scope === "athlete")).sort((x, y) => x.start.localeCompare(y.start));
+/* Analisi: linea del tempo della stagione (periodi del piano + mesocicli dell'atleta). Clic su un blocco = analizzi quello;
+   con "+ Aggiungi" acceso il clic allarga il periodo fino a quel blocco (blocchi consecutivi, es. M2 → M3) */
+function anTimelineHtml(a, from, to, ms, l12){
+  const seas = seasonsOf(a), ov = p => Math.max(0, daysBetween(from > p.start ? from : p.start, to < planEnd(p) ? to : planEnd(p)) + 1);
+  let sp = seas.find(p => p.id === anQ.season) || null;
+  if (!sp && seas.length) { sp = [...seas].sort((x, y) => ov(y) - ov(x) || (planCovers(y, monday(TODAY())) - planCovers(x, monday(TODAY()))))[0]; }
+  const phases = sp ? (sp.phases || []).map(b => ({name: b.name, from: perWs(sp, b.from), end: addDays(perWs(sp, b.to), 6), col: PHASE_COL(b.name)})) : [];
+  const mz = ms.map(mm => ({name: mm.name + (mm.goal ? " · " + mm.goal : ""), short: mm.name, from: mm.from, end: mm.end, col: mcol(mm.color)}));
+  /* estensione della linea: la stagione; senza piano: mesocicli + periodo scelto */
+  let t0 = sp ? sp.start : [from, ...mz.map(x => x.from)].sort()[0], t1 = sp ? planEnd(sp) : [to, ...mz.map(x => x.end)].sort().slice(-1)[0];
+  t0 = monday(t0); const D = daysBetween(t0, t1) + 1, W = Math.ceil(D / 7);
+  const X = d => Math.max(0, Math.min(100, daysBetween(t0, d) / D * 100)), Wd = (f, e) => Math.max(0, X(addDays(e, 1)) - X(f));
+  const inside = x => x.from >= from && x.end <= to, part = x => !inside(x) && x.from <= to && x.end >= from;
+  const vis = mz.filter(x => x.end >= t0 && x.from <= t1);
+  const blk = (x, kind) => `<button class="tlb ${inside(x) ? "on" : ""}" style="left:${X(x.from)}%;width:calc(${Wd(x.from, x.end)}% - 4px);--bc:${x.col}" data-act="an-blk" data-f="${x.from}" data-t="${x.end}" title="${esc(x.name)} · ${fmtD(x.from)} – ${fmtD(x.end)}${inside(x) ? " · dentro il periodo analizzato" : part(x) ? " · in parte" : ""}">${esc(kind === "m" ? x.short : x.name)}</button>`;
+  /* titolo del periodo: i mesocicli (o i periodi) che lo compongono esattamente, se no le date */
+  const exact = L => { const z = L.filter(inside).sort((x, y) => x.from.localeCompare(y.from)); return z.length && z[0].from === from && z[z.length - 1].end === to ? z : null; };
+  const em = exact(mz), ep = exact(phases), nW = Math.round((daysBetween(from, to) + 1) / 7);
+  const what = l12 ? "Ultime 12 settimane" : sp && from === sp.start && to === planEnd(sp) ? esc(sp.name) : em ? (em.length > 3 ? `${esc(em[0].short)} … ${esc(em[em.length - 1].short)}` : em.map(x => esc(x.short)).join(" + ")) : ep ? ep.map(x => esc(x.name)).join(" + ") : "Date scelte";
+  const months = []; for (let d = t0; d <= t1; d = addDays(d, 1)) if (parse(d).getDate() === 1 || (d === t0 && parse(d).getDate() <= 20)) months.push(d);   // il primo mese solo se non è subito seguito dal successivo
+  const today = TODAY(), rows = [phases.length ? ["Periodi", phases.map(x => blk(x, "p")).join("")] : null, vis.length ? ["Mesocicli", vis.map(x => blk(x, "m")).join("")] : null].filter(Boolean);
+  return `<div class="antl">
+    <div class="tltop"><span class="lbl">Periodo</span>
+      <button class="mchip l12 ${l12 ? "on" : ""}" data-act="an-last12" aria-pressed="${l12}">${l12 ? "✓ " : ""}Ultime 12 settimane</button>
+      ${sp ? `<button class="mchip l12 ${from === sp.start && to === planEnd(sp) ? "on" : ""}" data-act="an-meso" data-f="${sp.start}" data-t="${planEnd(sp)}">Stagione intera</button>` : ""}
+      ${seas.length > 1 ? `<select class="in tlsea" data-change="an-season" aria-label="Stagione">${seas.map(p => `<option value="${p.id}" ${p === sp ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>` : sp ? `<span class="faint tlsn">${esc(sp.name)}</span>` : ""}
+      ${rows.length ? `<button class="mchip tladd ${anQ.add ? "on" : ""}" data-act="an-add" aria-pressed="${!!anQ.add}" title="Acceso: il clic su un blocco allarga il periodo fino a quel blocco (blocchi consecutivi)">${anQ.add ? "✓ " : "+ "}Aggiungi</button>` : ""}
+      <span class="tlsum">Analizzi: <b>${what}</b> · ${fmtD(from)} – ${fmtD(to)} · ${nW} settiman${nW === 1 ? "a" : "e"}</span></div>
+    ${rows.length ? `<div class="tlbody"><div class="tllab"><span></span>${rows.map(r => `<span>${r[0]}</span>`).join("")}</div>
+      <div class="tlsc" id="an-tl"><div class="tlin" style="width:max(100%, ${W * 38}px)">
+        <div class="tlax">${months.map(d => `<span style="left:${X(d)}%">${MONTHS[parse(d).getMonth()]}</span>`).join("")}</div>
+        ${rows.map(r => `<div class="tlr">${r[1]}</div>`).join("")}
+        ${to >= t0 && from <= t1 ? `<div class="tlsel" style="left:${X(from)}%;width:${Wd(from > t0 ? from : t0, to < t1 ? to : t1)}%"></div>` : ""}
+        ${today >= t0 && today <= t1 ? `<div class="tlnow" style="left:${X(today)}%" title="Oggi"></div>` : ""}
+      </div></div></div>` : `<div class="faint" style="font-size:12px;margin-top:6px">Nessun mesociclo né piano di stagione: li crei dal Calendario e dalla Periodizzazione.</div>`}
+  </div>`;
+}
+/* la linea del tempo si posiziona sul periodo analizzato */
+function anTimelineScroll(){ const sc = $("#an-tl"), sel = sc?.querySelector(".tlsel"); if (!sc || !sel) return;
+  const x = sel.offsetLeft + sel.offsetWidth / 2 - sc.clientWidth / 2; sc.scrollLeft = Math.max(0, x); }
 /* ---------- MICROCICLI: settimane tipo (per ogni giorno le sedute previste: tipo + RPE di seduta) ----------
    il modello sta nel piano (p.models) e si assegna alle settimane (p.wmod); nel Calendario si può personalizzare per un atleta
    (documento "mcov" nella raccolta dei piani: settimane → giorni) */
@@ -2252,7 +2325,7 @@ function mcBandHtml(a, ws, mc){
 /* editor dei giorni (modello o settimana personalizzata): D = 7 liste di {k, rpe} */
 function mcDaysHtml(D){
   return `<div class="mgrid">${D.map((items, i) => `<div class="mday"><div class="dn">${MC_DAYS[i]}</div>${items.length ? "" : `<div class="mrest">Riposo</div>`}
-    ${items.map((it, j) => `<div class="mrow" style="--bc:${kindColor(it.k)}"><select class="in" data-mc="k" data-d="${i}" data-j="${j}" aria-label="Tipo di seduta">${KIND_KEYS.map(k => `<option value="${k}" ${it.k === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select>
+    ${items.map((it, j) => `<div class="mcr" style="--bc:${kindColor(it.k)}"><select class="in" data-mc="k" data-d="${i}" data-j="${j}" aria-label="Tipo di seduta">${KIND_KEYS.map(k => `<option value="${k}" ${it.k === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select>
       <div class="mrr"><label>RPE</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" inputmode="decimal" min="1" max="10" step="0.5" value="${it.rpe}" data-mc="rpe" data-d="${i}" data-j="${j}" aria-label="RPE previsto"><button type="button" data-step="1" aria-label="Più">+</button></span><button type="button" class="btn sm ghost" data-mc="del" data-d="${i}" data-j="${j}" aria-label="Togli la seduta" title="Togli la seduta">✕</button></div></div>`).join("")}
     <button type="button" class="madd" data-mc="add" data-d="${i}">+ seduta</button></div>`).join("")}</div>`;
 }
@@ -2302,18 +2375,31 @@ function mcModelsDialog(selId){
       close(); if (await perSave(p)) toast("Modelli salvati"); drawPer(); } });
   draw();
 }
-/* popover della riga Modello: sceglie il modello per una o più settimane */
-function perModPop(t){
-  const p = perEd(); if (!p) return; perPopClose(); const i = +t.dataset.i, r = t.getBoundingClientRect(), cur = p.wmod?.[i] || "", ms = p.models || [];
-  const d = document.createElement("div"); d.className = "pmpop"; d.id = "pmpop";
-  d.innerHTML = `<div class="pmh">Settimana ${i + 1} · ${esc(fmtRange(perWs(p, i)))}</div>
-    ${ms.length ? `<div class="pmr"><span class="lbl">Modello</span>${ms.map(m => `<button class="${cur === m.id ? "on" : ""}" data-act="per-mod-set" data-i="${i}" data-v="${m.id}" style="border-left:4px solid ${mcCol(p, m)}">${esc(m.name)}</button>`).join("")}<button data-act="per-mod-set" data-i="${i}" data-v="" title="Nessun modello">–</button></div>
-      <div class="pmr"><span class="lbl">Fino a</span><label class="faint" style="font-size:12px">settimana <span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pm-to" min="${i + 1}" max="${p.weeks}" value="${i + 1}" style="width:52px;padding:3px 6px"><button type="button" data-step="1" aria-label="Più">+</button></span></label><span class="faint" style="font-size:11.5px">per assegnarlo a più settimane</span></div>`
-      : `<div class="faint" style="font-size:12.5px;max-width:260px">Non hai ancora modelli di microciclo.</div>`}
-    <div class="pmr"><button data-act="mc-models">✎ ${ms.length ? "Modifica i modelli…" : "Crea un modello…"}</button></div>`;
-  document.body.append(d);
-  const x = Math.min(window.innerWidth - d.offsetWidth - 8, Math.max(8, r.left + r.width / 2 - d.offsetWidth / 2)), below = r.bottom + d.offsetHeight + 8 < window.innerHeight;
-  d.style.left = x + "px"; d.style.top = (below ? r.bottom + 6 : r.top - d.offsetHeight - 6) + "px";
+/* finestra della riga Modello (come i blocchi delle altre righe): scegli il modello e da quale a quale settimana; se clicchi un modello già messo
+   la finestra parte dalle sue settimane, così puoi allungarlo, accorciarlo, cambiarlo o toglierlo */
+function perModDialog(i0){
+  const p = perEd(); if (!p) return; perPopClose(); const ms = p.models || [];
+  if (!ms.length) return mcModelsDialog();
+  const cur = p.wmod?.[i0] || ""; let a = i0, z = i0;
+  if (cur) { while (a > 0 && p.wmod?.[a - 1] === cur) a--; while (z < p.weeks - 1 && p.wmod?.[z + 1] === cur) z++; }
+  let sel = cur || ms[0].id;
+  $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="pm-form"><header><h2>${cur ? "Modello" : "Assegna un modello"}</h2></header><div class="body">
+    <div class="field"><span class="lbl">Modello</span><div class="mlist" id="pm-sel" style="margin:0">${ms.map(m => `<button type="button" class="t ${m.id === sel ? "on" : ""}" data-id="${m.id}" style="--mc:${mcCol(p, m)}"><i></i>${esc(m.name)}</button>`).join("")}</div></div>
+    <div class="row"><div class="field"><label class="lbl" for="pm-from">Dalla settimana</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pm-from" min="1" max="${p.weeks}" value="${a + 1}" style="width:64px"><button type="button" data-step="1" aria-label="Più">+</button></span></div>
+      <div class="field"><label class="lbl" for="pm-to">Alla settimana</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pm-to" min="1" max="${p.weeks}" value="${z + 1}" style="width:64px"><button type="button" data-step="1" aria-label="Più">+</button></span></div>
+      <div class="field grow"><span class="lbl">&nbsp;</span><span class="faint" id="pm-dates" style="font-size:12px"></span></div></div>
+    <div class="faint" style="font-size:12px">${cur ? "Cambia le settimane per allungarlo o accorciarlo, oppure scegli un altro modello, poi <b>Salva</b>. " : ""}Le settimane scelte prendono questo modello anche se ne avevano un altro.</div>
+    <button type="button" class="lnk" id="pm-edit" style="align-self:flex-start">✎ Crea o modifica i modelli…</button>
+    </div><footer>${cur ? `<button type="button" class="btn ghost danger" id="pm-del">Togli</button>` : ""}<span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
+  const rng = () => { let f = Math.max(1, Math.min(p.weeks, +$("#pm-from").value || 1)) - 1, t = Math.max(1, Math.min(p.weeks, +$("#pm-to").value || 1)) - 1; if (t < f) [f, t] = [t, f]; return [f, t]; };
+  const dates = () => { const [f, t] = rng(); $("#pm-dates").textContent = `${fmtD(perWs(p, f))} – ${fmtD(addDays(perWs(p, t), 6))} · ${t - f + 1} settiman${t - f ? "e" : "a"}`; };
+  $("#pm-from").oninput = dates; $("#pm-to").oninput = dates; dates();
+  $("#pm-sel").onclick = e => { const b = e.target.closest("[data-id]"); if (!b) return; sel = b.dataset.id; $("#pm-sel").querySelectorAll(".t").forEach(x => x.classList.toggle("on", x === b)); };
+  const close = () => $("#confirm").innerHTML = "";
+  $("#pm-no").onclick = close; $("#pm-edit").onclick = () => { close(); mcModelsDialog(sel); };
+  const put = async (f, t, v) => { p.wmod ??= {}; if (cur) for (let k = a; k <= z; k++) delete p.wmod[k]; if (v) for (let k = f; k <= t; k++) p.wmod[k] = v; close(); await perSave(p); drawPer(); };
+  if ($("#pm-del")) $("#pm-del").onclick = () => put(0, -1, "");
+  $("#pm-form").onsubmit = e => { e.preventDefault(); const [f, t] = rng(); put(f, t, sel); };
 }
 /* Calendario: personalizza la settimana per un atleta */
 function mcOvDialog(a, ws){
@@ -2757,6 +2843,7 @@ async function viewAnalysis(m){
   if (!ath.length) { m.innerHTML = `<div class="pagehead"><h1>Analisi</h1></div><div class="empty">Aggiungi prima un atleta dalla sezione <b>Atleti</b>.</div>`; return; }
   if (!anQ.who || !athByEmail(anQ.who)) anQ.who = S.calAthlete && athByEmail(S.calAthlete) ? S.calAthlete : ath[0].email;
   const a = athByEmail(anQ.who);
+  await ensurePlans(); if (S.view !== "analysis") return;
   const from = anQ.from, to = anQ.to, curWs = monday(TODAY());
   const nW = Math.floor(daysBetween(monday(from), monday(to)) / 7) + 1;
   const ms = (a.mesos || []).map(mm => ({...mm, end: addDays(mm.from, 7*mm.weeks - 1)}));
@@ -2766,14 +2853,9 @@ async function viewAnalysis(m){
     <div class="toolbar antb"><div class="field"><label class="lbl" for="an-who">Atleta</label><select class="in" id="an-who" data-change="an-who" style="width:auto">${athOptions(a.email)}</select></div>
     <div class="field"><label class="lbl" for="an-from">Dal</label><input class="in" type="date" id="an-from" value="${from}" data-change="an-date"></div>
     <div class="field"><label class="lbl" for="an-to">Al</label><input class="in" type="date" id="an-to" value="${to}" data-change="an-date"></div></div></div>
-    <div class="mrow"><span class="lbl">Periodo</span>
-      <button class="mchip l12 ${l12 ? "on" : ""}" data-act="an-last12" aria-pressed="${l12}">${l12 ? "✓ " : ""}Ultime 12 settimane</button>
-      <span class="msep" aria-hidden="true"></span><span class="lbl">Mesocicli di ${esc(a.name.split(" ")[0])}</span>
-      ${ms.length ? ms.map(mm => { const on = mm.from === from && mm.end === to, full = !on && mm.from >= from && mm.end <= to, part = !on && !full && inRange(mm);
-        return `<button class="mchip ${on ? "on" : full ? "whole" : part ? "part" : ""}" style="--mc:${mcol(mm.color)}" data-act="an-meso" data-f="${mm.from}" data-t="${mm.end}" aria-pressed="${on}" title="${on ? "Stai analizzando questo mesociclo" : full ? "Compreso tutto nel periodo" : part ? "Compreso solo in parte" : "Fuori dal periodo"} · clicca per analizzare solo questo mesociclo">
-          ${on ? "✓ " : "<i></i>"}${esc(mm.name)}${mm.goal ? " · " + esc(mm.goal) : ""} <span>${fmtD(mm.from)} – ${fmtD(mm.end)}${part ? " · in parte" : ""}</span></button>`; }).join("") : `<span class="faint" style="font-size:12px">nessuno (li crei dal Calendario)</span>`}
-      </div>
+    ${anTimelineHtml(a, from, to, ms, l12)}
     <div id="an-body"><div class="muted" style="padding:20px">Caricamento…</div></div>`;
+  anTimelineScroll();
   await Promise.all(ath.map(x => ensureWeeks(x.email, monday(from), nW)));
   await ensureWeeks(a.email, addDays(monday(from), -INT_DAYS), INT_DAYS / 7).catch(e => console.error(e));   // 12 settimane prima: riferimenti dell'intensità (% e1RM / record)
   INTM = null;
@@ -2837,7 +2919,7 @@ async function viewAnalysis(m){
         <span title="Carico medio giornaliero ÷ deviazione standard dei 7 giorni (i giorni di riposo contano 0). Sopra 2 = giorni troppo simili tra loro.">monotonia: <b>${mono.mono != null ? fmtN(mono.mono, 2) : "–"}</b></span>
         <span title="Carico della settimana × monotonia">strain: <b>${mono.mono != null ? fmtN(mono.tot * mono.mono) : "–"}</b></span></div>
         <div class="cdesc" style="margin-top:4px">Monotonia (Foster): carico medio del giorno ÷ quanto varia da un giorno all'altro. Più è alta, più i giorni sono simili tra loro; sopra 2 la settimana è poco variata e, con un carico alto, aumenta il rischio di sovraccarico.</div>` : ""}</section>
-    ${sessionPanelHtml(a, sessList, sess)}
+    ${sessionPanelHtml(a, sessList, sess, true)}
     <div class="antables">
       <section class="panel"><h3>Per esercizio</h3><div class="cdesc">${esc(a.name)} · ${fmtD(from)} – ${fmtD(to)}</div>
         <div class="scroll-x"><table class="nt"><thead><tr><th>Esercizio</th><th>Sedute</th><th>Serie</th><th>Reps</th><th>Volume kg</th><th title="Kg massimi, altezza massima o tempo migliore">Migliore</th></tr></thead><tbody>
@@ -2852,7 +2934,7 @@ async function viewAnalysis(m){
     </div>
     ${intRefsHtml(a, to)}`;
   drawBarChart($("#an-chart"), byDay ? dser : ser, anQ.metric, a);
-  if (sess) drawSessionChart($("#an-schart"), sess);
+  if (sess) drawSessCharts(a, sess);
 }
 /* editor: aggiorna al volo i kg consigliati di una serie mentre scrivi il %1RM */
 function edKgHint(i, j){ const E = S.editor, x = E?.w.exercises[i], s = x?.sets[j], inp = document.querySelector(`input[data-bind="exercises.${i}.sets.${j}.kg"]`); if (!inp || !s) return;
@@ -3171,12 +3253,12 @@ const sessPctLbl = sets => { const ks = new Set(sets.filter(o => o.int).map(o =>
 const sessVk = sets => { const c = {}; sets.forEach(o => { if (o.vol) c[o.vol.b] = (c[o.vol.b] || 0) + 1; });
   return anQ.svk && c[anQ.svk] ? anQ.svk : SVOL_KEYS.find(q => c[q]) || anQ.svk || "carico"; };   // in ordine: carico, ripetizioni, sprint…
 const SVOL_L = {carico: "Carico (kg × rip)", rip: "Ripetizioni", sprint: "Sprint (m)", corsa: "Corsa (m)", plio: "Contatti", stacchi: "Stacchi", durata: "Durata (min)", tempo: "Tempo (s)"};
-function sessionPanelHtml(a, list, w){
+function sessionPanelHtml(a, list, w, cmp = false){
   if (!list.length) return `<section class="panel chartcard"><h3>Andamento della seduta</h3><div class="cdesc">Nessuna seduta registrata da ${esc(a.name)} nel periodo scelto.</div></section>`;
   const {sets, order} = sessionSets(w);
   const withR = sets.filter(o => o.act), avg = withR.length ? withR.reduce((t, o) => t + o.act.v, 0) / withR.length : null;
   const peak = withR.reduce((m, o) => !m || o.act.v > m.act.v ? o : m, null);
-  const idx = list.indexOf(w), sm = sessMode(sets), ip = sm === "rpe" ? sessIp(sets) : "rpe", hasPct = sets.some(o => o.int?.pct != null);
+  const idx = list.indexOf(w), sm = sessMode(sets), ip = sm === "rpe" ? sessIp(sets) : "rpe", hasPct = sets.some(o => o.int?.pct != null), C = cmp && sets.length ? sessCmpHtml(a, w) : null;
   const fmt1 = v => fmtN(v, Number.isInteger(v) ? 0 : 1);
   const mk = (kind, c) => `<svg width="18" height="12" aria-hidden="true">${kind === "bar" ? `<rect x="4" y="1" width="10" height="11" rx="2" fill="${c}"/>` : kind === "rbar" ? `<rect x="4.75" y="1.75" width="8.5" height="9.5" rx="2" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : kind === "dot" ? `<circle cx="9" cy="6" r="5" fill="${c}"/>` : kind === "ring" ? `<circle cx="9" cy="6" r="4" fill="var(--surface)" stroke="${c}" stroke-width="2"/>`
     : kind === "plan" ? `<line x1="2" x2="16" y1="6" y2="6" class="splan" style="stroke:var(--ink);stroke-width:2;opacity:.45"/>` : kind === "sess" ? `<line x1="1" x2="17" y1="6" y2="6" style="stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55"/>`
@@ -3185,7 +3267,7 @@ function sessionPanelHtml(a, list, w){
     <div class="sesshead"><div><h3>Andamento della seduta · ${esc(a.name)}</h3><div class="cdesc sm-rpe">Una barra per ogni serie, nell'ordine in cui è stata fatta, alta quanto il suo RPE: si vede come è cresciuta (o calata) l'intensità durante l'allenamento. Nelle superserie le serie sono alternate.</div></div>
       <div class="row"><button class="btn sm ghost icon" data-act="an-sess-step" data-d="1" aria-label="Seduta precedente" ${idx >= list.length - 1 ? "disabled" : ""}>‹</button>
         <select class="in" data-change="an-sess" aria-label="Seduta">${list.map(x => `<option value="${x.id}" ${x === w ? "selected" : ""}>${esc(fmtD(effDate(x)))} · ${esc(x.title || "Senza titolo")}${x.status === "done" ? "" : " (non completata)"}</option>`).join("")}</select>
-        <button class="btn sm ghost icon" data-act="an-sess-step" data-d="-1" aria-label="Seduta successiva" ${idx <= 0 ? "disabled" : ""}>›</button></div></div>
+        <button class="btn sm ghost icon" data-act="an-sess-step" data-d="-1" aria-label="Seduta successiva" ${idx <= 0 ? "disabled" : ""}>›</button>${C ? C.pick : ""}</div></div>
     ${sets.length ? `<div class="kfilt" role="group" aria-label="Cosa mostra il grafico"><span class="lbl">Grafico</span>${[["rpe", "Intensità"], ["vol", "Volume"]].map(([k, l]) => `<button class="${sm === k ? "on" : ""}" data-act="an-smode" data-v="${k}" aria-pressed="${sm === k}">${l}</button>`).join("")}</div>
       <div class="kfilt sm-int" role="group" aria-label="Parametro di intensità"><span class="lbl">Parametro</span>${[["rpe", "RPE"], ["pct", sessPctLbl(sets)]].map(([k, l]) => { const has = k === "rpe" || hasPct;
         return `<button class="${ip === k ? "on" : ""} ${has ? "" : "nodata"}" data-act="an-sip" data-v="${k}" aria-pressed="${ip === k}" ${has ? "" : `title="Nessuna serie con un riferimento: servono esercizi con kg e ripetizioni (e RPE/RIR nelle sedute precedenti), sprint con il tempo o salti con l'altezza, già fatti nelle 12 settimane prima"`}>${l}</button>`; }).join("")}</div>
@@ -3199,18 +3281,51 @@ function sessionPanelHtml(a, list, w){
       ${w.sessionRpe && w.durationMin ? `<span>carico sRPE: <b>${fmtN(w.sessionRpe * w.durationMin)}</b> UA</span>` : ""}</div>
     ${withR.length && withR.length < sets.length ? `<div class="faint sm-rpe" style="font-size:12px;margin-top:6px">Solo <b>${withR.length}</b> serie su ${sets.length} hanno l'RPE: le altre sono i cerchietti in basso (il grafico mostra solo l'RPE). Per vederle tutte aggiungi il parametro RPE (o RIR) a quegli esercizi.</div>` : ""}
     ${sets.length && !withR.length ? `<div class="note sm-rpe" style="margin-top:10px">In questa seduta nessuna serie ha RPE o RIR: per vedere l'andamento aggiungi il parametro <b>RPE</b> (o RIR) agli esercizi, così l'atleta lo compila a ogni serie.</div>` : ""}
-    ${sets.length ? `<div class="chartwrap" id="an-schart"></div>
+    ${sets.length ? `${C?.blocks ? `<div class="scmph main"><b>${esc(fmtLong(effDate(w)))}</b><span>${esc(w.title || "Senza titolo")}</span><span class="faint">seduta scelta</span></div>` : ""}<div class="chartwrap" id="an-schart"></div>${C?.blocks || ""}
     ${(ls => ls.length ? `<div class="slegend sm-rpe">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}</div>` : "")(order.filter(n => withR.some(o => o.name === n)))}
     ${(ls => ls.length ? `<div class="slegend sm-pct">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}<span>${mk("sess")}100% = riferimento</span><span>${mk("none")}serie senza riferimento</span></div>` : "")(order.filter(n => sets.some(o => o.name === n && o.int?.pct != null)))}
     <div class="slegend sm-rpe"><span>${mk("bar", "var(--muted)")}RPE della serie</span><span>${mk("rbar", "var(--muted)")}ricavato dal RIR (10 − RIR)</span><span>${mk("plan")}RPE previsto da te</span>${w.sessionRpe ? `<span>${mk("sess")}RPE della seduta</span>` : ""}<span>${mk("none")}serie senza RPE</span><span><b style="font-size:10px">R W B D</b>&nbsp;tipo di serie</span></div>
-    <details class="sdet"><summary>Vedi come tabella</summary><div class="scroll-x"><table class="nt"><thead><tr><th>#</th><th>Esercizio</th><th>Tipo</th><th>Eseguito</th><th>RPE</th><th>Previsto</th>${hasPct ? "<th>% rif.</th>" : ""}</tr></thead><tbody>
+    <details class="sdet"><summary>Vedi come tabella${C?.others.length ? " (confronto)" : ""}</summary><div class="scroll-x">${C?.others.length ? sessCmpTable(w, C.others, hasPct) : `<table class="nt"><thead><tr><th>#</th><th>Esercizio</th><th>Tipo</th><th>Eseguito</th><th>RPE</th><th>Previsto</th>${hasPct ? "<th>% rif.</th>" : ""}</tr></thead><tbody>
       ${sets.map((o, k) => `<tr><td class="num">${k+1}</td><td>${esc(o.lab)} ${esc(o.name)} <span class="faint">· serie ${o.n}${o.extra ? " extra" : ""}</span></td><td>${o.type ? SET_TYPES[o.type].s : "–"}</td><td>${esc(resultLine(o.r, o.cols) || "✓")}</td>
-        <td class="num">${o.act ? fmt1(o.act.v) + (o.act.from === "rir" ? " (da RIR)" : "") : "–"}</td><td class="num">${o.plan ? fmt1(o.plan.v) : "–"}</td>${hasPct ? `<td class="num" title="${esc(intRefTxt(o.int?.ref))}">${o.int?.pct != null ? fmtN(o.int.pct) + "%" + (o.int.rec ? " ★" : "") : "–"}</td>` : ""}</tr>`).join("")}</tbody></table></div></details>` : `<div class="muted sempty" style="margin-top:10px;font-size:13px">In questa seduta non ci sono serie registrate.<button class="btn sm" data-act="open-w" data-e="${esc(a.email)}" data-id="${w.id}">Apri la seduta ›</button></div>`}
+        <td class="num">${o.act ? fmt1(o.act.v) + (o.act.from === "rir" ? " (da RIR)" : "") : "–"}</td><td class="num">${o.plan ? fmt1(o.plan.v) : "–"}</td>${hasPct ? `<td class="num" title="${esc(intRefTxt(o.int?.ref))}">${o.int?.pct != null ? fmtN(o.int.pct) + "%" + (o.int.rec ? " ★" : "") : "–"}</td>` : ""}</tr>`).join("")}</tbody></table>`}</div></details>` : `<div class="muted sempty" style="margin-top:10px;font-size:13px">In questa seduta non ci sono serie registrate.<button class="btn sm" data-act="open-w" data-e="${esc(a.email)}" data-id="${w.id}">Apri la seduta ›</button></div>`}
   </section>`;
 }
 function sessListFor(a){
   return wIn(a.email, anQ.from, anQ.to).filter(w => w.status === "done" || Object.values(w.results || {}).some(rr => (rr || []).some(r => !emptyRes(r))))
     .sort((x, y) => effDate(y).localeCompare(effDate(x)) || (y.completedAt || "").localeCompare(x.completedAt || ""));
+}
+/* confronto: la seduta principale decide grafico, voce e parametro; le altre usano gli stessi, con scala e larghezza comuni */
+const sessCmpList = (a, w) => (anQ.cmp || []).map(id => S.cache[a.email]?.[id]).filter(x => x && x.id !== w.id);
+function sessShared(w, others){
+  if (!others.length) return null; const all = [w, ...others].map(x => sessionSets(x)), s0 = all[0].sets;
+  const VOL = sessMode(s0) === "vol", vk = VOL ? sessVk(s0) : null, pct = !VOL && sessIp(s0) === "pct", order = [];
+  all.forEach(o => o.order.forEach(nm => { if (!order.includes(nm)) order.push(nm); }));
+  return {n: Math.max(...all.map(o => o.sets.length)), vk, pct, order, vmax: VOL ? Math.max(0, ...all.flatMap(o => o.sets.filter(q => q.vol?.b === vk).map(q => q.vol.v))) : null,
+    pv: pct ? all.flatMap(o => o.sets.map(q => q.int?.pct).filter(v => v != null)) : null};
+}
+function drawSessCharts(a, w){ const others = sessCmpList(a, w), sh = sessShared(w, others);
+  drawSessionChart($("#an-schart"), w, sh); others.forEach(x => drawSessionChart(document.querySelector(`.an-scc[data-id="${x.id}"]`), x, sh)); }
+function sessCmpHtml(a, w){
+  const others = sessCmpList(a, w), used = new Set([w.id, ...others.map(x => x.id)]);
+  const same = sameKindSessions(a.email, w, 6).filter(x => !used.has(x.id)), inP = sessListFor(a).filter(x => !used.has(x.id) && !same.includes(x));
+  const opt = x => `<option value="${x.id}">${esc(fmtD(effDate(x)))} · ${esc(x.title || "Senza titolo")} · ${esc(KINDS[kindOf(x)].l)}</option>`;
+  const pick = others.length < 3 && (same.length || inP.length) ? `<select class="in sm" data-change="an-cmp-add" aria-label="Confronta con un'altra seduta"><option value="">+ Confronta con…</option>
+    ${same.length ? `<optgroup label="Stesso tipo (${esc(KINDS[kindOf(w)].l)}), prima di questa">${same.map(opt).join("")}</optgroup>` : ""}${inP.length ? `<optgroup label="Altre sedute del periodo">${inP.map(opt).join("")}</optgroup>` : ""}</select>` : "";
+  const st = x => { const ss = sessionSets(x).sets, wr = ss.filter(o => o.act), av = wr.length ? wr.reduce((t, o) => t + o.act.v, 0) / wr.length : null;
+    return [`<b>${ss.length}</b> serie`, av != null ? `RPE medio serie <b>${fmtN(av, 1)}</b>` : "", x.sessionRpe ? `RPE seduta <b>${x.sessionRpe}</b>` : "", x.durationMin ? `<b>${x.durationMin}′</b>` : "", x.sessionRpe && x.durationMin ? `sRPE <b>${fmtN(x.sessionRpe * x.durationMin)}</b> UA` : ""].filter(Boolean).map(t => `<span>${t}</span>`).join(""); };
+  return {pick, others, blocks: others.map(x => `<div class="scmp"><div class="scmph"><b>${esc(fmtLong(effDate(x)))}</b><span>${esc(x.title || "Senza titolo")}</span><span class="faint">${esc(KINDS[kindOf(x)].l)}</span><span class="sstats">${st(x)}</span>
+      <button class="btn sm ghost" data-act="an-cmp-del" data-id="${x.id}" aria-label="Togli dal confronto" title="Togli dal confronto">✕</button></div><div class="chartwrap an-scc" data-id="${x.id}"></div></div>`).join("")};
+}
+/* tabella del confronto: una riga per posizione della serie (come nei grafici: la serie 1 accanto alla serie 1), per ogni seduta eseguito · RPE (· %) */
+function sessCmpTable(w, others, hasPct){
+  const all = [w, ...others], S2 = all.map(x => sessionSets(x).sets), n = Math.max(...S2.map(s => s.length)), f1 = v => fmtN(v, Number.isInteger(v) ? 0 : 1);
+  const pctOn = hasPct || S2.some(s => s.some(o => o.int?.pct != null)), span = pctOn ? 3 : 2;
+  const cell = (o, base) => !o ? `<td class="faint sg" colspan="${span}">–</td>` : `<td class="sg">${!base || base.name !== o.name ? `<span class="faint">${esc(o.lab)} ${esc(o.name)} · </span>` : ""}${esc(resultLine(o.r, o.cols) || "✓")}</td><td class="num">${o.act ? f1(o.act.v) + (o.act.from === "rir" ? "*" : "") : "–"}</td>${pctOn ? `<td class="num">${o.int?.pct != null ? fmtN(o.int.pct) + "%" + (o.int.rec ? " ★" : "") : "–"}</td>` : ""}`;
+  return `<table class="nt scmpt"><thead><tr><th rowspan="2">#</th><th rowspan="2">Esercizio</th>${all.map((x, i) => `<th colspan="${span}" class="sg ${i ? "" : "main"}">${esc(fmtD(effDate(x)))}${i ? "" : " · scelta"}</th>`).join("")}</tr>
+    <tr>${all.map(() => `<th class="sg">Eseguito</th><th>RPE</th>${pctOn ? "<th>% rif.</th>" : ""}`).join("")}</tr></thead><tbody>
+    ${Array.from({length: n}, (_, k) => { const b = S2[0][k] || S2.find(s => s[k])[k];
+      return `<tr><td class="num">${k + 1}</td><td>${esc(b.lab)} ${esc(b.name)} <span class="faint">· serie ${b.n}</span></td>${S2.map(s => cell(s[k], b)).join("")}</tr>`; }).join("")}</tbody></table>
+    <div class="faint" style="font-size:11.5px;margin-top:4px">Righe allineate come nei grafici (la serie 1 accanto alla serie 1). Se in una seduta in quella posizione c'è un altro esercizio, il suo nome è scritto in grigio. * = RPE ricavato dal RIR.</div>`;
 }
 /* "Andamento della seduta" in una finestra sopra la Progressione: la seduta di riferimento (e le altre dello stesso tipo, con le frecce) */
 function openSessDlg(email, id, ids){ S.sessDlg = {email, id, ids: ids && ids.length ? ids : [id]};
@@ -3226,20 +3341,21 @@ function redrawSess(){   // cambia solo il riquadro della seduta, senza ricarica
   if (S.sessDlg && $("#sd-body")) return drawSessDlg();
   const a = athByEmail(anQ.who), el = $("#an-sess"); if (!a || !el) return renderView();
   const list = sessListFor(a), w = list.find(x => x.id === anQ.sess) || list.find(x => x.status === "done") || list[0];
-  el.outerHTML = sessionPanelHtml(a, list, w); if (w) drawSessionChart($("#an-schart"), w);
+  el.outerHTML = sessionPanelHtml(a, list, w, true); if (w) drawSessCharts(a, w);
 }
-function drawSessionChart(el, w){
+/* sh (confronto tra sedute): stessa voce, stessa scala, stessa larghezza per serie e stessi colori degli esercizi per tutti i grafici */
+function drawSessionChart(el, w, sh = null){
   if (!el) return;
-  const {sets, order} = sessionSets(w); const n = sets.length; if (!n) return;
-  const VOL = sessMode(sets) === "vol", VK = VOL ? sessVk(sets) : null, PCT = !VOL && sessIp(sets) === "pct";
+  let {sets, order} = sessionSets(w); const n = sets.length; if (!n) return; if (sh?.order) order = sh.order;
+  const VOL = sessMode(sets) === "vol", VK = VOL ? (sh?.vk || sessVk(sets)) : null, PCT = !VOL && (sh ? sh.pct : sessIp(sets) === "pct");
   const ink = c => c, wrapTxt = (t, max) => { const out = []; let cur = ""; String(t).split(/\s+/).forEach(wd => { if ((cur + " " + wd).trim().length > max && cur) { out.push(cur); cur = wd; } else cur = (cur + " " + wd).trim(); }); if (cur) out.push(cur); return out; };
-  const vmaxRaw = VOL ? Math.max(0, ...sets.filter(o => o.vol?.b === VK).map(o => o.vol.v)) : 10, vtop = VOL ? (v => ["rip", "plio", "stacchi"].includes(VK) || v < 40 ? Math.max(4, Math.ceil(v / 4) * 4) : v)(niceMax(vmaxRaw || 1)) : 10;   // conteggi: righe su numeri interi
+  const vmaxRaw = VOL ? (sh?.vmax ?? Math.max(0, ...sets.filter(o => o.vol?.b === VK).map(o => o.vol.v))) : 10, vtop = VOL ? (v => ["rip", "plio", "stacchi"].includes(VK) || v < 40 ? Math.max(4, Math.ceil(v / 4) * 4) : v)(niceMax(vmaxRaw || 1)) : 10;   // conteggi: righe su numeri interi
   const vticks = [0, .25, .5, .75, 1].map(f => f * vtop), tl = v => VOL ? (v >= 10000 ? compact(v) : fmtN(v, v % 1 ? 1 : 0)) : PCT ? v + "%" : String(v);
   /* % del riferimento: asse da (circa) 50% a 110%, allargato se serve */
-  const pv = PCT ? sets.map(o => o.int?.pct).filter(v => v != null) : [], plo = PCT ? Math.min(50, Math.floor((Math.min(...pv) - 5) / 10) * 10) : 0, phi = PCT ? Math.max(110, Math.ceil((Math.max(...pv) + 8) / 10) * 10) : 0;
+  const pv = PCT ? (sh?.pv?.length ? sh.pv : sets.map(o => o.int?.pct).filter(v => v != null)) : [], plo = PCT ? Math.min(50, Math.floor((Math.min(...pv) - 5) / 10) * 10) : 0, phi = PCT ? Math.max(110, Math.ceil((Math.max(...pv) + 8) / 10) * 10) : 0;
   const pticks = PCT ? Array.from({length: Math.floor((phi - plo) / (phi - plo > 80 ? 20 : 10)) + 1}, (_, i) => plo + i * (phi - plo > 80 ? 20 : 10)) : [];
   const padL = PCT ? 40 : VOL ? Math.max(30, 10 + 6.5 * Math.max(...vticks.map(t => tl(t).length))) : 30, padR = 10, padT = 26, ih = 200;
-  const avail = Math.max(300, el.clientWidth || 700), band = Math.max(30, (avail - padL - padR) / n);   // occupa tutta la larghezza; con tante serie scorre di lato
+  const avail = Math.max(300, el.clientWidth || 700), band = Math.max(30, (avail - padL - padR) / Math.max(n, sh?.n || 0));   // occupa tutta la larghezza; con tante serie scorre di lato
   const W = padL + padR + band * n;
   const X = k => padL + band * k + band / 2, bw = Math.min(34, band * 0.55);
   // bande degli esercizi (blocchi consecutivi) con i nomi interi, a capo su più righe
@@ -3476,14 +3592,14 @@ const dataQ = {from: addDays(monday(TODAY()), -28), to: TODAY(), who: "all"};
 async function collectRows(){
   const ath = activeAthletes().filter(a => dataQ.who === "all" || a.email === dataQ.who);
   const ws = monday(dataQ.from), n = Math.ceil((daysBetween(ws, dataQ.to)+1)/7);
-  await Promise.all(ath.map(a => ensureWeeks(a.email, ws, n)));
-  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Mesociclo","Sett. mesociclo","Blocco","Metodo","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
+  await Promise.all([...ath.map(a => ensureWeeks(a.email, ws, n)), ensurePlans()]);
+  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Stagione","Sett. stagione","Macrociclo","Periodo","Mesociclo","Sett. mesociclo","Modello microciclo","Blocco","Metodo","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
     ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta esercizio", "Nota atleta"];
   const rows = [];
   ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>effDate(x).localeCompare(effDate(y))).forEach(w => {
     const st = statusOf(w);
     const L = exLabels(w.exercises);
-    const mz = mesoAt(a, effDate(w)) || {};
+    const mz = mesoAt(a, effDate(w)) || {}, pi = planInfo(a, effDate(w));
     (w.exercises||[]).forEach((x, xi) => {
       const done = exName(w, x), lib = libByName(done) || {}, sw = swapOf(w, x);
       const res = (w.results||{})[x.id] || [];
@@ -3492,7 +3608,7 @@ async function collectRows(){
         const s = x.sets[i] || {}, r = res[i] || {};
         if (i >= x.sets.length && emptyRes(res[i])) continue;
         rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, KINDS[kindOf(w)].l, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
-          mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", L[xi], methodOf(w, x)?.l || "", done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
+          pi.season || "", pi.week || "", pi.macro || "", pi.phase || "", mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", pi.model || "", L[xi], methodOf(w, x)?.l || "", done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
           ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.exNotes?.[x.id] || "", w.athleteNote||""]);
       }
     });
@@ -3501,11 +3617,14 @@ async function collectRows(){
 }
 const itNum = v => typeof v === "number" ? String(v).replace(".", ",") : (/^-?\d+\.\d+$/.test(String(v)) ? String(v).replace(".", ",") : String(v));
 async function viewData(m){
+  await ensurePlans(); if (S.view !== "data") return;
+  const seas = seasonsOf(dataQ.who === "all" ? null : athByEmail(dataQ.who)), seasOn = seas.find(p => p.start === dataQ.from && planEnd(p) === dataQ.to);
   m.innerHTML = `<div class="pagehead"><div><h1>Dati</h1><div class="sub">Una riga per ogni serie: prescritto accanto a eseguito, pronto per Google Fogli.</div></div></div>
   <div class="panel form"><div class="row">
     <div class="field"><label class="lbl" for="d-from">Dal</label><input class="in" type="date" id="d-from" value="${dataQ.from}" data-change="d-q"></div>
     <div class="field"><label class="lbl" for="d-to">Al</label><input class="in" type="date" id="d-to" value="${dataQ.to}" data-change="d-q"></div>
     <div class="field"><label class="lbl" for="d-who">Atleta</label><select class="in" id="d-who" data-change="d-q"><option value="all">Tutti</option>${athOptions(dataQ.who)}</select></div>
+    ${seas.length ? `<div class="field"><label class="lbl" for="d-season">Stagione</label><select class="in" id="d-season" data-change="d-season" title="Imposta Dal e Al sulle date della stagione (piano di Periodizzazione)"><option value="">— date libere —</option>${seas.map(p => `<option value="${p.id}" ${p === seasOn ? "selected" : ""}>${esc(p.name)} · ${esc(perKeyName((p.scope === "group" ? "g:" : "a:") + p.key))} · ${fmtD(p.start)} – ${fmtD(planEnd(p))}</option>`).join("")}</select></div>` : ""}
     <span class="grow"></span>
     <button class="btn pri" data-act="d-copy">Copia per Google Fogli</button>${DEMO ? "" : `<button class="btn" data-act="d-csv">Scarica CSV</button>`}</div>
     <div class="faint" style="font-size:12px">«Copia» e poi Incolla (Ctrl+V) nella cella A1 di un foglio Google: i decimali usano la virgola.</div>
@@ -3513,9 +3632,9 @@ async function viewData(m){
   const {head, rows} = await collectRows();
   if (S.view !== "data") return;
   const show = head.map((h,i)=>i).filter(i => rows.some(r => r[i] !== "" && r[i] !== undefined) || i < 9);
-  $("#d-prev").innerHTML = `<div style="margin-bottom:8px"><b class="num">${rows.length}</b> righe</div><div class="scroll-x" style="max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:8px">
-    <table class="list" style="font-size:12px;white-space:nowrap"><thead><tr>${show.map(i=>`<th>${esc(head[i])}</th>`).join("")}</tr></thead><tbody>${rows.slice(0,60).map(r=>`<tr>${show.map(i=>`<td>${esc(r[i])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
-    ${rows.length>60?`<div class="faint" style="font-size:12px;margin-top:6px">Anteprima delle prime 60 righe.</div>`:""}`;
+  $("#d-prev").innerHTML = `<div style="margin-bottom:8px"><b class="num">${rows.length}</b> righe</div><div class="scroll-x dprev" style="max-height:65vh;overflow:auto;border:1px solid var(--line);border-radius:8px">
+    <table class="list" style="font-size:12px;white-space:nowrap"><thead><tr>${show.map(i=>`<th>${esc(head[i])}</th>`).join("")}</tr></thead><tbody>${rows.slice(0,300).map(r=>`<tr>${show.map(i=>`<td>${esc(r[i])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    ${rows.length>300?`<div class="faint" style="font-size:12px;margin-top:6px">Anteprima delle prime 300 righe (la copia e il CSV contengono tutto).</div>`:""}`;
 }
 
 /* =====================================================================
@@ -5110,9 +5229,7 @@ const ACT = {
     const np = {...clone(plan), id: uid(), scope: "athlete", key: a.email, name: plan.name + " · " + a.name}; S.per.pid = np.id; await perSave(np); renderView(); toast(`Piano personale di ${a.name} creato dal piano del gruppo`); },
   "per-ev"(t){ const p = perEd(); if (!p) return; const i = t.dataset.i; p.ev ??= {}; const n = EV_ORD[(EV_ORD.indexOf(p.ev[i] || "") + 1) % EV_ORD.length]; if (n) p.ev[i] = n; else delete p.ev[i]; perSave(p); drawPer(); },
   "per-mic"(t){ if (document.getElementById("pmpop") && t.classList.contains("popon")) { t.classList.remove("popon"); return perPopClose(); } document.querySelectorAll(".pc.popon").forEach(x => x.classList.remove("popon")); t.classList.add("popon"); perMicPop(t); },
-  "per-mod"(t){ if (document.getElementById("pmpop") && t.classList.contains("popon")) { t.classList.remove("popon"); return perPopClose(); } document.querySelectorAll(".pc.popon").forEach(x => x.classList.remove("popon")); t.classList.add("popon"); perModPop(t); },
-  "per-mod-set"(t){ const p = perEd(); if (!p) return; const i = +t.dataset.i, v = t.dataset.v, to = Math.max(i, Math.min(p.weeks - 1, (+$("#pm-to")?.value || i + 1) - 1)); p.wmod ??= {};
-    for (let k = i; k <= to; k++) { if (v) p.wmod[k] = v; else delete p.wmod[k]; } perSave(p); drawPer(); },
+  "per-mod"(t){ if (perEd()) perModDialog(+t.dataset.i); },
   "mc-models"(){ mcModelsDialog(); },
   "mc-ov"(t){ const a = athByEmail(S.calAthlete); if (a) mcOvDialog(a, t.dataset.ws); },
   "mc-reset"(t){ const a = athByEmail(S.calAthlete); if (a) mcReset(a, t.dataset.ws); },
@@ -5196,6 +5313,8 @@ const ACT = {
   "ed-save"(){ saveEditor(); },
   "fix-res"(t){ fixResults(+t.dataset.i); },
   "an-meso"(t){ anQ.from = t.dataset.f; anQ.to = t.dataset.t; renderView(); },
+  "an-blk"(t){ const f = t.dataset.f, e = t.dataset.t; if (anQ.add) { anQ.from = f < anQ.from ? f : anQ.from; anQ.to = e > anQ.to ? e : anQ.to; } else { anQ.from = f; anQ.to = e; } renderView(); },
+  "an-add"(){ anQ.add = !anQ.add; renderView(); },
   "an-last12"(){ anQ.from = addDays(monday(TODAY()), -77); anQ.to = addDays(monday(TODAY()), 6); renderView(); },
   "an-metric"(t){ anQ.metric = t.dataset.v; renderView(); },
   "an-gran"(t){ anQ.gran = t.dataset.v; renderView(); },
@@ -5213,6 +5332,7 @@ const ACT = {
   "sd-close"(){ closeSessDlg(); },
   "sd-back"(t, e){ if (e?.target === t) closeSessDlg(); },
   "an-sip"(t){ anQ.sip = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
+  "an-cmp-del"(t){ anQ.cmp = (anQ.cmp || []).filter(id => id !== t.dataset.id); anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-smode"(t){ anQ.sm = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-sess-step"(t){ if (S.sessDlg && t.closest("#sd-body")) { const D = S.sessDlg, n = D.ids[Math.max(0, D.ids.indexOf(D.id)) + +t.dataset.d]; if (n) { D.id = n; drawSessDlg(); } return; }
     const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));
@@ -5488,8 +5608,11 @@ document.addEventListener("change", async e => {
   if (k === "ps-edit") { S.prog.sess.sets[t.dataset.x][+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "pg-edit") { const sets = pgManualSets(t.dataset.w, t.dataset.x); sets[+t.dataset.j][t.dataset.c] = t.value.trim().replace(",", "."); return setTimeout(drawProg, 0); }
   if (k === "an-who") { anQ.who = t.value; anQ.sess = null; return renderView(); }
+  if (k === "an-cmp-add") { if (t.value) { anQ.cmp = [...(anQ.cmp || []).filter(id => id !== t.value), t.value].slice(-3); anQ.sess = $("#an-sess select[data-change=an-sess]")?.value || anQ.sess; } return redrawSess(); }
   if (k === "an-sess") { if (S.sessDlg && t.closest("#sd-body")) { S.sessDlg.id = t.value; return drawSessDlg(); } anQ.sess = t.value; return redrawSess(); }
   if (k === "cal-ath") { S.calAthlete = t.value; S.calSel.clear(); S.calPick = false; return renderView(); }
+  if (k === "an-season") { anQ.season = $("[data-change=an-season]").value; const p = (S.plans || []).find(x => x.id === anQ.season); if (p) { anQ.from = p.start; anQ.to = planEnd(p); } return renderView(); }
+  if (k === "d-season") { const p = (S.plans || []).find(x => x.id === $("#d-season").value); if (p) { dataQ.from = p.start; dataQ.to = planEnd(p); } return renderView(); }
   if (k === "d-q") { dataQ.from = $("#d-from").value || dataQ.from; dataQ.to = $("#d-to").value || dataQ.to; dataQ.who = $("#d-who").value; return renderView(); }
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;
     if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }

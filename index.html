@@ -966,6 +966,11 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .scmpt th.main{color:var(--accent)}.scmpt thead tr:first-child th{border-bottom:0}table.scmpt td,table.scmpt th{white-space:nowrap;text-align:left}table.scmpt td.num{text-align:right}table.scmpt thead tr:last-child th:not(.sg){text-align:right}.scmpt .sg{border-left:2px solid var(--line);padding-left:12px}
 .ctip .tdelta{font-weight:800;margin-bottom:3px}.ctip .tdelta.up{color:var(--ok)}.ctip .tdelta.down{color:var(--bad)}.ctip .tdelta.eq{color:var(--muted);font-weight:600}.ctip .tdelta.base{color:var(--accent)}.ctip .tdelta.nu{color:#7D97FF}
 :is(#an-schart,.an-scc) .col.hov .hit{fill:color-mix(in srgb,var(--accent) 10%,transparent)}
+.ctip .tchips{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 4px}
+.ctip .tc{font-size:11.5px;font-weight:800;border-radius:6px;padding:1px 7px;white-space:nowrap}
+.ctip .tc.up{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+.ctip .tc.down{background:color-mix(in srgb,var(--bad) 22%,transparent);color:var(--bad)}
+.ctip .tc.nu{background:color-mix(in srgb,#7D97FF 20%,transparent);color:#7D97FF}
 .pmpop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
 .pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{min-width:64px;white-space:nowrap}
 .pmpop button{border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-weight:700;padding:4px 9px;cursor:pointer;min-width:30px}
@@ -3305,6 +3310,15 @@ function sessShared(w, others){
   return {n: Math.max(...all.map(o => o.sets.length)), vk, pct, order, vmax: VOL ? Math.max(0, ...all.flatMap(o => o.sets.filter(q => q.vol?.b === vk).map(q => q.vol.v))) : null,
     pv: pct ? all.flatMap(o => o.sets.map(q => q.int?.pct).filter(v => v != null)) : null};
 }
+/* parametri della serie cambiati tra due sedute (es. kg 90 → 80 ▼): verde/rosso quando "di più" è meglio (kg, rip, velocità, altezza, distanza;
+   il tempo è meglio più basso negli sprint), blu quando non è né meglio né peggio (RPE, RIR, recupero, lato, passi, parametri tuoi) */
+function paramChanges(a, b, mode){
+  const better = c => ["reps", "kg", "pct", "vel", "height", "dist"].includes(c) ? 1 : c === "time" ? (b.cols.includes("dist") ? -1 : 1) : 0;
+  return b.cols.filter(c => COLS[c]?.log && !(mode === "rpe" && c === "rpe") && (a.r[c] ?? "") !== "" && (b.r[c] ?? "") !== "" && String(a.r[c]) !== String(b.r[c])).map(c => {
+    const x = numv(a.r[c]), y = numv(b.r[c]), num = x != null && y != null, d = num ? y - x : 0, dir = better(c);
+    const cls = !num || !d ? "nu" : dir ? (d * dir > 0 ? "up" : "down") : "nu", ar = !num || !d ? "" : d > 0 ? " ▲" : " ▼", u = COLS[c].u;
+    return {cls, t: `${COLS[c].l} ${a.r[c]} → ${b.r[c]}${u && u !== "%" && num && u.toLowerCase() !== COLS[c].l.toLowerCase() ? " " + u : u === "%" ? "%" : ""}${ar}`}; });
+}
 function drawSessCharts(a, w){ const others = sessCmpList(a, w), sh = sessShared(w, others);
   const main = $("#an-schart"); drawSessionChart(main, w, sh);
   const els = others.map(x => { const el = document.querySelector(`.an-scc[data-id="${x.id}"]`); drawSessionChart(el, x, sh); if (el) el._date = effDate(x); return el; }).filter(Boolean);
@@ -3319,7 +3333,7 @@ function drawSessCharts(a, w){ const others = sessCmpList(a, w), sh = sessShared
       if (oldV.v == null || newV.v == null) return;
       const d = newV.v - oldV.v, good = main._mode === "pct", cls = Math.abs(d) < 0.05 ? "eq" : good ? (d > 0 ? "up" : "down") : "nu";
       add.get(newer).push({cls, txt: Math.abs(d) < 0.05 ? `= uguale al ${oldDay} (${main._fv(newV.v)})` : `${d > 0 ? "▲" : "▼"} rispetto al ${oldDay}: ${main._fv(oldV.v)} → ${main._fv(newV.v)}`});
-      if (oldV.raw && oldV.raw !== newV.raw) add.get(newer).push({cls: "eq", txt: `Il ${oldDay}: ${oldV.raw}`});
+      const ch = paramChanges(oldV, newV, main._mode); if (ch.length) add.get(newer).push({chips: ch});
       else if (Math.abs(d) >= 0.05 && main._mode === "pct") add.get(newer).push({cls: "eq", txt: `Stessa prestazione del ${oldDay}: è cambiato il riferimento`}); });
     all.forEach(el => { const L = add.get(el); if (el === main) L.unshift({cls: "base", txt: `Seduta scelta (${fmtD(wd)})`}); el._show(k, L.length ? L : null); }); };
   all.forEach(el => el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => link(+g.dataset.k)); g.addEventListener("focus", () => link(+g.dataset.k));
@@ -3424,7 +3438,9 @@ function drawSessionChart(el, w, sh = null){
     if (!VOL && !PCT && o.plan) tip.append(line("tl", `Previsto: RPE ${nf(o.plan.v)}`));
     if (PCT && o.int?.ref) tip.append(line("tl", `Riferimento: ${intRefTxt(o.int.ref)}`));
     if (PCT && o.int?.rec && o.int.k === "kg") tip.append(line("tl", `Nuovo e1RM stimato: ${fmtN(e1rmOf(o.r), 1)} kg`));
-    if (ex) [].concat(ex).reverse().forEach(e => tip.prepend(line("tdelta " + e.cls, e.txt)));   // confronto: differenze con le sedute precedenti
+    if (ex) [].concat(ex).reverse().forEach(e => { if (e.chips) { const d2 = document.createElement("div"); d2.className = "tchips";   // confronto: parametri cambiati, colorati
+        e.chips.forEach(c => { const sp = document.createElement("span"); sp.className = "tc " + c.cls; sp.textContent = c.t; d2.append(sp); }); tip.prepend(d2); }
+      else tip.prepend(line("tdelta " + e.cls, e.txt)); });
     tip.hidden = false;
     let x = b.left - p.left + el.scrollLeft + b.width/2 - tip.offsetWidth/2; x = Math.max(el.scrollLeft, Math.min(x, el.scrollLeft + p.width - tip.offsetWidth));
     tip.style.left = x + "px"; tip.style.top = Math.max(0, b.top - p.top - tip.offsetHeight + 4) + "px"; };
@@ -3433,7 +3449,7 @@ function drawSessionChart(el, w, sh = null){
   /* per il confronto: mostra la serie k (con una riga in più), valore della serie k, formato delle differenze */
   el._show = (k, ex) => { el.querySelectorAll(".col.hov").forEach(x => x.classList.remove("hov")); const g = el.querySelector(`.col[data-k="${k}"]`); if (!g) { tip.hidden = true; return; } g.classList.add("hov"); show(g, ex); };
   el._hide = () => { tip.hidden = true; el.querySelectorAll(".col.hov").forEach(x => x.classList.remove("hov")); };
-  el._val = k => { const o = sets[k]; return o ? {v: val(o), name: o.name, raw: resultLine(o.r, o.cols) || ""} : null; };
+  el._val = k => { const o = sets[k]; return o ? {v: val(o), name: o.name, raw: resultLine(o.r, o.cols) || "", r: o.r || {}, cols: o.cols || []} : null; };
   el._mode = VOL ? "vol" : PCT ? "pct" : "rpe";
   el._fv = v => VOL ? `${nf(Math.round(v * 10) / 10)} ${SVOL_U[VK]}` : PCT ? `${fmtN(v)}%` : `RPE ${nf(v)}`;
 }

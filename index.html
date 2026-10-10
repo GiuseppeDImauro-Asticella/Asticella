@@ -1246,9 +1246,9 @@ function FirebaseDB(F, db){
     async deleteTemplate(id){ await F.deleteDoc(F.doc(db, "templates", id)); },
     async listWorkouts(e, from, to){ const q = F.query(W(e), F.where("date", ">=", from), F.where("date", "<=", to)); return docs(await fast(() => F.getDocs(q), () => F.getDocsFromCache(q))); },
     async listAllWorkouts(e){ return docs(await F.getDocs(W(e))); },   // tutti, dal server (per rinominare un esercizio ovunque)
-    async listPlans(){ const c = F.collection(db, "plans"); let s; try { s = await F.getDocsFromServer(c); } catch(e) { s = await F.getDocs(c); } return docs(s); },   // piani di periodizzazione (solo coach): sempre la versione del server, così due dispositivi vedono le stesse cose
-    async getPlan(id){ const r = F.doc(db, "plans", id); let s; try { s = await F.getDocFromServer(r); } catch(e) { s = await F.getDoc(r); } return s.exists() ? {...s.data(), id: s.id} : null; },
-    async savePlan(p){ await F.setDoc(F.doc(db, "plans", p.id), cleanObj(p)); return p; },
+    async listPlans(){ const c = F.collection(db, "plans"); let s; try { s = await F.getDocsFromServer(c); } catch(e) { s = await F.getDocs(c); } return docs(s).map(planDec); },   // piani di periodizzazione (solo coach): sempre la versione del server, così due dispositivi vedono le stesse cose
+    async getPlan(id){ const r = F.doc(db, "plans", id); let s; try { s = await F.getDocFromServer(r); } catch(e) { s = await F.getDoc(r); } return s.exists() ? planDec({...s.data(), id: s.id}) : null; },
+    async savePlan(p){ await F.setDoc(F.doc(db, "plans", p.id), planEnc(cleanObj(p))); return p; },
     async deletePlan(id){ await F.deleteDoc(F.doc(db, "plans", id)); },
     async createWorkout(e, w){ await F.setDoc(F.doc(W(e), w.id), cleanObj(w)); return w; },
     async saveWorkout(e, w){ const p = {}; COACH_FIELDS.forEach(k => { if (w[k] !== undefined) p[k] = w[k]; });
@@ -1934,7 +1934,7 @@ async function perSave(p){
       setTimeout(() => { if (S.view === "period") drawPer(); else if (S.view === "calendar") drawCalendar(); }, 0); return false; }
   } catch(e) { console.warn(e); }
   p.rev = (p.rev || 0) + 1; put(p);
-  try { await DB.savePlan(p); return true; } catch(e) { console.error(e); toast(/permission/i.test(String(e?.code || e?.message)) ? "Non salvato: aggiorna le regole di Firebase (sezione plans)" : "Errore nel salvataggio del piano"); }
+  try { await DB.savePlan(p); return true; } catch(e) { console.error(e); p.rev--; toast(/permission/i.test(String(e?.code || e?.message)) ? "Non salvato: aggiorna le regole di Firebase (sezione plans)" : "Errore nel salvataggio del piano"); }
 }
 async function viewPeriod(m){
   S.per ??= {key: null, pid: null, vk: "serie", ik: "rpe", m: "vi", prog: true};
@@ -2196,6 +2196,11 @@ function perAbilDialog(id){
     if (ab) ab.name = n; else p.abil.push({id: uid(), name: n, blocks: []}); done(); };
 }
 
+/* Firestore non accetta liste dentro liste: i 7 giorni (ognuno una lista di sedute) si salvano come [{s: [...]}, …] e si rileggono come liste */
+const daysEnc = D => (D || []).map(items => ({s: Array.isArray(items) ? items : items?.s || []}));
+const daysDec = D => Array.from({length: 7}, (_, i) => { const x = D?.[i]; return Array.isArray(x) ? x : x?.s || []; });
+function planEnc(p){ (p.models || []).forEach(m => m.days = daysEnc(m.days)); if (p.scope === "mcov" && p.weeks) Object.keys(p.weeks).forEach(k => p.weeks[k] = daysEnc(p.weeks[k])); return p; }
+function planDec(p){ (p.models || []).forEach(m => m.days = daysDec(m.days)); if (p.scope === "mcov" && p.weeks) Object.keys(p.weeks).forEach(k => p.weeks[k] = daysDec(p.weeks[k])); return p; }
 /* ---------- MICROCICLI: settimane tipo (per ogni giorno le sedute previste: tipo + RPE di seduta) ----------
    il modello sta nel piano (p.models) e si assegna alle settimane (p.wmod); nel Calendario si può personalizzare per un atleta
    (documento "mcov" nella raccolta dei piani: settimane → giorni) */

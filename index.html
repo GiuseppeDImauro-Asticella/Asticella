@@ -664,6 +664,7 @@ table.tt td.n{text-align:right;color:var(--ink)}
 table.tt tr.main td{font-weight:700}table.tt tr.main td.l{color:var(--ink)}
 table.tt tr.dim td.n,table.tt td.n.dim{color:var(--faint)}
 table.tt tr + tr td{border-top:1px solid var(--line)}
+table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-size:11px;color:var(--muted);line-height:1.3;border-top:0}table.tt tr.onm td b{color:var(--ink);font-weight:700}table.tt tr.onm td small{font-size:10.5px}
 .psvol{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;font-size:12.5px}
 .psvol .lbl{margin-right:2px}
 .psvol .pv{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 10px;font-variant-numeric:tabular-nums}
@@ -4778,8 +4779,8 @@ function psTipHtml(o, done, touch){
   else {
     rows.push({l: "Programma", r: o.st, cols: o.x.cols, t: o.st.type || "", main: true});
     if (o.old && JSON.stringify(o.old) !== JSON.stringify(o.st)) rows.push({l: "Prima", r: o.old, cols: o.x.cols, t: o.old.type || "", dim: true});
-    if (o.ref) rows.push({l: `Rif. ${fmtD(o.refInfo.date)}`, sub: sameName(o.refInfo.name, o.x.name) ? (o.refInfo.kind === "ex" ? "stesso esercizio" : "") : `${o.refInfo.name} · altro esercizio`, r: o.ref, cols: o.refInfo.x.cols, t: o.rtype ?? "", other: !sameName(o.refInfo.name, o.x.name)});
-    if (o.alt && !(o.altInfo.date === o.refInfo?.date && sameName(o.altInfo.name, o.refInfo?.name))) rows.push({l: `${fmtD(o.altInfo.date)}`, sub: o.altInfo.kind === "ex" ? "stesso esercizio" : o.altInfo.name, r: o.alt, cols: o.altInfo.x.cols, t: "", dim: true, other: !sameName(o.altInfo.name, o.x.name)});
+    if (o.ref) rows.push({l: `Rif. ${fmtD(o.refInfo.date)}`, sub: sameName(o.refInfo.name, o.x.name) ? (o.refInfo.kind === "ex" ? "stesso esercizio" : "") : "", onm: sameName(o.refInfo.name, o.x.name) ? "" : o.refInfo.name, r: o.ref, cols: o.refInfo.x.cols, t: o.rtype ?? "", other: !sameName(o.refInfo.name, o.x.name)});
+    if (o.alt && !(o.altInfo.date === o.refInfo?.date && sameName(o.altInfo.name, o.refInfo?.name))) rows.push({l: `${fmtD(o.altInfo.date)}`, sub: o.altInfo.kind === "ex" ? "stesso esercizio" : "", onm: o.altInfo.kind === "ex" ? "" : o.altInfo.name, r: o.alt, cols: o.altInfo.x.cols, t: "", dim: true, other: !sameName(o.altInfo.name, o.x.name)});
     if (done && o.exec) rows.push({l: "Eseguito", r: o.exec, cols: o.x.cols, t: ""}); }
   const cols = []; rows.forEach(rw => colsOf(rw.cols).forEach(c => { if (!cols.includes(c) && rows.some(q => q.r && q.r[c] !== undefined && q.r[c] !== "")) cols.push(c); }));
   const cell = (rw, c) => { const v = rw.r?.[c]; if (v === undefined || v === "") return `<td class="n">–</td>`;
@@ -4787,7 +4788,7 @@ function psTipHtml(o, done, touch){
     return `<td class="n ${hide ? "dim" : ""}" ${hide ? `title="kg di un altro esercizio"` : ""}>${esc(v)}</td>`; };
   return `<div class="tt-h"><b>${o.ghost ? `Riferimento · ${esc(o.name)}` : `${esc(o.lab)} ${esc(o.name)} · serie ${o.j + 1}`}</b>${o.ghost ? `<span class="faint">non coperta</span>` : tb(o.st.type)}</div>
     <table class="tt"><thead><tr><th></th>${cols.map(c => `<th>${esc(COLS[c].l)}${COLS[c].u && COLS[c].u !== "%" && COLS[c].u.toLowerCase() !== COLS[c].l.toLowerCase() ? ` <small>${esc(COLS[c].u)}</small>` : ""}</th>`).join("")}<th></th></tr></thead><tbody>
-    ${rows.map(rw => `<tr class="${rw.main ? "main" : ""} ${rw.dim ? "dim" : ""}"><td class="l">${esc(rw.l)}${rw.sub ? `<small>${esc(rw.sub)}</small>` : ""}</td>${cols.map(c => cell(rw, c)).join("")}<td>${tb(rw.t)}</td></tr>`).join("")}
+    ${rows.map(rw => `<tr class="${rw.main ? "main" : ""} ${rw.dim ? "dim" : ""}"><td class="l">${esc(rw.l)}${rw.sub ? `<small>${esc(rw.sub)}</small>` : ""}</td>${cols.map(c => cell(rw, c)).join("")}<td>${tb(rw.t)}</td></tr>${rw.onm ? `<tr class="onm ${rw.dim ? "dim" : ""}"><td colspan="${cols.length + 2}">↳ esercizio del riferimento: <b>${esc(rw.onm)}</b> <small>· altro esercizio${cols.some(c => ["kg", "pct"].includes(c)) ? ", i kg non si confrontano" : ""}</small></td></tr>` : ""}`).join("")}
     </tbody></table>${touch ? `<div class="tl tap">Tocca di nuovo per tipo di serie, duplica, elimina · trascina per cambiare il valore</div>` : ""}`;
 }
 function psPopHtml(k, o, x, y, W){

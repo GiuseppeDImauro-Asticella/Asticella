@@ -2465,10 +2465,11 @@ const mcCmp = (plan, r) => { const df = r - plan; return Math.abs(df) <= 1 ? ["o
 const doneRpe = w => w && statusOf(w) === "done" ? +w.sessionRpe || null : null;
 /* contenuto del giorno: per ogni seduta prevista la scheda vera (se c'è) o la casella da riempire; poi le sedute fuori piano */
 function mcCellHtml(a, d, items, list){
-  const {pair, rest} = mcPair(items, list), out = (items || []).map((it, j) => pair[j] ? cardHtml(a.email, pair[j], it)
-    : `<button class="mslot" style="--kc:${kindColor(it.k)}" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" data-k="${it.k}" title="Seduta prevista: ${esc(KINDS[it.k]?.l || "")}, RPE ${fmt1(it.rpe)}${it.base != null ? ` (modello ${fmt1(it.base)}, ${it.rpe > it.base ? "+" : ""}${fmt1(it.rpe - it.base)} questa settimana)` : ""} · clicca per crearla"><span class="pp">+</span><b>${kShort(it.k)}</b><span class="v">${fmt1(it.rpe)}</span></button>`);
-  if (!items?.length && !rest.length) out.push(`<div class="mrest2">Riposo</div>`);
-  return out.concat(rest.map(w => cardHtml(a.email, w, "off"))).join("");
+  /* le sedute vere nell'ordine del giorno (quello che sceglie il coach trascinando), ognuna con la sua seduta prevista se c'è; poi le caselle previste ancora vuote */
+  const {pair, rest} = mcPair(items, list), itOf = new Map(); pair.forEach((w, j) => { if (w) itOf.set(w, items[j]); });
+  const out = list.map(w => cardHtml(a.email, w, itOf.get(w) || "off")).concat((items || []).flatMap((it, j) => pair[j] ? [] : [`<button class="mslot" style="--kc:${kindColor(it.k)}" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" data-k="${it.k}" title="Seduta prevista: ${esc(KINDS[it.k]?.l || "")}, RPE ${fmt1(it.rpe)}${it.base != null ? ` (modello ${fmt1(it.base)}, ${it.rpe > it.base ? "+" : ""}${fmt1(it.rpe - it.base)} questa settimana)` : ""} · clicca per crearla"><span class="pp">+</span><b>${kShort(it.k)}</b><span class="v">${fmt1(it.rpe)}</span></button>`]));
+  if (!items?.length && !list.length) out.push(`<div class="mrest2">Riposo</div>`);
+  return out.join("");
 }
 /* barrette nell'intestazione del giorno: RPE previsto (colore = tipo) e pallino = RPE dato dall'atleta */
 function mcBarsHtml(items, list){

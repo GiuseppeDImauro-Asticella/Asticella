@@ -997,6 +997,9 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .iwg .iss em{font-style:normal;font-size:10px;font-weight:800;border-radius:4px;padding:0 4px}
 .iwg .iss em.p{color:#F0844C;background:color-mix(in srgb,#F0844C 15%,transparent)}.iwg .iss em.m{color:#7D97FF;background:color-mix(in srgb,#7D97FF 15%,transparent)}
 .iwg .iss .nstep{width:100%;margin-top:2px}.iwg .iss .nstep .in{width:100%;min-width:24px;padding:1px 0;font-weight:800}.iwg .iss .nstep button{min-width:22px;padding:0 3px;font-size:13px}
+.perch .pcw{margin-top:14px}
+.pyax{position:sticky;left:0;box-shadow:inset 1px 0 0 var(--line),inset -1px 0 0 var(--line);z-index:3;pointer-events:none;background:var(--surface)}
+.pyax svg{display:block}
 .pmpop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
 .pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{min-width:64px;white-space:nowrap}
 .pmpop button{border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-weight:700;padding:4px 9px;cursor:pointer;min-width:30px}
@@ -2131,14 +2134,15 @@ function perChartHtml(p){
     <div class="kfilt" role="group" aria-label="Cosa mostrare"><span class="lbl">Grafico</span>${Object.entries(PER_MODES).map(([k, l]) => `<button class="${m === k ? "on" : ""}" data-act="per-show" data-v="${k}" aria-pressed="${m === k}">${l}</button>`).join("")}
 </div>
     ${m === "vi" ? `<div class="kfilt" role="group" aria-label="Volume"><span class="lbl">Volume</span>${PER_VK().map(([k, l]) => `<button class="${S.per.vk === k ? "on" : ""}" data-act="per-vk" data-v="${k}" aria-pressed="${S.per.vk === k}">${esc(l)}</button>`).join("")}</div>
-      <div class="kfilt" role="group" aria-label="Intensità"><span class="lbl">Intensità</span>${PER_IK.map(([k, l]) => `<button class="${S.per.ik === k ? "on" : ""}" data-act="per-ik" data-v="${k}" aria-pressed="${S.per.ik === k}">${esc(l)}</button>`).join("")}</div>` : ""}
+      <div class="kfilt" role="group" aria-label="Intensità"><span class="lbl">Intensità</span>${PER_IK.map(([k, l]) => `<button class="${S.per.ik === k ? "on" : ""}" data-act="per-ik" data-v="${k}" aria-pressed="${S.per.ik === k}">${esc(l)}</button>`).join("")}
+        <span class="msep" aria-hidden="true"></span><button class="${S.per.lb ? "on" : ""}" data-act="per-lb" aria-pressed="${!!S.per.lb}" title="Aggiunge sullo sfondo, in viola tenue, il carico sRPE della settimana (senza scala: il valore è nella finestrella)">${S.per.lb ? "✓ " : "+ "}carico sRPE</button></div>` : ""}
     ${m === "form" ? `<div class="kfilt" role="group" aria-label="Dato di forma"><span class="lbl">Dato di forma</span>
       ${FO.length ? `<select class="in pmsel" data-change="per-fx" aria-label="Esercizio"><option value="">— scegli l'esercizio —</option>${FO.map(o => `<option value="${esc(o.n)}" ${o === fo ? "selected" : ""}>${esc(o.n)}</option>`).join("")}</select>
         ${fo ? `<select class="in pmsel" data-change="per-fcol" aria-label="Parametro">${fo.cols.map(c => `<option value="${c}" ${F?.col === c ? "selected" : ""}>${esc(COLS[c].l)}${COLS[c].u ? ` (${esc(COLS[c].u)})` : ""}</option>`).join("")}</select>
           <label class="pprog"><input type="checkbox" data-change="per-flow" ${F?.low ? "checked" : ""}> meglio se più basso (es. tempi)</label>` : ""}`
         : `<span class="faint" style="font-size:12px">Nessun esercizio con dati registrati nel periodo del piano.</span>`}</div>` : ""}
     <div class="perwrap pcw"><div id="per-chart" style="width:${PER_LW + p.weeks * PER_CW + 50}px;position:relative"></div></div>
-    <div class="plegend">${m === "vi" ? `<span><i class="pll" style="border-color:#7D97FF"></i>volume</span><span><i class="pll" style="border-color:#F06C6C"></i>intensità</span>`
+    <div class="plegend">${m === "vi" ? `<span><i class="pll" style="border-color:#7D97FF"></i>volume</span><span><i class="pll" style="border-color:#F06C6C"></i>intensità</span>${S.per.lb ? `<span><i class="pli" style="--bc:#C08BFF;width:12px;opacity:.45"></i>carico sRPE (sfondo, senza scala)</span>` : ""}`
       : m === "load" ? `<span><i class="pli" style="--bc:#C08BFF;width:12px"></i>carico sRPE fatto</span>` : `<span><i class="pll" style="border-color:#3DC88B"></i>forma (% della migliore)</span><span><span class="pmk" style="background:#F06C6C">★</span>gara obiettivo</span><span><span class="pmk" style="background:#E6AA3C">G</span>gara</span>`}<span><i class="pdot"></i>settimana in corso</span></div></section>`;
 }
 function drawPerChart(p){
@@ -2147,9 +2151,9 @@ function drawPerChart(p){
   const D = perWeekData(p), today = perIdx(p, TODAY()), nf = (v, d = 0) => fmtN(Math.round(v * 10 ** d) / 10 ** d, d);
   const path = (arr, Y) => { let d = "", on = false; arr.forEach((v, i) => { if (v == null) { on = false; return; } d += `${on ? "L" : "M"}${X(i)},${Y(v)} `; on = true; }); return d; };
   const dots = (arr, Y, c) => arr.map((v, i) => v == null ? "" : `<circle cx="${X(i)}" cy="${Y(v)}" r="4.2" style="fill:${D[i].part ? "var(--surface)" : c};stroke:${D[i].part ? c : "var(--surface)"};stroke-width:2"/>`).join("");
-  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Programmato e fatto per settimana">`;
-  const grid = (ticks, Y, lab, side, c) => `<g class="grid">${side === "l" ? ticks.map(t => `<line x1="${PER_LW}" x2="${W - PR}" y1="${Y(t)}" y2="${Y(t)}"/>`).join("") : ""}</g>
-    <g class="axis">${ticks.map(t => `<text x="${side === "l" ? PER_LW - 8 : PER_LW - 58}" y="${Y(t) + 4}" text-anchor="end" style="fill:${c}">${lab(t)}</text>`).join("")}</g>`;   // due colonne di numeri a sinistra: volume (lontana) e intensità (vicina)
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Programmato e fatto per settimana">`, ax = "";   // ax = numeri delle scale: in un riquadro a parte che resta fermo quando si scorre
+  const grid = (ticks, Y, lab, side, c) => { ax += `<g class="axis">${ticks.map(t => `<text x="${side === "l" ? PER_LW - 8 : PER_LW - 58}" y="${Y(t) + 4}" text-anchor="end" style="fill:${c}">${lab(t)}</text>`).join("")}</g>`;
+    return `<g class="grid">${side === "l" ? ticks.map(t => `<line x1="${PER_LW}" x2="${W - PR}" y1="${Y(t)}" y2="${Y(t)}"/>`).join("") : ""}</g>`; };   // due colonne di numeri a sinistra: volume (lontana) e intensità (vicina)
   const marks = () => Array.from({length: N}, (_, i) => { const e = EV[p.ev?.[i]]; return e ? `<text x="${X(i)}" y="${pt - 8}" text-anchor="middle" style="font-size:11px;font-weight:800;fill:${e.c}">${e.s}</text>${p.ev[i] === "O" ? `<line x1="${X(i)}" x2="${X(i)}" y1="${pt}" y2="${pt + ih}" style="stroke:${e.c};stroke-dasharray:3 4;opacity:.7"/>` : ""}` : ""; }).join("");
   if (today >= 0 && today < N) s += `<line x1="${X(today)}" x2="${X(today)}" y1="${pt}" y2="${pt + ih}" class="ptoday"/>`;
   let tipLines;
@@ -2158,13 +2162,15 @@ function drawPerChart(p){
     const rpe = S.per.ik === "rpe", ilo = rpe ? 0 : 50, ihi = rpe ? 10 : Math.max(110, Math.ceil(Math.max(0, ...D.flatMap(d => [d.di || 0, d.pi || 0])) / 10) * 10), YI = v => pt + ih - (v - ilo) / (ihi - ilo) * ih;
     const vt = [0, .25, .5, .75, 1].map(f => f * vmax), it = [0, .25, .5, .75, 1].map(f => ilo + f * (ihi - ilo));   // RPE seduta 0–10 · % 50–110   // stesse 5 righe per le due scale
     s += grid(vt, YV, t => vmax >= 10000 ? compact(t) : fmtN(t), "r", "#7D97FF") + grid(it, YI, t => rpe ? fmtN(t, 1) : fmtN(t) + "%", "l", "#F06C6C") + marks()
-      + `<g class="axis"><text x="${PER_LW - 58}" y="${pt - 8}" text-anchor="end" style="fill:#7D97FF;font-weight:700;font-size:10px">${esc(S.per.vk === "serie" ? "serie" : VOLK[S.per.vk].u || VOLK[S.per.vk].l)}</text><text x="${PER_LW - 8}" y="${pt - 8}" text-anchor="end" style="fill:#F06C6C;font-weight:700;font-size:10px">${rpe ? "RPE" : "%"}</text></g>`;
+      ; ax += `<g class="axis"><text x="${PER_LW - 58}" y="${pt - 8}" text-anchor="end" style="fill:#7D97FF;font-weight:700;font-size:10px">${esc(S.per.vk === "serie" ? "serie" : VOLK[S.per.vk].u || VOLK[S.per.vk].l)}</text><text x="${PER_LW - 8}" y="${pt - 8}" text-anchor="end" style="fill:#F06C6C;font-weight:700;font-size:10px">${rpe ? "RPE" : "%"}</text></g>`;
     const DV = D.map(d => d.dv), DI = D.map(d => d.di), PV = D.map(d => d.pv), PI = D.map(d => d.pi);
+    if (S.per.lb) { const lmax = Math.max(1, ...D.map(d => d.l || 0)), bw = PER_CW * 0.6, YL = v => pt + ih - v / lmax * ih * 0.92;   // carico sRPE sullo sfondo, scala sua (il più alto = quasi tutta l'altezza)
+      s += D.map((d, i) => d.l ? `<rect x="${X(i) - bw / 2}" y="${YL(d.l)}" width="${bw}" height="${pt + ih - YL(d.l)}" rx="4" style="fill:#C08BFF;opacity:${d.part ? .12 : .22}"/>` : "").join(""); }
     if (showP) s += `<path d="${path(PV, YV)}" class="pln dash" style="stroke:#7D97FF"/><path d="${path(PI, YI)}" class="pln dash" style="stroke:#F06C6C"/>`;
     s += `<path d="${path(DV, YV)}" class="pln" style="stroke:#7D97FF"/><path d="${path(DI, YI)}" class="pln" style="stroke:#F06C6C"/>` + dots(DV, YV, "#7D97FF") + dots(DI, YI, "#F06C6C");
     const vu = S.per.vk === "serie" ? "serie" : VOLK[S.per.vk].u || VOLK[S.per.vk].l.toLowerCase(), iu = v => v == null ? "–" : rpe ? "RPE " + nf(v, 1) : nf(v) + "%";
     tipLines = i => [`Volume (${VOLK[S.per.vk].l.toLowerCase()}): ${D[i].dv != null ? nf(D[i].dv) + " " + vu : D[i].fut ? "–" : "nessun dato"}`,
-      `Intensità (${PER_IK.find(q => q[0] === S.per.ik)[1]}): ${D[i].fut ? "–" : D[i].di != null ? iu(D[i].di) : "nessun dato"}`];
+      `Intensità (${PER_IK.find(q => q[0] === S.per.ik)[1]}): ${D[i].fut ? "–" : D[i].di != null ? iu(D[i].di) : "nessun dato"}`, ...(S.per.lb ? [`Carico sRPE: ${D[i].l ? nf(D[i].l) + " UA" : D[i].fut ? "–" : "nessun dato"}`] : [])];
   } else if (m === "load") {
     const lmax = niceMax(Math.max(1, ...D.map(d => d.l || 0))), YL = v => pt + ih - v / lmax * ih, bw = PER_CW * 0.6;
     s += grid([0, .25, .5, .75, 1].map(f => f * lmax), YL, t => compact(t), "l", "#C08BFF") + marks();
@@ -2181,7 +2187,7 @@ function drawPerChart(p){
     tipLines = i => F ? [`${F.ex} · ${COLS[F.col]?.l || F.col}: ${vals[i] != null ? `${nf(vals[i], F.col === "time" ? 2 : 1)} ${u} → ${nf(P[i])}% della migliore` : D[i].fut ? "–" : "nessuna prova"}`] : [];
   }
   s += Array.from({length: N}, (_, i) => `<rect class="phit" data-i="${i}" x="${PER_LW + PER_CW * i}" y="${pt}" width="${PER_CW}" height="${ih}"/><text x="${X(i)}" y="${H - 7}" text-anchor="middle" class="pwn ${i === today ? "cur" : ""}">${i + 1}</text>`).join("");
-  el.innerHTML = s + `</svg><div class="ctip" hidden></div>`;
+  el.innerHTML = `<div class="pyax" style="width:${PER_LW}px;height:${H}px;margin-bottom:-${H}px"><svg width="${PER_LW}" height="${H}" viewBox="0 0 ${PER_LW} ${H}">${ax}</svg></div>` + s + `</svg><div class="ctip" hidden></div>`;
   const tip = el.querySelector(".ctip");
   el.querySelectorAll(".phit").forEach(r => { const show = () => { const i = +r.dataset.i, e = EV[p.ev?.[i]];
       const line = (c, t) => { const d = document.createElement("div"); d.className = c; d.textContent = t; return d; };
@@ -5393,6 +5399,7 @@ const ACT = {
   "per-abil-add"(){ if (perEd()) perAbilDialog(null); },
   "per-vk"(t){ S.per.vk = t.dataset.v; drawPer(); },
   "per-show"(t){ S.per.m = t.dataset.v; drawPer(); },
+  "per-lb"(){ S.per.lb = !S.per.lb; drawPer(); },
   "per-ik"(t){ S.per.ik = t.dataset.v; drawPer(); },
   /* login */
   async "login-google"(){ const {A, auth} = FB; const p = new A.GoogleAuthProvider(); p.setCustomParameters({prompt:"select_account"});

@@ -454,7 +454,8 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .aex .sshead span{display:block;font-family:var(--sans);font-weight:500;font-size:12.5px;letter-spacing:0;color:var(--muted);text-transform:none;margin-top:2px}
 .aex .sub{display:flex;flex-direction:column;gap:8px}
 .aex .sub + .sub{border-top:1px dashed var(--line);padding-top:12px;margin-top:4px}
-.aex .h .n{font-weight:700;font-size:16px;flex:1}
+.aex .h .n{font-weight:700;font-size:16px;flex:0 1 auto;min-width:0}.aex .h .hsp{flex:1}
+.aex .h .vbtn.hv{flex:none;align-self:center;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));background:var(--accent-soft);color:var(--accent);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap;text-decoration:none}
 .aex .info{font-size:13px;color:var(--muted);white-space:pre-wrap}
 .aex .info b{color:var(--ink);font-weight:600}
 .aex .xnote{display:flex;flex-direction:column;gap:6px;margin-top:2px}.aex .xnote .btn{align-self:flex-end}.aex .xnote textarea{min-height:64px;font-size:16px}
@@ -5377,13 +5378,12 @@ function athExHtml(w, x, label, res, compact){
   const sugTxt = [...new Map(sug.filter(Boolean).map(q => [q.pct, q])).values()].map(q => `${fmtN(q.pct, 1)}% ≈ <b>${fmtN(q.kg, 1)} kg</b>`).join(" · ");
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
   return `<div class="sub">
-    <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(name)}</span>${sw ? "" : `<button class="swbtn" data-act="a-swap" data-x="${x.id}" title="Non riesci a farlo? Cambialo con un'alternativa">↔ Cambia</button>`}</div>
+    <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(name)}</span>${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn hv" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}" title="Guarda il video dell'esercizio">▶ Video</button>` : `<a class="vbtn hv" href="${esc(lib.video)}" target="_blank" rel="noopener" title="Guarda il video dell'esercizio">▶ Video ↗</a>`) : ""}<span class="hsp"></span>${sw ? "" : `<button class="swbtn" data-act="a-swap" data-x="${x.id}" title="Non riesci a farlo? Cambialo con un'alternativa">↔ Cambia</button>`}</div>
     ${sw ? `<div class="swinfo"><span>↔ Al posto di <b>${esc(x.name)}</b>${swapWhy(sw) ? ` · ${esc(swapWhy(sw))}` : ""}</span><button class="btn sm ghost" data-act="a-unswap" data-x="${x.id}">Annulla cambio</button></div>` : ""}
     ${sideHint && compact !== "light" ? (sd => `<div class="info sidehint">${sd?.both ? `<b>Ogni serie con tutti e due i lati:</b> fai le ripetizioni con il destro e con il sinistro, e segna <b>Sx</b> e <b>Dx</b>.` : `<b>Lato:</b> ${esc(sd?.how || sd?.txt || sideHint)} — ogni serie con il lato indicato (quello contornato); segna quello che hai fatto.`}</div>`)(sideSummary(x.sets)) : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${sugTxt ? `<div class="info"><b>Kg consigliati:</b> ${sugTxt} <span class="faint">(dal tuo e1RM stimato: ${fmtN(sug.find(Boolean).ref.v, 1)} kg)</span></div>` : ""}
     ${lib?.notes ? `<div class="info"><b>Indicazioni:</b> ${esc(lib.notes)}</div>` : ""}
-    ${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}">▶ Guarda il video</button>` : `<a href="${esc(lib.video)}" target="_blank" rel="noopener">Guarda il video ↗</a>`) : ""}
     ${compact ? `<div class="sc cscheme">${esc(compact === "amrap" ? "per giro: " : "")}${esc(circScheme(x, compact === "amrapreps") || "")}</div>` : x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
         return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${x.cols.map(c => cell(c, j, s, rr)).join("")}

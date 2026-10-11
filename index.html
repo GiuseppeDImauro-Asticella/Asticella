@@ -854,7 +854,7 @@ button.pc{cursor:pointer}button.pc:hover{background:var(--surface2)}
 .pr.hd .pc.now{box-shadow:inset 0 0 0 1.5px var(--accent);border-radius:4px}
 .pc.wk{flex-direction:column;font-size:9.5px;color:var(--faint);line-height:1.15;padding:3px 0}.pc.wk b{font-size:11.5px;color:var(--muted)}
 .pc.lvc{font-weight:800}.pc.mic{font-size:11px;font-weight:700;color:var(--muted)}
-.pblk{margin:3px 2px;border-radius:6px;border:0;font:inherit;font-size:11px;font-weight:700;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;color:#0C0F14;background:var(--bc);min-height:24px;min-width:0}
+.pblk{position:relative;margin:3px 2px;border-radius:6px;border:0;font:inherit;font-size:11px;font-weight:700;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;color:#0C0F14;background:var(--bc);min-height:24px;min-width:0}
 div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .pblk.lv-s,.pli.lv-s{background:color-mix(in srgb,var(--bc) 45%,var(--surface));color:var(--ink)}
 .pblk.lv-m,.pli.lv-m{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--bc) 40%,var(--surface)) 0 6px,color-mix(in srgb,var(--bc) 15%,var(--surface)) 6px 12px);color:var(--ink)}
@@ -986,9 +986,17 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .pidea{z-index:1;margin:3px 2px;border-radius:6px;font:inherit;font-size:11px;font-weight:700;padding:0 7px;min-height:24px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;cursor:pointer;border:1.5px dashed #E6AA3C;color:var(--ink);background:color-mix(in srgb,#E6AA3C 8%,var(--surface))}
 .pidea.done{background:color-mix(in srgb,#E6AA3C 70%,var(--surface));color:#0C0F14;border-style:solid;border-color:transparent}
 .pidea.one{text-align:center;padding:0}
+.pblk .bi{margin-right:4px;font-size:10px}.pblk .mseg{position:absolute;bottom:2px;height:3px;border-radius:2px;background:color-mix(in srgb,var(--surface) 75%,transparent);pointer-events:none}
+.pblk.lv-s .mseg,.pblk.lv-m .mseg{background:color-mix(in srgb,var(--ink) 35%,transparent)}
 .pr.idr .pc.padd{border-left:0;background:none;color:transparent;font-size:15px;font-weight:700;z-index:1}.pr.idr .pc.padd:hover{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
 .mcbox{border:1px solid color-mix(in srgb,#C08BFF 35%,var(--line));border-radius:12px;background:color-mix(in srgb,#C08BFF 7%,var(--surface));min-width:0}
 .mcbox > .mcband{border:0;background:none;border-radius:0}
+.mlist{display:flex;flex-direction:column;gap:8px}
+.mitem{box-sizing:border-box;width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--surface2)}
+.mitem .mh{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted)}.mitem .mh .nstep{flex:none}.mitem .mh .nstep input{width:42px}.mitem .mh .grow{flex:1}.mitem .md{white-space:nowrap;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis}.mitem .mh .btn{flex:none}
+.madd2{align-self:flex-start}
+.mcidea .adot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.mcidea.ab{border-style:solid;border-color:color-mix(in srgb,var(--ac) 45%,var(--line));background:color-mix(in srgb,var(--ac) 9%,var(--surface))}.mcidea.ab .an{color:var(--muted);font-weight:700}
 .mcideas{display:flex;align-items:flex-start;gap:6px;margin:0 6px 0 10px;padding:5px 0 5px;border-top:1px dashed color-mix(in srgb,#C08BFF 30%,var(--line));font-size:11.5px;min-width:0}
 .mcideas .mcl{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);white-space:nowrap;flex:none;line-height:20px}
 .mcil{display:flex;gap:5px 6px;min-width:0;flex:1 1 auto;overflow:hidden}
@@ -1266,13 +1274,14 @@ function LocalDB(){
   if (!st.v30) { demoPlans(st); st.v30 = true; }
   if (!st.v32) { demoModels(st); st.v32 = true; }
   if (!st.v33) { demoIdeas(st); st.v33 = true; }
+  if (!st.v34) { demoMeth(st); st.v34 = true; }
   if (!st.v31) { const nm = {"Preparazione speciale": "Preparazione specifica", "Pre-gara": "Pre-competitiva", "Gare": "Competitiva"};   // demo: nomi dei periodi e carico del microciclo
     Object.values(st.plans || {}).forEach(p => { (p.phases || []).forEach(ph => ph.name = nm[ph.name] || ph.name); if (!p.load) p.load = Object.fromEntries(Object.keys(p.vol || {}).map(i => [i, Math.max(1, Math.round(((p.vol[i] || 0) + (p.int?.[i] || 0)) / 2))])); }); st.v31 = true; }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e){} };
   save();
   const wait = v => new Promise(r => setTimeout(() => r(clone(v)), 60));
   return {
-    reset(){ st = seedDemo(); demoV6(st); st.v6 = true; demoHistory(st); st.v9 = true; demoSwaps(st); st.v22 = true; demoPlans(st); st.v30 = true; demoModels(st); st.v32 = true; demoIdeas(st); st.v33 = true; save(); },
+    reset(){ st = seedDemo(); demoV6(st); st.v6 = true; demoHistory(st); st.v9 = true; demoSwaps(st); st.v22 = true; demoPlans(st); st.v30 = true; demoModels(st); st.v32 = true; demoIdeas(st); st.v33 = true; demoMeth(st); st.v34 = true; save(); },
     async listAthletes(){ return wait(Object.values(st.athletes)); },
     async getAthlete(e){ return wait(st.athletes[e] || null); },
     async saveAthlete(a){ st.athletes[a.email] = {...(st.athletes[a.email]||{}), ...clone(a)}; st.workouts[a.email] ??= {}; save(); return wait(a); },
@@ -1410,6 +1419,12 @@ function demoIdeas(st){
     p.ideas = [[0, 7, "Multilateralità: giochi di salto e coordinazione", "", true], [1, 4, "Fasi di volo e svincolo", "Acrobatica in palestra di artistica (metodo meno specifico, stimolo diverso)", true],
       [5, 6, "Tecnica di corsa: spinta del piede e avanzamento dell'anca", "Marcia", false], [8, 10, "Controllo della velocità nello squat", "VBT con encoder", false], [15, 18, "Rincorsa completa in curva", "2 sedute a settimana", false]]
       .map(([f, t, g, h, d]) => ({id: uid(), from: f, to: t, goal: g, how: h, done: d})); });
+}
+function demoMeth(st){
+  const M = {"Adattamento anatomico": b => [{from: b.from, to: b.from + 1, t: "Circuiti a corpo libero, 3×15, tempo lento"}, {from: b.from + 2, to: b.to, t: "Manubri e kettlebell, 3×12: goblet squat, affondi, rematore"}],
+    "Forza massima": b => [{from: b.from, to: b.to, t: "Squat e stacco 85–90%, cluster set"}], "Tecnica di corsa": b => [{from: b.from, to: b.to, t: "Marcia, skip, andature: spinta del piede e avanzamento dell'anca"}],
+    "Base pliometrica": b => [{from: b.from, to: b.to, t: "Saltelli bassi a piedi pari, balzi su erba, low box"}]};
+  Object.values(st.plans || {}).forEach(p => (p.abil || []).forEach(ab => (ab.blocks || []).forEach(b => { if (M[b.name] && !b.meth && b.to - b.from >= 1) b.meth = M[b.name](b).filter(m => m.from <= m.to); })));
 }
 function demoPlans(st){
   const start = addDays(monday(TODAY()), -35), A = (name, blocks) => ({id: uid(), name, blocks: blocks.map(([f, t, n, l]) => ({id: uid(), from: f, to: t, name: n, lvl: l}))});
@@ -2077,7 +2092,9 @@ function perGridHtml(p, ed){
   const cells = (fn) => Array.from({length: N}, (_, i) => fn(i)).join("");
   const blocks = (list, rowId, colOf, label) => { const busy = new Set(); let h = "";
     list.forEach(bk => { const a = Math.max(0, bk.from), z = Math.min(N - 1, bk.to); if (z < a) return; for (let i = a; i <= z; i++) busy.add(i);
-      h += `<button class="pblk lv-${bk.lvl || "p"}" style="${span(a, z)};--bc:${colOf(bk)}" ${ed ? `data-act="per-blk" data-row="${rowId}" data-id="${bk.id}"` : ""} title="${esc(bk.name)} · sett. ${a + 1}–${z + 1}${bk.lvl ? " · " + PLVL[bk.lvl] : ""}">${esc(label(bk))}</button>`; });
+      const ms = bk.meth || [], tt = `${bk.name} · sett. ${a + 1}${z > a ? "–" + (z + 1) : ""}${bk.lvl ? " · " + PLVL[bk.lvl] : ""}${ms.map(m => "\n💡 " + methWk(bk, m) + m.t).join("")}`;
+      const seg = ms.length > 1 || (ms.length && (ms[0].from !== bk.from || ms[0].to !== bk.to)) ? ms.map(m => { const n = z - a + 1, f = Math.max(a, m.from) - a, t = Math.min(z, m.to) - a; return t < f ? "" : `<span class="mseg" style="left:calc(${f / n * 100}% + 3px);width:calc(${(t - f + 1) / n * 100}% - 6px)"></span>`; }).join("") : "";
+      h += `<button class="pblk lv-${bk.lvl || "p"}" style="${span(a, z)};--bc:${colOf(bk)}" ${ed ? `data-act="per-blk" data-row="${rowId}" data-id="${bk.id}"` : ""} title="${esc(tt)}"${ms.length ? ` data-tip="${esc(tt + (ed ? "\n— tocca di nuovo per modificare" : ""))}"` : ""}>${ms.length ? `<span class="bi">💡</span>` : ""}${esc(label(bk))}${seg}</button>`; });
     return cells(i => busy.has(i) ? "" : `<button class="pc pe ${i === today ? "now" : ""}" style="${at(i)}" ${ed ? `data-act="per-add" data-row="${rowId}" data-i="${i}" title="Aggiungi un blocco dalla settimana ${i + 1}"` : ""}></button>`) + h; };
   // mesocicli degli atleti (dal Calendario): per il gruppo, quelli dei suoi atleti senza doppioni
   const mem = perMembers(S.per.key), seen = new Set(), ms = [];
@@ -2268,7 +2285,9 @@ function perPlanDialog(edit){
 }
 /* toglie o accorcia i blocchi della stessa riga che si sovrappongono a quello nuovo */
 const perTrim = (list, nb) => list.filter(b => b.id !== nb.id).flatMap(b => { if (b.to < nb.from || b.from > nb.to) return [b];
-  const out = []; if (b.from < nb.from) out.push({...b, to: nb.from - 1}); if (b.to > nb.to) out.push({...b, id: out.length ? uid() : b.id, from: nb.to + 1}); return out; });
+  const out = []; if (b.from < nb.from) out.push({...b, to: nb.from - 1}); if (b.to > nb.to) out.push({...b, id: out.length ? uid() : b.id, from: nb.to + 1});
+  out.forEach(o => { if (!o.meth) return; o.meth = o.meth.map(m => ({...m, from: Math.max(m.from, o.from), to: Math.min(m.to, o.to)})).filter(m => m.from <= m.to); if (!o.meth.length) delete o.meth; });   // metodi dentro le nuove settimane
+  return out; });
 function perBlockDialog(rowId, bk, i0){
   const {plan: p} = perView(), isMa = rowId === "macro", isPh = rowId === "phase" || isMa, ab = isPh ? null : p.abil.find(a => a.id === rowId); if (!isPh && !ab) return;
   const list = isMa ? (p.macro ??= []) : isPh ? p.phases : ab.blocks, b = bk || {from: i0, to: Math.min(p.weeks - 1, i0 + (isMa ? 25 : 3)), name: "", lvl: "p"}, sug = isMa ? PER_SUG.macro : isPh ? PER_SUG.phase : PER_SUG[ab.name] || PER_SUG.other;
@@ -2277,18 +2296,39 @@ function perBlockDialog(rowId, bk, i0){
     <div class="row"><div class="field"><label class="lbl" for="pb-from">Dalla settimana</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pb-from" min="1" max="${p.weeks}" value="${b.from + 1}" style="width:64px"><button type="button" data-step="1" aria-label="Più">+</button></span></div>
       <div class="field"><label class="lbl" for="pb-to">Alla settimana</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pb-to" min="1" max="${p.weeks}" value="${b.to + 1}" style="width:64px"><button type="button" data-step="1" aria-label="Più">+</button></span></div>
       <div class="field grow"><span class="lbl">&nbsp;</span><span class="faint" id="pb-dates" style="font-size:12px"></span></div></div>
+    ${isPh ? "" : `<div class="field"><span class="lbl">Mezzi / metodi <span class="faint" style="text-transform:none;letter-spacing:0;font-weight:500">(facoltativo · possono cambiare dentro il blocco)</span></span><div class="mlist" id="pb-meth"></div></div>`}
     ${isPh ? "" : `<div class="field"><span class="lbl">Importanza in questo periodo</span><div class="pseg">${Object.entries(PLVL).map(([k, l]) => `<label><input type="radio" name="pb-lvl" value="${k}" ${(b.lvl || "p") === k ? "checked" : ""}> ${l}</label>`).join("")}</div>
       <div class="faint" style="font-size:12px;margin-top:4px">Prioritaria = obiettivo principale del blocco · secondaria = allenata ma non al centro · mantenimento = solo per non perderla.</div></div>`}
     <div class="faint" style="font-size:12px">Se si sovrappone ad altri blocchi della stessa riga, quelli vengono accorciati.</div>
     </div><footer>${bk ? `<button type="button" class="btn ghost danger" id="pb-del">Elimina</button>` : ""}<span class="grow"></span><button type="button" class="btn" id="pb-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
   const dates = () => { const f = Math.max(1, +$("#pb-from").value || 1) - 1, t = Math.max(f + 1, +$("#pb-to").value || 1) - 1; $("#pb-dates").textContent = `${fmtD(perWs(p, f))} – ${fmtD(addDays(perWs(p, t), 6))} · ${t - f + 1} settiman${t - f ? "e" : "a"}`; };
   $("#pb-from").oninput = dates; $("#pb-to").oninput = dates; dates();
+  /* lista dei metodi: M = [{from, to, t}] con le settimane del piano */
+  const M = (b.meth || []).map(m => ({...m})), rng = () => { let f = Math.max(1, Math.min(p.weeks, +$("#pb-from").value || 1)) - 1, t = Math.max(1, Math.min(p.weeks, +$("#pb-to").value || 1)) - 1; return f <= t ? [f, t] : [t, f]; };
+  if (!isPh && !M.length) M.push({from: b.from, to: b.to, t: ""});
+  const mdates = m => `${fmtD(perWs(p, m.from))} – ${fmtD(addDays(perWs(p, m.to), 6))}`;
+  const drawM = () => { const el = $("#pb-meth"); if (!el) return;
+    el.innerHTML = M.map((m, k) => `<div class="mitem"><div class="mh">sett. <span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" min="1" max="${p.weeks}" value="${m.from + 1}" data-mi="${k}" data-mf="from" aria-label="Dalla settimana"><button type="button" data-step="1" aria-label="Più">+</button></span> – <span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" min="1" max="${p.weeks}" value="${m.to + 1}" data-mi="${k}" data-mf="to" aria-label="Alla settimana"><button type="button" data-step="1" aria-label="Più">+</button></span><span class="faint md">${mdates(m)}</span><span class="grow"></span>${M.length > 1 ? `<button type="button" class="btn sm ghost" data-mdel="${k}" aria-label="Togli il metodo" title="Togli il metodo">✕</button>` : ""}</div>
+      <textarea class="in" rows="2" data-mi="${k}" data-mf="t" placeholder="es. Squat e stacco 85–90%, cluster set">${esc(m.t)}</textarea></div>`).join("") + `<button type="button" class="btn sm madd2" id="pb-madd">+ Metodo per altre settimane</button>`;
+    $("#pb-madd").onclick = () => { const [f, t] = rng(), last = M[M.length - 1], nf = last && last.to < t ? last.to + 1 : f; M.push({from: nf, to: t, t: ""}); drawM(); el.querySelector(`textarea[data-mi="${M.length - 1}"]`)?.focus(); }; };
+  if (!isPh) { drawM(); const el = $("#pb-meth");
+    el.addEventListener("input", e => { const x = e.target, k = +x.dataset.mi; if (!M[k]) return; const f = x.dataset.mf;
+      if (f === "t") M[k].t = x.value; else { const v = Math.max(1, Math.min(p.weeks, +x.value || 1)) - 1; M[k][f] = v; x.closest(".mitem").querySelector(".md").textContent = mdates({from: Math.min(M[k].from, M[k].to), to: Math.max(M[k].from, M[k].to)}); } });
+    el.addEventListener("click", e => { const d = e.target.closest("[data-mdel]"); if (!d) return; M.splice(+d.dataset.mdel, 1); drawM(); }); }
   $("#pb-no").onclick = () => $("#confirm").innerHTML = "";
   const put = async nl => { if (isMa) p.macro = nl; else if (isPh) p.phases = nl; else ab.blocks = nl; $("#confirm").innerHTML = ""; await perSave(p); drawPer(); };
   const del = $("#pb-del"); if (del) del.onclick = () => put(list.filter(x => x.id !== bk.id));
-  $("#pb-form").onsubmit = e => { e.preventDefault();
+  $("#pb-form").onsubmit = async e => { e.preventDefault();
     let f = Math.max(1, Math.min(p.weeks, +$("#pb-from").value || 1)) - 1, t = Math.max(1, Math.min(p.weeks, +$("#pb-to").value || 1)) - 1; if (t < f) [f, t] = [t, f];
     const nb = {id: bk?.id || uid(), from: f, to: t, name: $("#pb-name").value.trim() || sug[0], ...(isPh ? {} : {lvl: (document.querySelector("input[name=pb-lvl]:checked") || {}).value || "p"})};
+    if (!isPh) { /* metodi: quelli attaccati all'inizio o alla fine del blocco seguono il blocco; poi si tengono dentro le sue settimane */
+      let cut = 0; const meth = [];
+      const MT = M.filter(m => (m.t || "").trim()).map(m => ({...m, a: Math.min(m.from, m.to), z: Math.max(m.from, m.to)}));
+      MT.forEach(m0 => { const t0 = m0.t.trim(); let a = m0.a, z = m0.z;
+        if (a === b.from && !MT.some(o => o !== m0 && o.a < a)) a = f; if (z === b.to && !MT.some(o => o !== m0 && o.a > a)) z = t; const a2 = Math.max(a, f), z2 = Math.min(z, t);
+        if (a2 > z2) { cut++; return; } if (a2 !== a || z2 !== z) cut++; meth.push({from: a2, to: z2, t: t0}); });
+      if (cut && !(await confirmBox(`Con le nuove settimane del blocco ${cut === 1 ? "un metodo viene accorciato o tolto" : cut + " metodi vengono accorciati o tolti"}. Salvare lo stesso?`, "Salva"))) return;
+      if (meth.length) nb.meth = meth.sort((x, y) => x.from - y.from); }
     put([...perTrim(list, nb), nb].sort((x, y) => x.from - y.from)); };
 }
 function perAbilDialog(id){
@@ -2342,6 +2382,11 @@ const planEnd = p => addDays(p.start, 7 * p.weeks - 1);
 /* IDEE E METODI del piano: p.ideas = [{id, from, to, goal, how, done}] (settimane come gli altri blocchi; si possono sovrapporre) */
 const ideasAt = (p, i) => (p?.ideas || []).filter(b => b.from <= i && b.to >= i);
 const ideaTxt = b => b.goal + (b.how ? " → " + b.how : "");
+/* MEZZI / METODI dei blocchi abilità: bk.meth = [{from, to, t}] (settimane del piano, dentro il blocco; possono cambiare dentro il blocco) */
+const methAt = (bk, i) => (bk?.meth || []).filter(m => m.from <= i && m.to >= i);
+const methWk = (bk, m) => m.from === bk.from && m.to === bk.to ? "" : `sett. ${m.from + 1}${m.to > m.from ? "–" + (m.to + 1) : ""}: `;
+/* per il Calendario: i metodi validi nella settimana i, per ogni abilità */
+const abMethAt = (p, i) => (p?.abil || []).flatMap((ab, k) => (ab.blocks || []).filter(b => b.from <= i && b.to >= i).flatMap(b => methAt(b, i).map(m => ({ab: ab.name, col: ABIL_COL(k), name: b.name, t: m.t}))));
 /* i piani (stagioni) che valgono per un atleta: i suoi e quelli del suo gruppo; per "tutti": tutti i piani */
 const seasonsOf = a => (a ? [...plansOf("a:" + a.email), ...(a.group ? plansOf("g:" + a.group) : [])] : (S.plans || []).filter(p => p.scope === "group" || p.scope === "athlete")).sort((x, y) => x.start.localeCompare(y.start));
 /* Analisi: linea del tempo della stagione (periodi del piano + mesocicli dell'atleta). Clic su un blocco = analizzi quello;
@@ -2432,9 +2477,9 @@ const MC_LEGEND = `<div class="mclegend"><span class="t">Piano della settimana</
 function mcBandHtml(a, ws, mc){
   const {p, i, m, days, ov} = mc, ph = p ? (p.phases || []).find(b => b.from <= i && b.to >= i) : null, ld = p?.load?.[i], first = esc(a.name.split(" ")[0]);
   const info = [p ? `piano «${esc(p.name)}»${p.scope === "group" ? ` del gruppo ${esc(p.key)}` : ""} · sett. ${i + 1}/${p.weeks}` : "", ph ? esc(ph.name) : "", ld ? `carico ${ld}/5` : ""].filter(Boolean).join(" · ");
-  const I = p ? ideasAt(p, i) : [], op = S.mcIdeaOpen?.has(ws);
-  return `<div class="mcrow"><div class="mcbox ${I.length ? "hasi" : ""}"><div class="mcband"><span class="mcl">Microciclo</span>${m && !ov ? `<span class="mcn" style="--mc:${mcCol(p, m)}">${esc(m.name)}</span>` : ""}${ov ? `<span class="mcn ov">personalizzato per ${first}${m ? ` <small>(modello ${esc(m.name)})</small>` : ""}</span>` : ""}${!days ? `<span class="faint">nessun modello per questa settimana</span>` : ""}
-    <span class="mci">${info}</span><span class="mca">${ov ? `<button class="btn sm ghost" data-act="mc-reset" data-ws="${ws}" title="Togli la personalizzazione e torna al modello del piano">↺ Modello</button>` : ""}<button class="btn sm ghost" data-act="mc-ov" data-ws="${ws}" title="${days ? `Cambia questa settimana solo per ${first}` : `Scrivi il piano di questa settimana per ${first}`}">✎ ${days ? "Personalizza" : "Scrivi il piano"}</button></span></div>${I.length ? `<div class="mcideas ${op ? "open" : ""}"><span class="mcl">Idee / metodi</span><span class="mcil">${I.map(b => `<span class="mcidea ${b.done ? "done" : ""} ${ideaTxt(b).length > 48 ? "lg" : ""}" title="${esc((b.done ? "✓ Fatta · " : "Da fare · ") + ideaTxt(b))}">${b.done ? "✓ " : ""}💡 <b>${esc(b.goal)}</b>${b.how ? ` <span class="how">→ ${esc(b.how)}</span>` : ""}</span>`).join("")}</span>
+  const I = p ? ideasAt(p, i) : [], AM = p ? abMethAt(p, i) : [], op = S.mcIdeaOpen?.has(ws);
+  return `<div class="mcrow"><div class="mcbox ${I.length || AM.length ? "hasi" : ""}"><div class="mcband"><span class="mcl">Microciclo</span>${m && !ov ? `<span class="mcn" style="--mc:${mcCol(p, m)}">${esc(m.name)}</span>` : ""}${ov ? `<span class="mcn ov">personalizzato per ${first}${m ? ` <small>(modello ${esc(m.name)})</small>` : ""}</span>` : ""}${!days ? `<span class="faint">nessun modello per questa settimana</span>` : ""}
+    <span class="mci">${info}</span><span class="mca">${ov ? `<button class="btn sm ghost" data-act="mc-reset" data-ws="${ws}" title="Togli la personalizzazione e torna al modello del piano">↺ Modello</button>` : ""}<button class="btn sm ghost" data-act="mc-ov" data-ws="${ws}" title="${days ? `Cambia questa settimana solo per ${first}` : `Scrivi il piano di questa settimana per ${first}`}">✎ ${days ? "Personalizza" : "Scrivi il piano"}</button></span></div>${I.length || AM.length ? `<div class="mcideas ${op ? "open" : ""}"><span class="mcl">Idee / metodi</span><span class="mcil">${I.map(b => `<span class="mcidea ${b.done ? "done" : ""} ${ideaTxt(b).length > 48 ? "lg" : ""}" title="${esc((b.done ? "✓ Fatta · " : "Da fare · ") + ideaTxt(b))}">${b.done ? "✓ " : ""}💡 <b>${esc(b.goal)}</b>${b.how ? ` <span class="how">→ ${esc(b.how)}</span>` : ""}</span>`).join("")}${AM.map(m => `<span class="mcidea ab ${m.ab.length + m.name.length + m.t.length > 48 ? "lg" : ""}" style="--ac:${m.col}" title="${esc(`${m.ab} · ${m.name} → ${m.t}`)}"><i class="adot" style="background:${m.col}"></i><span class="an">${esc(m.ab)}:</span> <b>${esc(m.name)}</b> <span class="how">→ ${esc(m.t)}</span></span>`).join("")}</span>
       <button type="button" class="btn sm ghost mcit" data-act="mc-ideas" data-ws="${ws}">${op ? "Riduci ▴" : "Mostra tutto ▾"}</button></div>` : ""}</div></div>`;
 }
 /* editor dei giorni (modello o settimana personalizzata): D = 7 liste di {k, rpe} */
@@ -5462,7 +5507,7 @@ const ACT = {
   "per-add"(t){ if (!perEd()) return; perBlockDialog(t.dataset.row, null, +t.dataset.i); },
   "per-idea-add"(t){ if (!perEd()) return; perIdeaDialog(null, +t.dataset.i); },
   "per-idea"(t){ const p = perEd(); if (!p) return; if (tipPT !== "mouse" && $("#taptip")) return;   /* tablet: il primo tocco mostra il testo, il secondo apre la scheda */ const b = (p.ideas || []).find(x => x.id === t.dataset.id); if (b) perIdeaDialog(b); },
-  "per-blk"(t){ const p = perEd(); if (!p) return; const r = t.dataset.row, list = r === "macro" ? p.macro || [] : r === "phase" ? p.phases : p.abil.find(a => a.id === r)?.blocks || []; const b = list.find(x => x.id === t.dataset.id); if (b) perBlockDialog(r, b); },
+  "per-blk"(t){ const p = perEd(); if (!p) return; if (tipPT !== "mouse" && $("#taptip")) return;   /* tablet: con metodi scritti, il primo tocco mostra il testo */ const r = t.dataset.row, list = r === "macro" ? p.macro || [] : r === "phase" ? p.phases : p.abil.find(a => a.id === r)?.blocks || []; const b = list.find(x => x.id === t.dataset.id); if (b) perBlockDialog(r, b); },
   "per-abil"(t){ if (perEd()) perAbilDialog(t.dataset.id); },
   "per-abil-add"(){ if (perEd()) perAbilDialog(null); },
   "per-vk"(t){ S.per.vk = t.dataset.v; drawPer(); },

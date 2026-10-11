@@ -543,7 +543,7 @@ table.progt.grid td.pc{text-align:center;padding:5px 6px;border-left:1px solid v
 table.progt.grid td.pc .m{font-weight:700;font-size:13px}
 table.progt.grid td.pc small{font-weight:500;color:var(--muted);font-size:10px}
 table.progt.grid td.pc .s{font-size:11px;color:var(--muted);display:flex;gap:4px;justify-content:center;align-items:center;margin-top:1px}
-.taptip{position:fixed;z-index:120;max-width:min(320px,calc(100vw - 16px));background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:600;line-height:1.35;padding:7px 10px;border-radius:8px;box-shadow:var(--shadow);pointer-events:none}
+.taptip{white-space:pre-line;position:fixed;z-index:120;max-width:min(320px,calc(100vw - 16px));background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:600;line-height:1.35;padding:7px 10px;border-radius:8px;box-shadow:var(--shadow);pointer-events:none}
 table.progt.grid td.pc.empty{background:color-mix(in srgb,var(--line) 25%,transparent)}
 table.progt.grid tr.dim td.pc{opacity:.5}
 @media (max-width:600px){table.progt.grid .rh{width:120px;min-width:120px;max-width:120px}table.progt.grid .st{position:static}}
@@ -873,7 +873,8 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 #per-chart .pfut{fill:var(--surface2);opacity:.45}#per-chart .ptoday{stroke:var(--accent);stroke-width:1.5;opacity:.6}
 #per-chart .phit{fill:transparent;cursor:pointer}#per-chart .phit:hover{fill:var(--surface2);opacity:.5}#per-chart .pwn{fill:var(--faint);font-size:10.5px}#per-chart .pwn.cur{fill:var(--accent);font-weight:700}
 #per-chart .grid line{stroke:var(--line)}#per-chart .axis text{fill:var(--faint);font-size:11px}
-.pc.mic{position:relative;margin:3px 2px;border:0;border-radius:6px}.pc.mic.now{box-shadow:none}.mtag{position:absolute;top:2px;right:2px;min-width:12px;height:12px;border-radius:3px;font-size:8.5px;font-weight:800;line-height:12px;color:#0C0F14;padding:0 2px}
+.pc.mic{position:relative;margin:3px 2px;border:0;border-radius:6px}.pc.mic.now{box-shadow:none}
+.mict{position:relative;z-index:1;pointer-events:none;margin:3px 2px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--muted);min-width:0}.mtag{position:absolute;top:2px;right:2px;min-width:12px;height:12px;border-radius:3px;font-size:8.5px;font-weight:800;line-height:12px;color:#0C0F14;padding:0 2px}
 /* microcicli: settimana tipo (Periodizzazione) e piano del giorno (Calendario) */
 .pblk.pmod{pointer-events:none;z-index:1;align-self:center}
 .pl .lk.mlk{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
@@ -2092,7 +2093,8 @@ function perGridHtml(p, ed){
     ${row("Macrociclo", blocks(p.macro || [], "macro", bk => MACRO_COLS[(p.macro || []).indexOf(bk) % MACRO_COLS.length], bk => bk.name))}
     ${row("Periodo", blocks(p.phases || [], "phase", bk => PHASE_COL(bk.name), bk => bk.name))}
     ${row(`Mesociclo <small>dal Calendario</small>`, mesoRow)}
-    ${row(`Microciclo <small>carico · tipo</small>`, cells(i => { const c = MICRO[p.micro?.[i]], v = p.load?.[i]; return `<button class="pc mic lvc ${i === today ? "now" : ""}" style="${at(i)};${v ? `background:color-mix(in srgb,#C08BFF ${10 + v * 16}%,var(--bg));${v >= 4 ? "color:#0C0F14" : ""}` : ""}" ${ed ? `data-act="per-mic" data-i="${i}"` : ""} title="${v ? "Carico " + v + " su 5" : "Carico non indicato"}${c ? " · " + c.l : ""}${ed ? " · clicca per cambiare" : ""}">${v || ""}${c && c.s !== "C" ? `<span class="mtag" style="background:${c.c}">${c.s}</span>` : ""}</button>`; }))}
+    ${row(`Microciclo <small>carico · tipo</small>`, cells(i => { const c = MICRO[p.micro?.[i]], v = p.load?.[i]; return `<button class="pc ${i === today ? "now" : ""}" style="${at(i)}" ${ed ? `data-act="per-mic" data-i="${i}"` : ""} title="${v ? "Carico " + v + " su 5" : "Carico non indicato"}${c ? " · " + c.l : ""}${ed ? " · clicca per cambiare" : ""}"></button>`; })
+      + cells(i => { const c = MICRO[p.micro?.[i]], v = p.load?.[i], tg = c && c.s !== "C" ? `<span class="mtag" style="background:${c.c}">${c.s}</span>` : ""; return v || tg ? `<span class="mict" style="${at(i)};${v ? `background:color-mix(in srgb,#C08BFF ${10 + v * 16}%,var(--bg));${v >= 4 ? "color:#0C0F14" : ""}` : ""}">${v || ""}${tg}</span>` : ""; }))}
     ${row(`${ed ? `<button class="lk mlk" data-act="mc-models" title="Crea e modifica le settimane tipo">Modello ✎</button>` : "Modello"} <small>settimana tipo</small>`, (() => { const ms = p.models || [], mo = i => ms.find(m => m.id === p.wmod?.[i]) || null;
       let h = cells(i => `<button class="pc ${i === today ? "now" : ""}" style="${at(i)}" ${ed ? `data-act="per-mod" data-i="${i}"` : ""} title="${mo(i) ? esc(mo(i).name) : "Nessun modello"}${ed ? " · clicca per scegliere" : ""}"></button>`);
       for (let i = 0; i < N; ) { const m = mo(i); let j = i; while (j + 1 < N && mo(j + 1) === m) j++; if (m) h += `<div class="pblk pmod" style="${span(i, j)};--bc:${mcCol(p, m)}">${esc(m.name)}</div>`; i = j + 1; }
@@ -2107,8 +2109,8 @@ function perGridHtml(p, ed){
       let h = `<div class="pr idr" style="${cols};grid-template-rows:repeat(${n}, 30px)"><div class="pl">Idee e metodi <small>intenzioni</small></div>`;
       h += cells(i => `<button class="pc pe ${i === today ? "now" : ""}" style="${at(i)}" ${ed ? `data-act="per-idea-add" data-i="${i}" title="Aggiungi un'idea dalla settimana ${i + 1}"` : ""}></button>`);
       if (ed && L.length) h += cells(i => `<button class="pc padd" style="${at(i)};grid-row:${n}" data-act="per-idea-add" data-i="${i}" title="Aggiungi un'idea dalla settimana ${i + 1}">+</button>`);
-      ids.forEach(b => { const a = Math.max(0, b.from), z = Math.min(N - 1, b.to); if (z < a) return; const t = `${b.done ? "✓ fatta · " : ""}${ideaTxt(b)} · sett. ${a + 1}–${z + 1}`;
-        h += `<button class="pidea ${b.done ? "done" : ""} ${a === z ? "one" : ""}" style="${span(a, z)};grid-row:${lane.get(b) + 1}" ${ed ? `data-act="per-idea" data-id="${b.id}"` : ""} title="${esc(t)}" data-tip="${esc(t)}">${a === z ? "💡" : `${b.done ? "✓ " : ""}💡 ${esc(ideaTxt(b))}`}</button>`; });
+      ids.forEach(b => { const a = Math.max(0, b.from), z = Math.min(N - 1, b.to); if (z < a) return; const t = `${b.done ? "✓ fatta · " : ""}${ideaTxt(b)} · sett. ${a + 1}${z > a ? "–" + (z + 1) : ""}`;
+        h += `<button class="pidea ${b.done ? "done" : ""} ${a === z ? "one" : ""}" style="${span(a, z)};grid-row:${lane.get(b) + 1}" ${ed ? `data-act="per-idea" data-id="${b.id}" data-tip="${esc(t + "\n— tocca di nuovo per modificare")}"` : `data-tip="${esc(t)}"`} title="${esc(t)}">${a === z ? "💡" : `${b.done ? "✓ " : ""}💡 ${esc(ideaTxt(b))}`}</button>`; });
       return h + "</div>"; })()}
     <div class="psec"><span>Abilità biomotorie</span></div>
     ${(p.abil || []).map((ab, k) => row(ed ? `<button class="lk" data-act="per-abil" data-id="${ab.id}" title="Rinomina o togli">${esc(ab.name)}</button>` : esc(ab.name), blocks(ab.blocks || [], ab.id, () => ABIL_COL(k), bk => bk.name))).join("")}
@@ -5459,7 +5461,7 @@ const ACT = {
   "per-lv"(t, e){ const p = perEd(); if (!p) return; const k = t.dataset.k, i = t.dataset.i; p[k] ??= {}; const v = p[k][i] || 0, n = e?.shiftKey ? (v ? v - 1 : 5) : (v + 1) % 6; if (n) p[k][i] = n; else delete p[k][i]; perSave(p); drawPer(); },
   "per-add"(t){ if (!perEd()) return; perBlockDialog(t.dataset.row, null, +t.dataset.i); },
   "per-idea-add"(t){ if (!perEd()) return; perIdeaDialog(null, +t.dataset.i); },
-  "per-idea"(t){ const p = perEd(); if (!p) return; const b = (p.ideas || []).find(x => x.id === t.dataset.id); if (b) perIdeaDialog(b); },
+  "per-idea"(t){ const p = perEd(); if (!p) return; if (tipPT !== "mouse" && $("#taptip")) return;   /* tablet: il primo tocco mostra il testo, il secondo apre la scheda */ const b = (p.ideas || []).find(x => x.id === t.dataset.id); if (b) perIdeaDialog(b); },
   "per-blk"(t){ const p = perEd(); if (!p) return; const r = t.dataset.row, list = r === "macro" ? p.macro || [] : r === "phase" ? p.phases : p.abil.find(a => a.id === r)?.blocks || []; const b = list.find(x => x.id === t.dataset.id); if (b) perBlockDialog(r, b); },
   "per-abil"(t){ if (perEd()) perAbilDialog(t.dataset.id); },
   "per-abil-add"(){ if (perEd()) perAbilDialog(null); },

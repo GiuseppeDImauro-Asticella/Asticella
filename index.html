@@ -797,6 +797,8 @@ tr.ok .ck svg{stroke:#fff}
 .sstats{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:13px;color:var(--muted)}
 .sstats b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
 :is(#an-schart,.an-scc){overflow-x:auto;padding-bottom:4px}
+#an-sess.exv .kfilt:not(.exk),#an-sess.exv .cdesc,#an-sess.exv .sm-rpe,#an-sess.exv .sm-pct,#an-sess.exv .sm-vol,#an-sess.exv .slegend,#an-sess.exv .sdet{display:none}
+#an-sess .cvtog{margin:10px 0 2px}
 #an-sess.vol .sm-rpe{display:none}#an-sess:not(.vol) .sm-vol{display:none}#an-sess.vol .sm-int{display:none}#an-sess.pct .sm-rpe{display:none}#an-sess:not(.pct) .sm-pct{display:none}
 :is(#an-schart,.an-scc) .sblab{fill:var(--muted);font-size:11.5px}:is(#an-schart,.an-scc) .sblab tspan.lb{font-weight:800}
 :is(#an-schart,.an-scc) .vlab.sm{font-size:10px;font-weight:600;fill:var(--muted)}
@@ -2947,7 +2949,7 @@ function drawExDialog(){
 function closeExDialog(){ S.exDlg = null; S.exEdit = null; $("#confirm").innerHTML = ""; }
 
 /* ---------- ANALISI ---------- */
-const anQ = {cmpA: null, cmpB: null, dA: null, dB: null, wtOpen: false, ptOpen: false, patM: "vol", gran: "week", dws: null, kv: "all", vk: "serie", ks: "all", who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume", ik: "kg"};
+const anQ = {cv: (() => { try { return localStorage.getItem("asticella-ancv") || "bars"; } catch(e) { return "bars"; } })(), cmpA: null, cmpB: null, dA: null, dB: null, wtOpen: false, ptOpen: false, patM: "vol", gran: "week", dws: null, kv: "all", vk: "serie", ks: "all", who: null, from: addDays(monday(TODAY()), -77), to: addDays(monday(TODAY()), 6), metric: "volume", ik: "kg"};
 const METRICS = {
   volume: {get l(){ return "Volume · " + VOLK[anQ.vk].l; }, get u(){ return VOLK[anQ.vk].u; }, get d(){ return VOLK[anQ.vk].d; }},
   hard:   {l:"Serie allenanti", u:"", d:"Serie registrate con RPE ≥ 7 o RIR ≤ 3. Contano solo le serie in cui l'atleta ha scritto RPE o RIR. In questa vista anche tipi di serie e pattern motori (sotto il grafico) contano solo le serie allenanti."},
@@ -3496,11 +3498,14 @@ function sessionPanelHtml(a, list, w, cmp = false){
   const mk = (kind, c) => `<svg width="18" height="12" aria-hidden="true">${kind === "bar" ? `<rect x="4" y="1" width="10" height="11" rx="2" fill="${c}"/>` : kind === "rbar" ? `<rect x="4.75" y="1.75" width="8.5" height="9.5" rx="2" style="fill:color-mix(in srgb,${c} 30%,var(--surface));stroke:${c};stroke-width:1.5"/>` : kind === "dot" ? `<circle cx="9" cy="6" r="5" fill="${c}"/>` : kind === "ring" ? `<circle cx="9" cy="6" r="4" fill="var(--surface)" stroke="${c}" stroke-width="2"/>`
     : kind === "plan" ? `<line x1="2" x2="16" y1="6" y2="6" class="splan" style="stroke:var(--ink);stroke-width:2;opacity:.45"/>` : kind === "sess" ? `<line x1="1" x2="17" y1="6" y2="6" style="stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;opacity:.55"/>`
     : `<circle cx="9" cy="6" r="3" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/>`}</svg>`;
-  return `<section class="panel chartcard ${sm === "vol" ? "vol" : ip === "pct" ? "pct" : ""}" id="an-sess">
+  const EXV = !!(C?.others.length && anQ.cv === "ex");
+  const cvTog = C?.others.length ? `<div class="kfilt exk cvtog" role="group" aria-label="Vista del confronto"><span class="lbl">Vista del confronto</span>${[["bars", "Grafico della seduta"], ["ex", "Andamento in sovrapposizione"]].map(([k, l]) => `<button class="${(EXV ? "ex" : "bars") === k ? "on" : ""}" data-act="an-cv" data-v="${k}" aria-pressed="${(EXV ? "ex" : "bars") === k}">${l}</button>`).join("")}</div>` : "";
+  return `<section class="panel chartcard ${sm === "vol" ? "vol" : ip === "pct" ? "pct" : ""} ${EXV ? "exv" : ""}" id="an-sess">
     <div class="sesshead"><div><h3>Andamento della seduta · ${esc(a.name)}</h3><div class="cdesc sm-rpe">Una barra per ogni serie, nell'ordine in cui è stata fatta, alta quanto il suo RPE: si vede come è cresciuta (o calata) l'intensità durante l'allenamento. Nelle superserie le serie sono alternate.</div></div>
       <div class="row"><button class="btn sm ghost icon" data-act="an-sess-step" data-d="1" aria-label="Seduta precedente" ${idx >= list.length - 1 ? "disabled" : ""}>‹</button>
         <select class="in" data-change="an-sess" aria-label="Seduta">${list.map(x => `<option value="${x.id}" ${x === w ? "selected" : ""}>${esc(fmtD(effDate(x)))} · ${esc(x.title || "Senza titolo")}${x.status === "done" ? "" : " (non completata)"}</option>`).join("")}</select>
         <button class="btn sm ghost icon" data-act="an-sess-step" data-d="-1" aria-label="Seduta successiva" ${idx <= 0 ? "disabled" : ""}>›</button>${C ? C.pick : ""}</div></div>
+    ${cvTog}
     ${sets.length ? `<div class="kfilt" role="group" aria-label="Cosa mostra il grafico"><span class="lbl">Grafico</span>${[["rpe", "Intensità"], ["vol", "Volume"]].map(([k, l]) => `<button class="${sm === k ? "on" : ""}" data-act="an-smode" data-v="${k}" aria-pressed="${sm === k}">${l}</button>`).join("")}</div>
       <div class="kfilt sm-int" role="group" aria-label="Parametro di intensità"><span class="lbl">Parametro</span>${[["rpe", "RPE"], ["pct", sessPctLbl(sets)]].map(([k, l]) => { const has = k === "rpe" || hasPct;
         return `<button class="${ip === k ? "on" : ""} ${has ? "" : "nodata"}" data-act="an-sip" data-v="${k}" aria-pressed="${ip === k}" ${has ? "" : `title="Nessuna serie con un riferimento: servono esercizi con kg e ripetizioni (e RPE/RIR nelle sedute precedenti), sprint con il tempo o salti con l'altezza, già fatti nelle 12 settimane prima"`}>${l}</button>`; }).join("")}</div>
@@ -3514,7 +3519,7 @@ function sessionPanelHtml(a, list, w, cmp = false){
       ${w.sessionRpe && w.durationMin ? `<span>carico sRPE: <b>${fmtN(w.sessionRpe * w.durationMin)}</b> UA</span>` : ""}</div>
     ${withR.length && withR.length < sets.length ? `<div class="faint sm-rpe" style="font-size:12px;margin-top:6px">Solo <b>${withR.length}</b> serie su ${sets.length} hanno l'RPE: le altre sono i cerchietti in basso (il grafico mostra solo l'RPE). Per vederle tutte aggiungi il parametro RPE (o RIR) a quegli esercizi.</div>` : ""}
     ${sets.length && !withR.length ? `<div class="note sm-rpe" style="margin-top:10px">In questa seduta nessuna serie ha RPE o RIR: per vedere l'andamento aggiungi il parametro <b>RPE</b> (o RIR) agli esercizi, così l'atleta lo compila a ogni serie.</div>` : ""}
-    ${sets.length ? `${C?.blocks ? `<div class="scmph main"><b>${esc(fmtLong(effDate(w)))}</b><span>${esc(w.title || "Senza titolo")}</span><span class="faint">seduta scelta</span></div>` : ""}<div class="chartwrap" id="an-schart"></div>${C?.blocks || ""}
+    ${sets.length ? `${C?.blocks ? `<div class="scmph main"><b>${esc(fmtLong(effDate(w)))}</b><span>${esc(w.title || "Senza titolo")}</span><span class="faint">seduta scelta</span></div>` : ""}${EXV ? anExvHtml(a, w, C.others) : `<div class="chartwrap" id="an-schart"></div>${C?.blocks || ""}`}
     ${(ls => ls.length ? `<div class="slegend sm-rpe">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}</div>` : "")(order.filter(n => withR.some(o => o.name === n)))}
     ${(ls => ls.length ? `<div class="slegend sm-pct">${ls.map(n => `<span>${mk("bar", exColor(order, n))}${esc(n)}</span>`).join("")}<span>${mk("sess")}100% = riferimento</span><span>${mk("none")}serie senza riferimento</span></div>` : "")(order.filter(n => sets.some(o => o.name === n && o.int?.pct != null)))}
     <div class="slegend sm-rpe"><span>${mk("bar", "var(--muted)")}RPE della serie</span><span>${mk("rbar", "var(--muted)")}ricavato dal RIR (10 − RIR)</span><span>${mk("plan")}RPE previsto da te</span>${w.sessionRpe ? `<span>${mk("sess")}RPE della seduta</span>` : ""}<span>${mk("none")}serie senza RPE</span><span><b style="font-size:10px">R W B D</b>&nbsp;tipo di serie</span></div>
@@ -3545,7 +3550,9 @@ function paramChanges(a, b, mode){
     const cls = !num || !d ? "nu" : dir ? (d * dir > 0 ? "up" : "down") : "nu", ar = !num || !d ? "" : d > 0 ? " ▲" : " ▼", u = COLS[c].u;
     return {cls, t: `${COLS[c].l} ${a.r[c]} → ${b.r[c]}${u && u !== "%" && num && u.toLowerCase() !== COLS[c].l.toLowerCase() ? " " + u : u === "%" ? "%" : ""}${ar}`}; });
 }
-function drawSessCharts(a, w){ const others = sessCmpList(a, w), sh = sessShared(w, others);
+function drawSessCharts(a, w){ const others = sessCmpList(a, w);
+  if (others.length && anQ.cv === "ex" && $("#ps-chart")) { const {G} = anPsG(a, w, others), {seq, order} = psSeq(G, w); drawPsChart(G, w, seq, order, false, true); return; }
+  const sh = sessShared(w, others);
   const main = $("#an-schart"); drawSessionChart(main, w, sh);
   const els = others.map(x => { const el = document.querySelector(`.an-scc[data-id="${x.id}"]`); drawSessionChart(el, x, sh); if (el) el._date = effDate(x); return el; }).filter(Boolean);
   if (!els.length || !main) return;
@@ -3565,6 +3572,23 @@ function drawSessCharts(a, w){ const others = sessCmpList(a, w), sh = sessShared
   all.forEach(el => el.querySelectorAll(".col").forEach(g => { g.addEventListener("pointerenter", () => link(+g.dataset.k)); g.addEventListener("focus", () => link(+g.dataset.k));
     g.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") all.forEach(x => x._hide()); }); g.addEventListener("blur", () => all.forEach(x => x._hide())); }));
 }
+/* Analisi, confronto "esercizio per esercizio": la stessa vista della Progressione (sola lettura) con la seduta scelta e una seduta di riferimento */
+function anPsG(a, w, others){ const ref = others.find(x => x.id === anQ.psref) || others[0];
+  const G = {email: a.email, psRef: "kind", psRS: ref, sm: anQ.psm, sess: null, psPop: null}, PP = psParams(G, w);
+  if (!PP.some(q => q.k === G.sm)) G.sm = (PP.find(q => q.k === "kg") || PP.find(q => q.k !== "sets") || PP[0])?.k || "reps";
+  anQ.psm = G.sm; return {G, PP, ref}; }
+function anExvHtml(a, w, others){ const {G, PP, ref} = anPsG(a, w, others), dl = x => `${DAYS[dayIdx(effDate(x))].toLowerCase()} ${fmtD(effDate(x))} · ${x.title || "Senza titolo"}`;
+  return `${others.length > 1 ? `<div class="kfilt exk"><span class="lbl">Riferimento</span>${others.map(x => `<button class="${x === ref ? "on" : ""}" data-act="an-psref" data-id="${x.id}" aria-pressed="${x === ref}">${esc(dl(x))}</button>`).join("")}</div>` : ""}
+    <div class="kfilt exk psparams"><span class="lbl">Parametro nel grafico</span>${PP.map(q => `<button class="${G.sm === q.k ? "on" : ""}" data-act="an-psm" data-v="${q.k}" aria-pressed="${G.sm === q.k}" title="Lo usano ${q.n} esercizi${q.n === 1 ? "o" : ""}">${esc(q.l)}${q.u && q.u !== "rip." ? ` (${esc(q.u)})` : ""} <span class="faint">· ${q.n} es.</span></button>`).join("")}</div>
+    <div class="chartwrap" id="ps-chart"></div>
+    <div class="pslegend">
+      <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--muted);stroke-width:2.2"/><circle cx="11" cy="6" r="4.5" fill="var(--muted)"/></svg>programma</span>
+      <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--muted);stroke-width:2"/><circle cx="11" cy="6" r="3.5" fill="var(--muted)"/></svg>eseguito</span>
+      <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3"/><circle cx="11" cy="6" r="3.5" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>riferimento: ${esc(dl(ref))}</span>
+      <span><b style="color:var(--ok)">+5</b> / <b style="color:var(--warn)">−2</b> differenza con la stessa serie del riferimento</span>
+      <span><b>–</b> l'esercizio non ha questo parametro</span>
+      <span>sotto: tipo di serie, ora / rif. (<b style="color:var(--warn)">arancione</b> = cambiato)</span></div>
+    ${psVolHtml(G, w)}`; }
 function sessCmpHtml(a, w){
   const others = sessCmpList(a, w), used = new Set([w.id, ...others.map(x => x.id)]);
   const same = sameKindSessions(a.email, w, 6).filter(x => !used.has(x.id)), inP = sessListFor(a).filter(x => !used.has(x.id) && !same.includes(x));
@@ -4466,7 +4490,8 @@ function otherSessions(email, w, skip, limit = 25){ const sk = new Set(skip.map(
   return Object.values(S.cache[email] || {}).filter(q => q.id !== w.id && !sk.has(q.id) && effDate(q) < w.date
       && Object.values(q.results || {}).some(rr => Array.isArray(rr) && rr.some(r => r && (r.done || !emptyRes(r)))))
     .sort((a, b) => effDate(b).localeCompare(effDate(a))).slice(0, limit); }
-const kindRefOf = (G, w) => { const KS = sameKindSessions(G.email, w), OS = otherSessions(G.email, w, KS); return {KS, OS, RS: KS.find(q => q.id === G.psKref) || OS.find(q => q.id === G.psKref) || KS[0] || null}; };
+const kindRefOf = (G, w) => { if (G.psRS) return {KS: [], OS: [], RS: G.psRS};   /* Analisi: la seduta di confronto è scelta lì */
+  const KS = sameKindSessions(G.email, w), OS = otherSessions(G.email, w, KS); return {KS, OS, RS: KS.find(q => q.id === G.psKref) || OS.find(q => q.id === G.psKref) || KS[0] || null}; };
 /* serie eseguite di una seduta, esercizio per esercizio (con il pattern) */
 const sessPool = RS => (RS.exercises || []).map(y => { const name = exName(RS, y);
   return {name, pat: pcOf(name), cols: y.cols, sets: (RS.results?.[y.id] || []).map((r, j) => ({r, s: y.sets[j] || {}, extra: j >= y.sets.length})).filter(o => o.r.done || !emptyRes(o.r)).map(q => ({...q, name, cols: y.cols}))}; }).filter(it => it.sets.length);
@@ -5613,6 +5638,9 @@ const ACT = {
   "sd-back"(t, e){ if (e?.target === t) closeSessDlg(); },
   "an-sip"(t){ anQ.sip = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-cmp-del"(t){ anQ.cmp = (anQ.cmp || []).filter(id => id !== t.dataset.id); anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
+  "an-cv"(t){ anQ.cv = t.dataset.v; try { localStorage.setItem("asticella-ancv", anQ.cv); } catch(e) {} anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
+  "an-psm"(t){ anQ.psm = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
+  "an-psref"(t){ anQ.psref = t.dataset.id; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-smode"(t){ anQ.sm = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-sess-step"(t){ if (S.sessDlg && t.closest("#sd-body")) { const D = S.sessDlg, n = D.ids[Math.max(0, D.ids.indexOf(D.id)) + +t.dataset.d]; if (n) { D.id = n; drawSessDlg(); } return; }
     const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));

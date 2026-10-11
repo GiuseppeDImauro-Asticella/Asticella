@@ -1001,6 +1001,11 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .madd2{align-self:flex-start}
 .mcidea .adot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
 .mcidea.ab{border-style:solid;border-color:color-mix(in srgb,var(--ac) 45%,var(--line));background:color-mix(in srgb,var(--ac) 9%,var(--surface))}.mcidea.ab .an{color:var(--muted);font-weight:700}
+.bknav{position:relative}.bknav .bkdot{position:absolute;top:7px;left:25px;width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.bkban{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 9%,var(--surface))}
+.modal.bkdlg{max-width:640px}.bkdlg .body{display:flex;flex-direction:column;gap:12px}
+.bkbox{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px}.bkbox.main,.bkbox.info{background:var(--surface2)}.bkbox .bkic{font-size:24px;flex:none}.bkbox .faint{font-size:12.5px;margin-top:2px}.bkbox b.late{color:var(--warn)}.bkbox .btn{flex:none}
+.bknote{font-size:12px;line-height:1.5}.bkopt{display:flex;gap:8px;align-items:flex-start;padding:8px 0}.bkopt .faint{font-size:12px}.bkchk{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12.5px}
 .mcideas{display:flex;align-items:flex-start;gap:6px;margin:0 6px 0 10px;padding:5px 0 5px;border-top:1px dashed color-mix(in srgb,#C08BFF 30%,var(--line));font-size:11.5px;min-width:0}
 .mcideas .mcl{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);white-space:nowrap;flex:none;line-height:20px}
 .mcil{display:flex;gap:5px 6px;min-width:0;flex:1 1 auto;overflow:hidden}
@@ -1256,6 +1261,7 @@ const ICON = {
   list:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>`,
   period:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h9"/><path d="M8 12h9"/><path d="M13 18h8"/><path d="M3 3v18"/></svg>`,
   trend:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>`,
+  backup:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>`,
   refresh:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>`,
   check:`<svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`,
 };
@@ -1868,7 +1874,7 @@ async function onUser(u){
 async function loadCoachData(){
   let st;
   [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);
-  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null;
+  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null; S.lastBackup = st.lastBackupAt || null;
   S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name));
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = activeAthletes()[0]?.email || null;
@@ -1969,6 +1975,7 @@ function render(){
       <div class="brand">${ICON.logo}<span>Asticella</span><button class="navtog" data-act="nav-mini" aria-pressed="${mini}" aria-label="${mini ? "Apri il menu" : "Stringi il menu"}" title="${mini ? "Apri il menu" : "Stringi il menu (più spazio per le pagine)"}">${ICON.sidebar}</button></div>
       ${nav.map(([k,l,i]) => `<button class="nav ${S.view===k?"on":""}" data-act="nav" data-v="${k}" title="${l}" aria-label="${l}">${i}<span class="nl">${l}</span></button>`).join("")}
       <button class="nav" data-act="refresh" title="Aggiorna: ricarica i dati più recenti" aria-label="Aggiorna">${ICON.refresh}<span class="nl">Aggiorna</span></button>
+      <button class="nav bknav" data-act="bk-open" title="Backup: scarica o ripristina tutti i dati${bkDue() ? " · ultimo backup " + bkAgo() : ""}" aria-label="Backup">${ICON.backup}${bkDue() ? `<i class="bkdot"></i>` : ""}<span class="nl">Backup</span></button>
       <div class="who"><span>${DEMO ? "Modalità demo" : esc(S.user.email)}</span>${DEMO?"":`<button class="btn sm" data-act="logout">Esci</button>`}</div>
       ${DEMO ? "" : `<button class="nav mob" data-act="logout" title="${esc(S.user.email)}">Esci</button>`}
     </nav>
@@ -2372,6 +2379,94 @@ function perIdeaDialog(b0, i0){
     put([...(p.ideas || []).filter(x => x.id !== nb.id), nb].sort((x, y) => x.from - y.from)); };
 }
 
+/* ---------- BACKUP: un file con tutti i dati (atleti, sedute con i dati registrati, piani, allenamenti salvati, esercizi, impostazioni) ----------
+   si scarica sul computer/tablet; "Ripristina" lo rilegge e riscrive su Firebase quello che scegli (prima fa da solo un backup di adesso) */
+const bkYmd = (d = new Date()) => { const z = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };   // data locale (non UTC)
+const bkDays = () => S.lastBackup ? daysBetween(bkYmd(new Date(S.lastBackup)), TODAY()) : null;
+const bkAgo = () => { const d = bkDays(); return d == null ? "mai fatto" : d === 0 ? "oggi" : d === 1 ? "ieri" : `${d} giorni fa`; };
+function bkDue(){ if (S.user?.role !== "coach") return false; const d = bkDays(); return d == null || d > 7; }
+function bkBanner(){ if (!bkDue()) return ""; let sn = null; try { sn = localStorage.getItem("asticella-bksnooze"); } catch(e) {} if (sn && sn > TODAY()) return "";
+  return `<div class="note bkban" id="bkban"><span>💾 <b>${S.lastBackup ? `Ultimo backup ${bkAgo()}.` : "Non hai ancora fatto un backup."}</b> Scarica un backup dei dati: ci vogliono pochi secondi.</span><span class="grow"></span><button class="btn sm pri" data-act="bk-now">Fai il backup ora</button><button class="btn sm ghost" data-act="bk-later">Più tardi</button></div>`; }
+async function bkBuild(){
+  const athletes = await DB.listAthletes(), workouts = {};
+  for (const a of athletes) workouts[a.email] = await DB.listAllWorkouts(a.email);
+  const [plans, templates, exercises, settings] = await Promise.all([DB.listPlans(), DB.listTemplates(), DB.listExercises(), DB.getSettings()]);
+  return {app: "asticella", kind: "backup", version: 1, createdAt: new Date().toISOString(), by: S.user?.email || "", athletes, workouts, plans, templates, exercises, settings};
+}
+const bkCount = B => { const W = Object.values(B.workouts || {}).flat(); return {ath: (B.athletes || []).length, w: W.length, wd: W.filter(w => w.status === "done" || Object.values(w.results || {}).some(rr => (rr || []).some(r => r && !emptyRes(r)))).length,
+  plans: (B.plans || []).filter(p => p.scope !== "mcov").length, tpl: (B.templates || []).length, ex: (B.exercises || []).length}; };
+async function bkSave(B, name){
+  const blob = new Blob([JSON.stringify(B)], {type: "application/json"});
+  if (DEMO && window.claude?.use) { try { const dl = await window.claude.use("downloads"); if (dl) { await dl.save({filename: name, data: blob}); return true; } } catch(e) { if (e?.code === "declined") return false; console.warn(e); } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 20000); return true;
+}
+const bkStamp = () => bkYmd();
+async function bkDownloadNow(btn){
+  const old = btn?.textContent; if (btn) { btn.disabled = true; btn.textContent = "Preparo il backup…"; }
+  try { const B = await bkBuild(), ok = await bkSave(B, `asticella-backup-${bkStamp()}.json`); if (!ok) return;
+    S.lastBackup = B.createdAt; await DB.saveSettings({lastBackupAt: B.createdAt}).catch(e => console.warn(e));
+    const c = bkCount(B); toast(`Backup scaricato: ${c.ath} atleti · ${c.w} sedute · ${c.plans} piani`); $("#confirm").innerHTML = ""; render(); }
+  catch(e) { console.error(e); toast("Backup non riuscito: controlla la connessione e riprova"); }
+  finally { if (btn?.isConnected) { btn.disabled = false; btn.textContent = old; } }
+}
+function bkDialog(){
+  const d = bkDays();
+  $("#confirm").innerHTML = `<div class="back" style="z-index:70"><div class="modal bkdlg" role="dialog" aria-label="Backup dei dati"><header><h2>Backup dei dati</h2><button type="button" class="btn ghost icon" id="bk-x" aria-label="Chiudi">✕</button></header><div class="body">
+    <div class="bkbox main"><div class="bkic">💾</div><div class="grow"><b>Scarica un backup</b><div class="faint">Un file con tutto: atleti e gruppi, sedute e dati registrati, periodizzazione, allenamenti salvati, esercizi e impostazioni.<br>Ultimo backup: <b class="${d == null || d > 7 ? "late" : ""}">${S.lastBackup ? `${esc(fmtLong(bkYmd(new Date(S.lastBackup))))} (${bkAgo()})` : "mai fatto"}</b></div></div><button type="button" class="btn pri" data-act="bk-now">Scarica backup</button></div>
+    <div class="bkbox"><div class="bkic">↩︎</div><div class="grow"><b>Ripristina da un backup</b><div class="faint">Scegli un file di backup: prima di cambiare qualsiasi cosa ti mostro cosa contiene e ti chiedo cosa riportare.</div></div><label class="btn">Scegli file…<input type="file" id="bk-file" accept=".json,application/json" hidden></label></div>
+    <div class="faint bknote">Consiglio: uno a settimana, su Google Drive o una chiavetta. Tieni gli ultimi 4 e uno al mese per un anno. Il file contiene i dati personali degli atleti: tienilo privato.</div>
+  </div></div></div>`;
+  $("#bk-x").onclick = () => $("#confirm").innerHTML = "";
+  $("#bk-file").onchange = async e => { const f = e.target.files?.[0]; if (!f) return; let B;
+    try { B = JSON.parse(await f.text()); } catch(err) { return toast("Il file non si legge: non è un backup di Asticella"); }
+    if (B?.app !== "asticella" || B?.kind !== "backup" || !Array.isArray(B.athletes)) return toast("Questo file non è un backup di Asticella");
+    bkRestoreDialog(B, f.name); };
+}
+function bkRestoreDialog(B, fname){
+  const c = bkCount(B), when = B.createdAt ? new Date(B.createdAt) : null, dl = when ? fmtLong(bkYmd(when)).toLowerCase() : "in data sconosciuta";
+  const hm = when ? ` alle ${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}` : "";
+  const ath = (B.athletes || []).slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal bkdlg" id="bk-form" role="dialog" aria-label="Ripristina da backup"><header><h2>Ripristina da backup</h2><button type="button" class="btn ghost icon" id="bk-x" aria-label="Chiudi">✕</button></header><div class="body">
+    <div class="bkbox info"><div><b>${esc(fname)}</b><div class="faint">fatto ${esc(dl)}${hm} · ${c.ath} atleti · ${c.w} sedute (${c.wd} con dati registrati) · ${c.plans} pian${c.plans === 1 ? "o" : "i"} · ${c.tpl} allenament${c.tpl === 1 ? "o salvato" : "i salvati"} · ${c.ex} esercizi</div></div></div>
+    <div class="field"><span class="lbl">Cosa vuoi riportare</span>
+      <label class="bkopt"><input type="radio" name="bk-what" value="all"> <span><b>Tutto</b><div class="faint">Rimette tutto com'era nel backup: atleti, sedute, periodizzazione, allenamenti salvati, esercizi e impostazioni. Quello che c'è nel backup sostituisce la versione di adesso; quello che hai creato dopo il backup resta.</div></span></label>
+      <label class="bkopt"><input type="radio" name="bk-what" value="ath" checked> <span><b>Solo un atleta</b><div class="faint">Scheda e sedute di un atleta; gli altri restano come sono.</div>
+        <select class="in" id="bk-ath" style="margin-top:6px;max-width:300px">${ath.map(a => `<option value="${esc(a.email)}">${esc(a.name || a.email)} · ${(B.workouts?.[a.email] || []).length} sedute</option>`).join("")}</select>
+        <label class="bkchk"><input type="checkbox" id="bk-miss" checked> rimetti solo le sedute che mancano (non tocca quelle che ci sono ancora)</label></span></label>
+      <label class="bkopt"><input type="radio" name="bk-what" value="plans"> <span><b>Solo la periodizzazione</b><div class="faint">Piani, modelli di microciclo, idee e metodi, settimane personalizzate.</div></span></label></div>
+    <div class="note" style="font-size:12.5px">Prima di ripristinare scarico in automatico un backup di adesso: se qualcosa non va, puoi tornare indietro.</div>
+    <div class="faint" id="bk-prog" style="font-size:12.5px"></div>
+  </div><footer><span class="grow"></span><button type="button" class="btn" id="bk-no">Annulla</button><button class="btn pri" id="bk-go">Ripristina</button></footer></form></div>`;
+  const what = () => document.querySelector("input[name=bk-what]:checked")?.value, go = $("#bk-go");
+  const lab = () => { const w = what(), a = ath.find(x => x.email === $("#bk-ath").value); go.textContent = w === "all" ? "Ripristina tutto" : w === "plans" ? "Ripristina la periodizzazione" : `Ripristina ${a?.name || "l'atleta"}`; };
+  document.querySelectorAll("input[name=bk-what]").forEach(r => r.onchange = lab); $("#bk-ath").onchange = lab; lab();
+  $("#bk-x").onclick = $("#bk-no").onclick = () => $("#confirm").innerHTML = "";
+  $("#bk-form").onsubmit = async e => { e.preventDefault(); const w = what(), em = $("#bk-ath").value, miss = $("#bk-miss").checked, a = ath.find(x => x.email === em), pr = $("#bk-prog");
+    go.disabled = true; $("#bk-no").disabled = true;
+    try {
+      pr.textContent = "Scarico prima un backup di adesso…";
+      const NOW = await bkBuild(), d = new Date(), z = n => String(n).padStart(2, "0");
+      if (!(await bkSave(NOW, `asticella-backup-prima-del-ripristino-${bkStamp()}-${z(d.getHours())}${z(d.getMinutes())}.json`))) { pr.textContent = "Ripristino annullato: il backup di adesso non è stato salvato."; go.disabled = false; $("#bk-no").disabled = false; return; }
+      const jobs = [];
+      if (w === "all") {
+        (B.athletes || []).forEach(x => jobs.push(() => DB.saveAthlete(x)));
+        Object.entries(B.workouts || {}).forEach(([e2, L]) => (L || []).forEach(x => jobs.push(() => DB.createWorkout(e2, x))));
+        (B.plans || []).forEach(x => jobs.push(() => DB.savePlan(x)));
+        (B.templates || []).forEach(x => jobs.push(() => DB.saveTemplate(x)));
+        (B.exercises || []).forEach(x => jobs.push(() => DB.saveExercise(x)));
+        if (B.settings) { const {lastBackupAt, ...rest} = B.settings; if (Object.keys(rest).length) jobs.push(() => DB.saveSettings(rest)); }
+      } else if (w === "plans") (B.plans || []).forEach(x => jobs.push(() => DB.savePlan(x)));
+      else { if (a) jobs.push(() => DB.saveAthlete(a));
+        const have = miss ? new Set((NOW.workouts?.[em] || []).map(x => x.id)) : null;
+        (B.workouts?.[em] || []).forEach(x => { if (!have || !have.has(x.id)) jobs.push(() => DB.createWorkout(em, x)); }); }
+      let done = 0; pr.textContent = `Ripristino… 0 / ${jobs.length}`;
+      for (let i = 0; i < jobs.length; i += 10) { await Promise.all(jobs.slice(i, i + 10).map(f => f())); done = Math.min(jobs.length, i + 10); pr.textContent = `Ripristino… ${done} / ${jobs.length}`; }
+      $("#confirm").innerHTML = ""; S.cache = {}; await refreshData(true); render();
+      toast(jobs.length ? `Ripristino fatto: ${jobs.length} elementi riportati dal backup` : "Niente da ripristinare: c'era già tutto");
+    } catch(err) { console.error(err); pr.textContent = "Ripristino interrotto (connessione?). Quello già scritto resta; puoi riprovare: rifà solo quello che serve."; go.disabled = false; $("#bk-no").disabled = false; }
+  };
+}
+
 /* Firestore non accetta liste dentro liste: i 7 giorni (ognuno una lista di sedute) si salvano come [{s: [...]}, …] e si rileggono come liste */
 const daysEnc = D => (D || []).map(items => ({s: Array.isArray(items) ? items : items?.s || []}));
 const daysDec = D => Array.from({length: 7}, (_, i) => { const x = D?.[i]; return Array.isArray(x) ? x : x?.s || []; });
@@ -2666,7 +2761,7 @@ function groupSeg(){
 /* ---------- PANORAMICA ---------- */
 async function viewOverview(m){
   const ath = activeAthletes().filter(a => S.group === "Tutti" || a.group === S.group);
-  m.innerHTML = `<div class="pagehead"><div><h1>Panoramica</h1><div class="sub">Tutti gli atleti, una settimana alla volta.</div></div>
+  m.innerHTML = `${bkBanner()}<div class="pagehead"><div><h1>Panoramica</h1><div class="sub">Tutti gli atleti, una settimana alla volta.</div></div>
     <div class="toolbar">${groupSeg()}${weekNav("ov-week")}</div></div><div class="panel scroll-x" id="ov"><div style="padding:24px" class="muted">Caricamento…</div></div>`;
   await Promise.all(ath.map(a => ensureWeeks(a.email, S.ws, 1)));
   if (S.view !== "overview" || !$("#ov")) return;
@@ -5573,6 +5668,9 @@ const ACT = {
     try { await FB.F.terminate(FB.db); await FB.F.clearIndexedDbPersistence(FB.db); } catch(e) { console.warn(e); }
     location.reload(); },
   refresh(){ refreshData(); },
+  "bk-open"(){ bkDialog(); },
+  async "bk-now"(t){ await bkDownloadNow(t); },
+  "bk-later"(){ try { localStorage.setItem("asticella-bksnooze", addDays(TODAY(), 2)); } catch(e) {} $("#bkban")?.remove(); },
   /* demo */
   async "demo-reset"(){ if (!(await confirmBox("Cancellare le modifiche e ripristinare i dati demo?", "Ripristina"))) return; DB.reset(); S.cache = {}; S.loaded = {}; S.demoRole = "coach"; await loadCoachData(); setDemoRole("coach"); },
   /* navigazione coach */

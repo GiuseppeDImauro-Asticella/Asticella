@@ -4461,7 +4461,12 @@ function sameKindSessions(email, w, limit = 6){ const k = kindOf(w);
   return Object.values(S.cache[email] || {}).filter(q => q.id !== w.id && effDate(q) < w.date && kindOf(q) === k
       && Object.values(q.results || {}).some(rr => Array.isArray(rr) && rr.some(r => r && (r.done || !emptyRes(r)))))
     .sort((a, b) => effDate(b).localeCompare(effDate(a))).slice(0, limit); }
-const kindRefOf = (G, w) => { const KS = sameKindSessions(G.email, w); return {KS, RS: KS.find(q => q.id === G.psKref) || KS[0] || null}; };
+/* sedute precedenti di altri tipi (o più vecchie) con dati registrati: si possono scegliere come riferimento */
+function otherSessions(email, w, skip, limit = 25){ const sk = new Set(skip.map(q => q.id));
+  return Object.values(S.cache[email] || {}).filter(q => q.id !== w.id && !sk.has(q.id) && effDate(q) < w.date
+      && Object.values(q.results || {}).some(rr => Array.isArray(rr) && rr.some(r => r && (r.done || !emptyRes(r)))))
+    .sort((a, b) => effDate(b).localeCompare(effDate(a))).slice(0, limit); }
+const kindRefOf = (G, w) => { const KS = sameKindSessions(G.email, w), OS = otherSessions(G.email, w, KS); return {KS, OS, RS: KS.find(q => q.id === G.psKref) || OS.find(q => q.id === G.psKref) || KS[0] || null}; };
 /* serie eseguite di una seduta, esercizio per esercizio (con il pattern) */
 const sessPool = RS => (RS.exercises || []).map(y => { const name = exName(RS, y);
   return {name, pat: pcOf(name), cols: y.cols, sets: (RS.results?.[y.id] || []).map((r, j) => ({r, s: y.sets[j] || {}, extra: j >= y.sets.length})).filter(o => o.r.done || !emptyRes(o.r)).map(q => ({...q, name, cols: y.cols}))}; }).filter(it => it.sets.length);
@@ -4580,8 +4585,8 @@ function drawProgSess(G, a){
       <section class="pgmain">${w ? `
         <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${inProg && editable ? "in corso: le serie già fatte restano, le altre si possono ancora cambiare" : editable && w.date < TODAY() ? "non registrata: trascina i punti per cambiare i valori" : editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}${G.edit ? ` · <b style="color:var(--accent)">dall'allenamento aperto</b>` : ""}</span></div>
         <div class="kfilt"><span class="lbl">Confronta con</span>${[["kind", `Seduta più recente (stesso tipo · ${KINDS[kindOf(w)].l})`], ["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${esc(l)}</button>`).join("")}</div>
-        ${G.psRef === "kind" ? (({KS, RS}) => RS ? `<div class="kfilt psk"><span class="lbl">Riferimento</span><select class="in" data-change="ps-kref" aria-label="Seduta di riferimento">${KS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")}${q === KS[0] ? " (la più recente)" : ""}</option>`).join("")}</select>
-          <button type="button" class="btn sm ghost pssv" data-act="ps-sessview" data-id="${RS.id}" title="Vedi l'andamento di questa seduta (intensità e volume serie per serie) senza uscire da qui">${ICON.data} Andamento</button>
+        ${G.psRef === "kind" ? (({KS, OS, RS}) => RS || OS.length ? `<div class="kfilt psk"><span class="lbl">Riferimento</span><select class="in" data-change="ps-kref" aria-label="Seduta di riferimento">${RS ? "" : `<option value="" selected>— scegli una seduta —</option>`}${KS.length ? `<optgroup label="Stesso tipo (${esc(KINDS[kindOf(w)].l)})">${KS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")}${q === KS[0] ? " (la più recente)" : ""}</option>`).join("")}</optgroup>` : ""}${OS.length ? `<optgroup label="Altre sedute">${OS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")} · ${esc(KINDS[kindOf(q)].l)}</option>`).join("")}</optgroup>` : ""}</select>
+          ${RS ? `<button type="button" class="btn sm ghost pssv" data-act="ps-sessview" data-id="${RS.id}" title="Vedi l'andamento di questa seduta (intensità e volume serie per serie) senza uscire da qui">${ICON.data} Andamento</button>` : `<span class="faint" style="font-size:12px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)}: scegline un'altra.</span>`}
           <span class="faint" style="font-size:12px">Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE).</span></div>`
           : `<div class="faint" style="font-size:12px;margin-top:6px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)} con dati registrati.</div>`)(kindRefOf(G, w)) : ""}
         ${!namedEx(w).length ? (({RS}) => `<div class="psempty"><b>Questa seduta è ancora vuota.</b> ${RS && G.psRef === "kind" ? `Nel grafico vedi cosa è stato fatto ${esc(DAYS[dayIdx(effDate(RS))].toLowerCase())} ${esc(fmtD(effDate(RS)))} · ${esc(RS.title || "")}: puoi partire da lì${editable ? `, cambiando se vuoi gli esercizi (in cima quelli dello stesso pattern), e poi i numeri.
@@ -5603,7 +5608,7 @@ const ACT = {
   "an-split"(t){ anQ.split = t.dataset.v; if (anQ.split === "cat") { anQ.kv = "all"; anQ.ks = "all"; } else anQ.cf = "all"; renderView(); },   // un solo filtro alla volta: per tipo di seduta o per categoria
   "an-cf"(t){ anQ.cf = t.dataset.v; renderView(); },
   "an-ik"(t){ anQ.ik = t.dataset.v; renderView(); },
-  "ps-sessview"(t){ const G = S.prog; if (!G) return; const w = progW(G, G.wid) || S.cache[G.email]?.[G.wid]; const {KS} = w ? kindRefOf(G, w) : {KS: []}; openSessDlg(G.email, t.dataset.id, KS.map(q => q.id)); },
+  "ps-sessview"(t){ const G = S.prog; if (!G) return; const w = progW(G, G.wid) || S.cache[G.email]?.[G.wid]; const {KS, OS} = w ? kindRefOf(G, w) : {KS: [], OS: []}; openSessDlg(G.email, t.dataset.id, [...KS, ...OS].sort((x, y) => effDate(y).localeCompare(effDate(x))).map(q => q.id)); },
   "sd-close"(){ closeSessDlg(); },
   "sd-back"(t, e){ if (e?.target === t) closeSessDlg(); },
   "an-sip"(t){ anQ.sip = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },

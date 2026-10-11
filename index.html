@@ -981,6 +981,22 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 .cal.compact .rail .wk{writing-mode:horizontal-tb;transform:none;font-size:13px;text-align:center;line-height:1.15}
 .cal.compact .rail .wk small{display:block;margin:2px 0 0;font-size:10px}
 .cal.compact .rail{padding:6px 3px;gap:4px;justify-content:flex-start}.cal.compact .rail .btn{margin-top:auto;padding:2px 6px;font-size:11px}
+.pmw{z-index:2;align-self:end;justify-self:center;width:58%;border-radius:2px 2px 0 0;background:#0C0F14;opacity:.26;pointer-events:none;margin-bottom:3px}
+.modal.ivdlg{max-width:1240px}
+.ivtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}.ivtools .in{width:auto;padding:3px 8px;font-size:12.5px}
+.iwg{display:grid;grid-template-columns:96px repeat(7,minmax(104px,1fr));gap:6px;min-width:860px}
+.iwg .hd{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);text-align:center}
+.iwg .wl{display:flex;flex-direction:column;justify-content:center;font-weight:800;font-size:13px;gap:1px}.iwg .wl small{font-weight:600;color:var(--faint);font-size:11px}
+.iwg .wl .tag{align-self:flex-start;font-size:10px;font-weight:800;border-radius:5px;padding:0 6px;color:#0C0F14;background:#3DC88B}
+.iwg .wl .lnk{font-size:11px;align-self:flex-start}
+.iwg .icl{border:1px solid var(--line);border-radius:9px;background:var(--bg);padding:4px;display:flex;flex-direction:column;gap:4px;justify-content:center;min-height:54px}
+.iwg .icl.base{background:color-mix(in srgb,var(--accent) 5%,var(--bg))}
+.iwg .icl.rest{color:var(--faint);font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;align-items:center}
+.iwg .iss{border:1px solid var(--line);border-left:4px solid var(--bc);border-radius:7px;background:var(--surface);padding:3px 4px}
+.iwg .iss .tn{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;gap:4px}
+.iwg .iss em{font-style:normal;font-size:10px;font-weight:800;border-radius:4px;padding:0 4px}
+.iwg .iss em.p{color:#F0844C;background:color-mix(in srgb,#F0844C 15%,transparent)}.iwg .iss em.m{color:#7D97FF;background:color-mix(in srgb,#7D97FF 15%,transparent)}
+.iwg .iss .nstep{width:100%;margin-top:2px}.iwg .iss .nstep .in{width:100%;min-width:24px;padding:1px 0;font-weight:800}.iwg .iss .nstep button{min-width:22px;padding:0 3px;font-size:13px}
 .pmpop{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
 .pmpop .pmh{font-weight:700}.pmpop .pmr{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pmpop .pmr .lbl{min-width:64px;white-space:nowrap}
 .pmpop button{border:1px solid var(--line);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-weight:700;padding:4px 9px;cursor:pointer;min-width:30px}
@@ -2054,6 +2070,10 @@ function perGridHtml(p, ed){
     ${row(`${ed ? `<button class="lk mlk" data-act="mc-models" title="Crea e modifica le settimane tipo">Modello ✎</button>` : "Modello"} <small>settimana tipo</small>`, (() => { const ms = p.models || [], mo = i => ms.find(m => m.id === p.wmod?.[i]) || null;
       let h = cells(i => `<button class="pc ${i === today ? "now" : ""}" style="${at(i)}" ${ed ? `data-act="per-mod" data-i="${i}"` : ""} title="${mo(i) ? esc(mo(i).name) : "Nessun modello"}${ed ? " · clicca per scegliere" : ""}"></button>`);
       for (let i = 0; i < N; ) { const m = mo(i); let j = i; while (j + 1 < N && mo(j + 1) === m) j++; if (m) h += `<div class="pblk pmod" style="${span(i, j)};--bc:${mcCol(p, m)}">${esc(m.name)}</div>`; i = j + 1; }
+      /* barretta in fondo a ogni settimana: RPE medio delle sedute di quella settimana (con i ritocchi), alta da 3 a 11 px tra il minimo e il massimo del piano */
+      const avg = i => { const m = mo(i); if (!m) return null; const v = mcWeekDays(p, i, m).flat().map(it => it.rpe); return v.length ? v.reduce((t, x) => t + x, 0) / v.length : null; };
+      const AV = Array.from({length: N}, (_, i) => avg(i)), ok = AV.filter(v => v != null), lo = Math.min(...ok), hi = Math.max(...ok);
+      AV.forEach((v, i) => { if (v != null) h += `<span class="pmw" style="${at(i)};height:${hi > lo ? 3 + (v - lo) / (hi - lo) * 8 : 5}px"></span>`; });
       return h; })())}
     <div class="psec"><span>Abilità biomotorie</span></div>
     ${(p.abil || []).map((ab, k) => row(ed ? `<button class="lk" data-act="per-abil" data-id="${ab.id}" title="Rinomina o togli">${esc(ab.name)}</button>` : esc(ab.name), blocks(ab.blocks || [], ab.id, () => ABIL_COL(k), bk => bk.name))).join("")}
@@ -2062,7 +2082,7 @@ function perGridHtml(p, ed){
   <div class="plegend"><span><i class="pli lv-p" style="--bc:var(--s1)"></i>prioritaria</span><span><i class="pli lv-s" style="--bc:var(--s1)"></i>secondaria</span><span><i class="pli lv-m" style="--bc:var(--s1)"></i>mantenimento</span>
     <span class="faint">Gare/test:</span>${Object.values(EV).map(e => `<span><span class="pmk" style="background:${e.c}">${e.s}</span>${e.l}</span>`).join("")}
     <span class="faint">Microciclo:</span><span>numero = carico previsto 1–5</span>${["S", "T", "G", "R"].map(k => `<span><span class="pmk" style="background:${MICRO[k].c}">${k}</span>${MICRO[k].l.toLowerCase()}</span>`).join("")}
-    <span class="faint">Modello:</span><span>la settimana tipo (sedute del giorno con tipo e RPE previsto), che compare nel Calendario degli atleti</span>
+    <span class="faint">Modello:</span><span>la settimana tipo (sedute del giorno con tipo e RPE previsto), che compare nel Calendario degli atleti</span><span><i style="display:inline-block;width:8px;height:9px;border-radius:2px 2px 0 0;background:var(--muted);opacity:.6;margin-right:4px;vertical-align:-1px"></i>barretta nel modello = RPE medio della settimana (più alta = più intensa)</span>
     ${ed ? `<span class="faint">Clicca una casella vuota per aggiungere un blocco, un blocco per cambiarlo.</span>` : ""}</div>`;
 }
 /* ---------- pianificato vs reale ---------- */
@@ -2319,8 +2339,11 @@ const mcOvDoc = email => (S.plans || []).find(p => p.scope === "mcov" && p.key =
 function mcFor(a, ws){
   const ov = mcOvDoc(a.email)?.weeks?.[ws], p = planAt(a, ws), i = p ? perIdx(p, ws) : -1, m = p ? (p.models || []).find(x => x.id === p.wmod?.[i]) || null : null;
   if (!ov && !m && !p) return null;
-  return {p, i, m, days: ov || m?.days || null, ov: !!ov};
+  return {p, i, m, days: ov || (m ? mcWeekDays(p, i, m) : null), ov: !!ov};
 }
+/* intensità settimana per settimana: p.wadj[i]["giorno-seduta"] = quanto si alza/abbassa l'RPE del modello in quella settimana */
+const rpeClamp = v => Math.max(1, Math.min(10, Math.round(v * 2) / 2));
+const mcWeekDays = (p, i, m) => { const A = p.wadj?.[i] || {}; return m.days.map((items, d) => items.map((it, j) => { const o = +A[`${d}-${j}`] || 0; return o ? {...it, rpe: rpeClamp(it.rpe + o), base: it.rpe} : it; })); };
 /* abbina le sedute del giorno a quelle previste (stesso tipo, in ordine); quelle che avanzano sono "fuori piano" */
 function mcPair(items, list){ const used = new Set();
   const pair = (items || []).map(it => { const w = list.find(w => !used.has(w) && kindOf(w) === it.k) || null; if (w) used.add(w); return w; });
@@ -2330,7 +2353,7 @@ const doneRpe = w => w && statusOf(w) === "done" ? +w.sessionRpe || null : null;
 /* contenuto del giorno: per ogni seduta prevista la scheda vera (se c'è) o la casella da riempire; poi le sedute fuori piano */
 function mcCellHtml(a, d, items, list){
   const {pair, rest} = mcPair(items, list), out = (items || []).map((it, j) => pair[j] ? cardHtml(a.email, pair[j], it)
-    : `<button class="mslot" style="--kc:${kindColor(it.k)}" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" data-k="${it.k}" title="Seduta prevista: ${esc(KINDS[it.k]?.l || "")}, RPE ${fmt1(it.rpe)} · clicca per crearla"><span class="pp">+</span><b>${kShort(it.k)}</b><span class="v">${fmt1(it.rpe)}</span></button>`);
+    : `<button class="mslot" style="--kc:${kindColor(it.k)}" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" data-k="${it.k}" title="Seduta prevista: ${esc(KINDS[it.k]?.l || "")}, RPE ${fmt1(it.rpe)}${it.base != null ? ` (modello ${fmt1(it.base)}, ${it.rpe > it.base ? "+" : ""}${fmt1(it.rpe - it.base)} questa settimana)` : ""} · clicca per crearla"><span class="pp">+</span><b>${kShort(it.k)}</b><span class="v">${fmt1(it.rpe)}</span></button>`);
   if (!items?.length && !rest.length) out.push(`<div class="mrest2">Riposo</div>`);
   return out.concat(rest.map(w => cardHtml(a.email, w, "off"))).join("");
 }
@@ -2397,6 +2420,8 @@ function mcModelsDialog(selId){
     else if (a === "no") close();
     else if (a === "save") { M.forEach(m => m.name = (m.name || "").trim() || "Senza nome"); p.models = M;
       const ids = new Set(M.map(m => m.id)); Object.keys(p.wmod || {}).forEach(i => { if (!ids.has(p.wmod[i])) delete p.wmod[i]; });
+      Object.keys(p.wadj || {}).forEach(i => { const m = M.find(x => x.id === p.wmod?.[i]); if (!m) return delete p.wadj[i];   // sedute tolte dal modello: via i loro aggiustamenti
+        Object.keys(p.wadj[i]).forEach(key => { const [d, j] = key.split("-").map(Number); if (!m.days[d]?.[j]) delete p.wadj[i][key]; }); if (!Object.keys(p.wadj[i]).length) delete p.wadj[i]; });
       close(); if (await perSave(p)) toast("Modelli salvati"); drawPer(); } });
   draw();
 }
@@ -2414,7 +2439,8 @@ function perModDialog(i0){
       <div class="field"><label class="lbl" for="pm-to">Alla settimana</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" id="pm-to" min="1" max="${p.weeks}" value="${z + 1}" style="width:64px"><button type="button" data-step="1" aria-label="Più">+</button></span></div>
       <div class="field grow"><span class="lbl">&nbsp;</span><span class="faint" id="pm-dates" style="font-size:12px"></span></div></div>
     <div class="faint" style="font-size:12px">${cur ? "Cambia le settimane per allungarlo o accorciarlo, oppure scegli un altro modello, poi <b>Salva</b>. " : ""}Le settimane scelte prendono questo modello anche se ne avevano un altro.</div>
-    <button type="button" class="lnk" id="pm-edit" style="align-self:flex-start">✎ Crea o modifica i modelli…</button>
+    <div class="row" style="gap:14px">${ms.length ? `<button type="button" class="btn sm" id="pm-int" title="Alza o abbassa l'RPE delle sedute di questo modello settimana per settimana">📈 Intensità settimana per settimana${Object.keys(p.wadj || {}).some(k => +k >= a && +k <= z) ? " ●" : ""}</button>` : ""}
+      <button type="button" class="lnk" id="pm-edit">✎ Crea o modifica i modelli…</button></div>
     </div><footer>${cur ? `<button type="button" class="btn ghost danger" id="pm-del">Togli</button>` : ""}<span class="grow"></span><button type="button" class="btn" id="pm-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
   const rng = () => { let f = Math.max(1, Math.min(p.weeks, +$("#pm-from").value || 1)) - 1, t = Math.max(1, Math.min(p.weeks, +$("#pm-to").value || 1)) - 1; if (t < f) [f, t] = [t, f]; return [f, t]; };
   const dates = () => { const [f, t] = rng(); $("#pm-dates").textContent = `${fmtD(perWs(p, f))} – ${fmtD(addDays(perWs(p, t), 6))} · ${t - f + 1} settiman${t - f ? "e" : "a"}`; };
@@ -2422,13 +2448,77 @@ function perModDialog(i0){
   $("#pm-sel").onclick = e => { const b = e.target.closest("[data-id]"); if (!b) return; sel = b.dataset.id; $("#pm-sel").querySelectorAll(".t").forEach(x => x.classList.toggle("on", x === b)); };
   const close = () => $("#confirm").innerHTML = "";
   $("#pm-no").onclick = close; $("#pm-edit").onclick = () => { close(); mcModelsDialog(sel); };
-  const put = async (f, t, v) => { p.wmod ??= {}; if (cur) for (let k = a; k <= z; k++) delete p.wmod[k]; if (v) for (let k = f; k <= t; k++) p.wmod[k] = v; close(); await perSave(p); drawPer(); };
+  const put = async (f, t, v) => { p.wmod ??= {}; const before = {...p.wmod};
+    if (cur) for (let k = a; k <= z; k++) delete p.wmod[k]; if (v) for (let k = f; k <= t; k++) p.wmod[k] = v;
+    Object.keys(p.wadj || {}).forEach(k => { if (before[k] !== p.wmod[k]) delete p.wadj[k]; });   // cambia il modello della settimana: i suoi aggiustamenti non valgono più
+    close(); const ok = await perSave(p); drawPer(); return ok; };
+  /* intensità: prima si salvano modello e settimane scelti qui (anche se non hai premuto Salva), poi si apre la tabella con quelle settimane */
+  if ($("#pm-int")) $("#pm-int").onclick = async () => { const [f, t] = rng();
+    if (sel !== cur || f !== a || t !== z) { if (!(await put(f, t, sel))) return; } else close();
+    mcIntDialog(sel, f, t); };
   if ($("#pm-del")) $("#pm-del").onclick = () => put(0, -1, "");
   $("#pm-form").onsubmit = e => { e.preventDefault(); const [f, t] = rng(); put(f, t, sel); };
 }
+/* intensità settimana per settimana: righe = settimane del modello (tra a e z), colonne = giorni; sotto la forma di tutto il blocco */
+function mcIntDialog(mid, a, z){
+  const p = perEd(); if (!p) return; const m = (p.models || []).find(x => x.id === mid); if (!m) return;
+  const wk = []; for (let k = a; k <= z; k++) if (p.wmod?.[k] === mid) wk.push(k);
+  const W = Object.fromEntries(wk.map(k => [k, {...(p.wadj?.[k] || {})}]));
+  const slots = []; m.days.forEach((items, d) => items.forEach((it, j) => slots.push({d, j, key: `${d}-${j}`, it})));
+  if (!slots.length) { toast("Il modello non ha sedute: aggiungile prima nel modello"); return; }
+  const val = (k, s) => rpeClamp(s.it.rpe + (+W[k][s.key] || 0));
+  const badge = o => o ? `<em class="${o > 0 ? "p" : "m"}">${o > 0 ? "+" : ""}${fmt1(o)}</em>` : "";
+  const cellHtml = (k, items, d) => !items.length ? `<div class="icl rest">riposo</div>` : `<div class="icl">${items.map((it, j) => { const key = `${d}-${j}`, o = +W[k][key] || 0;
+    return `<div class="iss" style="--bc:${kindColor(it.k)}"><div class="tn">${esc(kShort(it.k))}<span class="bd" data-b="${k}|${key}">${badge(o)}</span></div><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" inputmode="decimal" min="1" max="10" step="1" value="${rpeClamp(it.rpe + o)}" data-iw="${k}" data-ik="${key}" aria-label="RPE ${esc(KINDS[it.k]?.l || "")} settimana ${k + 1}"><button type="button" data-step="1" aria-label="Più">+</button></span></div>`; }).join("")}</div>`;
+  const gridHtml = () => `<div class="iwg"><div></div>${MC_DAYS.map(d => `<div class="hd">${d.slice(0, 3)}</div>`).join("")}
+    <div class="wl">Modello<small>RPE di base</small></div>${m.days.map(items => !items.length ? `<div class="icl rest">riposo</div>` : `<div class="icl base">${items.map(it => `<div class="iss" style="--bc:${kindColor(it.k)}"><div class="tn">${esc(kShort(it.k))}<b>${fmt1(it.rpe)}</b></div></div>`).join("")}</div>`).join("")}
+    ${wk.map((k, n) => `<div class="wl">Sett. ${k + 1}<small>${fmtD(perWs(p, k))}</small>${p.micro?.[k] === "S" ? `<span class="tag">scarico</span>` : ""}${n ? `<button type="button" class="lnk" data-icopy="${k}" title="Copia gli aggiustamenti della settimana sopra">↑ copia sopra</button>` : ""}</div>${m.days.map((items, d) => cellHtml(k, items, d)).join("")}`).join("")}</div>`;
+  const chartHtml = () => { const H = 110, pl = 28, n = wk.length, cw = ($("#iv-chart")?.clientWidth || 1100) - 8, gw = Math.max(7 * 14 + 12, (cw - pl - 6) / n), Wd = pl + n * gw + 6;
+    let g = `<svg viewBox="0 0 ${Wd} ${H + 44}" width="${Wd}" style="display:block;max-width:none">`;
+    [5, 10].forEach(t => g += `<line x1="${pl}" x2="${Wd}" y1="${H + 8 - t / 10 * H}" y2="${H + 8 - t / 10 * H}" style="stroke:var(--line)"/><text x="${pl - 6}" y="${H + 12 - t / 10 * H}" text-anchor="end" style="font-size:10px;fill:var(--faint)">${t}</text>`);
+    const pts = []; wk.forEach((k, wi) => { const x0 = pl + wi * gw, dw = (gw - 12) / 7, vs = [];
+      if (p.micro?.[k] === "S") g += `<rect x="${x0 + 2}" y="4" width="${gw - 4}" height="${H + 6}" rx="6" style="fill:color-mix(in srgb,#3DC88B 12%,transparent)"/>`;
+      if (wi) g += `<line x1="${x0}" x2="${x0}" y1="4" y2="${H + 10}" style="stroke:var(--line);stroke-dasharray:3 3"/>`;
+      m.days.forEach((items, d) => { const n2 = items.length, bw = Math.min(8, (dw - 2) / Math.max(1, n2));
+        items.forEach((it, j) => { const v = val(k, {it, key: `${d}-${j}`}); vs.push(v); const cx = x0 + 6 + d * dw + dw / 2 + (j - (n2 - 1) / 2) * (bw + 1);
+          g += `<rect x="${cx - bw / 2}" y="${H + 8 - v / 10 * H}" width="${bw}" height="${v / 10 * H}" rx="2" style="fill:${kindColor(it.k)}"><title>Sett. ${k + 1} · ${MC_DAYS[d]} · ${esc(KINDS[it.k]?.l || "")}: RPE ${fmt1(v)}</title></rect>`; }); });
+      const av = vs.length ? vs.reduce((t, v) => t + v, 0) / vs.length : 0; pts.push([x0 + gw / 2, H + 8 - av / 10 * H, av]);
+      g += `<text x="${x0 + gw / 2}" y="${H + 28}" text-anchor="middle" style="font-size:11px;font-weight:700;fill:var(--muted)">Sett. ${k + 1}</text><text x="${x0 + gw / 2}" y="${H + 41}" text-anchor="middle" style="font-size:10px;fill:var(--faint)">${p.micro?.[k] === "S" ? "scarico" : fmtD(perWs(p, k))}</text>`; });
+    if (pts.length > 1) g += `<path d="${pts.map((q, i) => `${i ? "L" : "M"}${q[0]},${q[1]}`).join(" ")}" style="fill:none;stroke:var(--ink);stroke-width:2;opacity:.55"/>`;
+    g += pts.map(q => `<circle cx="${q[0]}" cy="${q[1]}" r="3.5" style="fill:var(--ink);opacity:.7"><title>RPE medio ${fmtN(q[2], 1)}</title></circle>`).join("");
+    return g + `</svg>`; };
+  const slotName = s => `${MC_DAYS[s.d]} · ${KINDS[s.it.k]?.l || ""}`;
+  $("#confirm").innerHTML = `<div class="back" style="z-index:70"><div class="modal mcdlg ivdlg" role="dialog" aria-label="Intensità settimana per settimana"><header><button type="button" class="btn sm ghost" id="iv-back" title="Torna alla finestra del modello (settimane, modello)">‹ Modello</button><h2>Intensità settimana per settimana</h2><span class="faint" style="font-size:12.5px">modello «${esc(m.name)}» · settimane ${wk[0] + 1}–${wk[wk.length - 1] + 1}</span><span class="grow"></span><button type="button" class="btn ghost icon" id="iv-x" aria-label="Chiudi">✕</button></header>
+    <div class="body"><div class="faint" style="font-size:12.5px">Una riga per settimana, i giorni in colonna come nel modello. In ogni seduta scegli l'RPE di quella settimana; l'etichetta dice di quanto è cambiato rispetto al modello (+ arancione, − blu). Sotto, la forma di tutto il blocco.</div>
+      <div class="ivtools">Progressione veloce: <select class="in" id="iv-slot">${slots.map((s, i) => `<option value="${i}">${esc(slotName(s))}</option>`).join("")}</select>
+        da sett. <select class="in" id="iv-from">${wk.map(k => `<option value="${k}">${k + 1}</option>`).join("")}</select> a <select class="in" id="iv-to">${wk.map((k, i) => `<option value="${k}" ${i === wk.length - 1 ? "selected" : ""}>${k + 1}</option>`).join("")}</select>
+        passo <select class="in" id="iv-step">${[["1", "+1 a settimana"], ["0.5", "+0,5 a settimana"], ["2", "+2 a settimana"], ["-1", "−1 a settimana"]].map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+        <button type="button" class="btn sm" id="iv-apply">Applica</button><button type="button" class="btn sm ghost" id="iv-zero">Azzera tutto</button></div>
+      <div class="scroll-x" id="iv-grid">${gridHtml()}</div>
+      <div class="shl">Forma del blocco <span class="faint">· le settimane una dopo l'altra: barre = RPE di ogni seduta, linea = RPE medio della settimana</span></div>
+      <div class="scroll-x" id="iv-chart">${chartHtml()}</div></div>
+    <footer><span class="faint" style="font-size:12.5px">Il modello di base non cambia: queste RPE valgono solo per queste settimane del piano.</span><span class="grow"></span><button type="button" class="btn" id="iv-no">Annulla</button><button type="button" class="btn pri" id="iv-ok">Salva</button></footer></div></div>`;
+  const redraw = () => { $("#iv-grid").innerHTML = gridHtml(); $("#iv-chart").innerHTML = chartHtml(); };
+  $("#iv-chart").innerHTML = chartHtml();   // ora che la finestra c'è, il grafico prende tutta la larghezza
+  const box = $("#confirm").querySelector(".ivdlg");
+  box.addEventListener("input", e => { const inp = e.target.closest("input[data-iw]"); if (!inp) return; const k = +inp.dataset.iw, key = inp.dataset.ik, s = slots.find(x => x.key === key);
+    const v = parseFloat(String(inp.value).replace(",", ".")); if (!(v >= 1 && v <= 10)) return; const o = Math.round((rpeClamp(v) - s.it.rpe) * 2) / 2;
+    if (o) W[k][key] = o; else delete W[k][key]; const b = box.querySelector(`[data-b="${k}|${key}"]`); if (b) b.innerHTML = badge(o); $("#iv-chart").innerHTML = chartHtml(); });
+  box.addEventListener("click", e => { const c = e.target.closest("[data-icopy]"); if (!c) return; const k = +c.dataset.icopy, prev = wk[wk.indexOf(k) - 1]; W[k] = {...W[prev]}; redraw(); });
+  $("#iv-apply").onclick = () => { const s = slots[+$("#iv-slot").value], f = +$("#iv-from").value, t = +$("#iv-to").value, st = +$("#iv-step").value; if (t < f) return toast("La settimana finale viene prima di quella iniziale");
+    const o0 = +W[f][s.key] || 0; wk.filter(k => k >= f && k <= t).forEach((k, n) => { const v = rpeClamp(s.it.rpe + o0 + st * n), o = Math.round((v - s.it.rpe) * 2) / 2; if (o) W[k][s.key] = o; else delete W[k][s.key]; }); redraw(); };
+  $("#iv-zero").onclick = () => { wk.forEach(k => W[k] = {}); redraw(); };
+  const close = () => $("#confirm").innerHTML = "";
+  $("#iv-x").onclick = close; $("#iv-no").onclick = close;
+  const dirty = () => wk.some(k => JSON.stringify(W[k]) !== JSON.stringify(p.wadj?.[k] || {}));
+  const save = async () => { p.wadj ??= {}; wk.forEach(k => { if (Object.keys(W[k]).length) p.wadj[k] = W[k]; else delete p.wadj[k]; }); close(); const ok = await perSave(p); drawPer(); return ok; };
+  $("#iv-ok").onclick = async () => { if (await save()) toast("Intensità salvate"); };
+  /* indietro alla finestra del modello: se hai cambiato qualcosa lo salva prima, così non si perde */
+  $("#iv-back").onclick = async () => { if (dirty()) { if (!(await save())) return; toast("Intensità salvate"); } else close(); perModDialog(wk[0]); };
+}
 /* Calendario: personalizza la settimana per un atleta */
 function mcOvDialog(a, ws){
-  const mc = mcFor(a, ws) || {}, D = clone(mc.days || mcEmpty()), first = a.name.split(" ")[0];
+  const mc = mcFor(a, ws) || {}, D = (mc.days || mcEmpty()).map(items => items.map(({k, rpe}) => ({k, rpe}))), first = a.name.split(" ")[0];
   $("#confirm").innerHTML = `<div class="back" style="z-index:70"><div class="modal mcdlg" role="dialog" aria-label="Piano della settimana"><header><h2>Piano della settimana</h2><span class="faint" style="font-size:12.5px">${esc(a.name)} · ${esc(fmtRange(ws))}</span><span class="grow"></span><button type="button" class="btn ghost icon" id="mo-x" aria-label="Chiudi">✕</button></header>
     <div class="body"><div class="faint" style="font-size:12.5px;margin-bottom:10px">${mc.m ? `Parti dal modello <b>${esc(mc.m.name)}</b> del piano: le modifiche valgono solo per ${esc(first)} e solo in questa settimana.` : `Questa settimana non ha un modello nel piano: quello che scrivi vale solo per ${esc(first)}.`} Ogni riga è una seduta: tipo + RPE di seduta previsto (1–10).</div>
       <div id="mo-days">${mcDaysHtml(D)}</div><div id="mo-shape">${mcShpHtml(D)}</div></div>

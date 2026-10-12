@@ -186,6 +186,7 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .mband .r{color:var(--muted);font-size:12px}
 .mband .e{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
 .cal .rail.inm{box-shadow:inset 4px 0 0 var(--mc);background:color-mix(in srgb,var(--mc) 10%,var(--surface2))}
+#main{transition:opacity .12s ease-out}#main.cjump{opacity:0;transition:none}
 .cal .rail .rtop{display:flex;flex-direction:column;align-items:center;gap:3px}.cal .rail .rtag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);writing-mode:horizontal-tb}.cal .rail .rtag.cur{color:var(--accent)}
 .cal .rail .mw{font-size:11px;font-weight:700;color:var(--mc);writing-mode:horizontal-tb}
 .swatches{display:flex;gap:8px}
@@ -1989,10 +1990,10 @@ function render(){
    durante il ridisegno l'altezza resta quella di prima e poi si torna allo stesso punto */
 async function renderView(){
   const m = $("#main"); if (!m) return;
-  const v = S.view, same = S._rv === v, y = window.scrollY; S._rv = v;
+  const v = S.view, same = S._rv === v, y = window.scrollY; S._rv = v; S._same = same;
   if (same) m.style.minHeight = m.offsetHeight + "px";
   try { await renderSection(m, v); }
-  finally { if (same) { window.scrollTo(0, y); m.style.minHeight = ""; } }
+  finally { if (same) { if (!S._noRestore) window.scrollTo(0, y); m.style.minHeight = ""; } S._noRestore = false; m.classList.remove("cjump"); }
 }
 async function renderSection(m, v){
   PCM = null; INTM = null;
@@ -2804,6 +2805,7 @@ async function viewCalendar(m){
       <span class="stepper" title="Settimane visibili"><button data-act="cal-n" data-d="-1" aria-label="Una settimana in meno" ${S.calWeeks<=1?"disabled":""}>−</button><span class="num" style="padding:0 8px">${S.calWeeks} sett.</span><button data-act="cal-n" data-d="1" aria-label="Una settimana in più" ${S.calWeeks>=16?"disabled":""}>+</button></span>
       <button class="btn icon calcmp ${S.calCompact ? "on" : ""}" data-act="cal-compact" aria-pressed="${S.calCompact}" aria-label="${S.calCompact ? "Vista normale" : "Vista compatta"}" title="${S.calCompact ? "Vista normale: le sedute con tutti gli esercizi" : "Vista compatta: solo titolo, tipo e stato delle sedute (più settimane sullo schermo)"}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${S.calCompact ? '<rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/>' : '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>'}</svg></button>
     </div></div><div class="scroll-x" id="calwrap"><div class="muted" style="padding:20px">Caricamento…</div></div>`;
+  if (S.calJump && !S._same) m.classList.add("cjump");   // finché non è pronto e posizionato sulla settimana in corso, la pagina resta invisibile (poi compare con una breve dissolvenza)
   await Promise.all([ensureWeeks(a.email, S.cws, S.calWeeks), ensurePlans()]);
   if (S.view !== "calendar") return;
   drawCalendar();
@@ -2836,13 +2838,20 @@ function drawCalendar(){
       ${S.calPick ? `<button class="btn sm pri" data-act="sel-pick" data-v="0">Fine</button>` : `<button class="btn sm ghost" data-act="cal-unsel">Deseleziona</button>`}</span>`
     : `<span class="dsk">Sul computer: <kbd>Ctrl</kbd> + trascina = copia · trascina su uno spazio vuoto per selezionare più allenamenti · <kbd>Ctrl</kbd> + clic per aggiungerne uno</span><button class="btn sm tch" data-act="sel-pick" data-v="1">☑ Seleziona più allenamenti</button>`}</div>` + (anyMc ? MC_LEGEND : "") + html + `</div>`;
   requestAnimationFrame(mcIdeasFit);
-  if (S.calJump) { S.calJump = false; setTimeout(calJumpToday, 30); }
+  if (S.calJump === "smooth") { S.calJump = false; setTimeout(() => calJumpToday(true), 0); }   // "Oggi": si vede lo spostamento, morbido
+  else if (S.calJump) { S.calJump = false; calJumpToday(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
+    const mm = $("#main"); if (mm?.classList.contains("cjump")) requestAnimationFrame(() => mm.classList.remove("cjump")); }
 }
 /* aprendo il Calendario (o con "Oggi") la pagina scorre fino alla settimana in corso: la settimana scorsa resta subito sopra */
-function calJumpToday(){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return;
+function calJumpToday(smooth){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return;
   const prev = r.previousElementSibling, el = prev?.classList.contains("mband") ? prev : r;
   if (!r.parentElement.querySelector(".rail") || r.parentElement.querySelector(".rail") === r && el === r) return;   // la settimana in corso è già la prima
-  window.scrollTo({top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - 8)}); }
+  const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - 8), document.documentElement.scrollHeight - innerHeight);
+  if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
+  const from = window.scrollY, d = to - from; if (Math.abs(d) < 2) return; const T = Math.min(650, 320 + Math.abs(d) * 0.25), t0 = performance.now();
+  const ease = x => 1 - Math.pow(1 - x, 3);   // parte veloce e rallenta dolcemente
+  const step = now => { const k = Math.min(1, (now - t0) / T); window.scrollTo(0, from + d * ease(k)); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step); }
 /* idee della settimana nel Calendario: su una riga sola; se il testo non ci sta compare "Mostra tutto" */
 function mcIdeasFit(){ document.querySelectorAll(".mcideas:not(.open)").forEach(el => { const l = el.querySelector(".mcil");
   el.classList.toggle("ovf", l.scrollWidth > l.clientWidth + 1 || [...l.children].some(c => c.scrollWidth > c.clientWidth + 1)); }); }
@@ -5697,7 +5706,7 @@ const ACT = {
   nav(t){ S.view = t.dataset.v; if (S.view === "calendar") S.calJump = true; S.athEdit = null; S.exEdit = null; render(); },
   group(t){ S.group = t.dataset.v; renderView(); },
   "ov-week"(t){ const d = +t.dataset.d; S.ws = d ? addDays(S.ws, d) : monday(TODAY()); renderView(); },
-  "cal-week"(t){ const d = +t.dataset.d; S.cws = d ? addDays(S.cws || calHome(), d) : calHome(); if (!d) S.calJump = true; renderView(); },
+  "cal-week"(t){ const d = +t.dataset.d; S.cws = d ? addDays(S.cws || calHome(), d) : calHome(); if (!d) S.calJump = "smooth"; renderView(); },
   "cal-meso0"(t){ S.cws = t.dataset.ws; renderView(); },
   "cal-n"(t){ const home = S.cws === calHome(); S.calWeeks = Math.min(16, Math.max(1, S.calWeeks + +t.dataset.d)); if (home) S.cws = calHome(); try { localStorage.setItem("asticella-weeks", S.calWeeks); } catch(e){} renderView(); },
   "open-cal"(t){ S.calAthlete = t.dataset.e; S.view = "calendar"; render(); },

@@ -231,19 +231,19 @@ body.nosel{user-select:none}
 .wcard .t > .dot{margin-top:calc(.6em - 4px)}.wcard .t .tt{padding-top:1px}
 /* il titolo può restringersi e andare a capo (anche dentro una parola lunga, con il trattino): l'occhio resta dentro la scheda */
 .wcard .t .tt{min-width:0;overflow-wrap:break-word;-webkit-hyphens:auto;hyphens:auto}
-.wcard .t .tr{margin-left:auto;flex:none;align-self:flex-start;display:flex;flex-direction:column;align-items:center;gap:3px}
-.wcard .t .stb{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}.wcard .t .stb svg{width:10px;height:10px;display:block}
-.wcard .t .stb.st-done{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--surface))}.wcard .t .stb.st-progress{color:var(--warn);background:color-mix(in srgb,var(--warn) 20%,var(--surface))}
-.wcard .t .stb.st-missed,.wcard .t .stb.st-skipped{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--surface))}
-.wcard .t .tr .vis{margin:0 -4px 0 0}.wcard .t .tr{margin-right:-2px}
+.wcard > .tr{float:right;display:flex;flex-direction:column;align-items:center;gap:3px;margin:0 -2px 2px 6px;position:relative;z-index:1}
+.wcard .tr .stb{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}.wcard .tr .stb svg{width:10px;height:10px;display:block}
+.wcard .tr .stb.st-done{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--surface))}.wcard .tr .stb.st-progress{color:var(--warn);background:color-mix(in srgb,var(--warn) 20%,var(--surface))}
+.wcard .tr .stb.st-missed,.wcard .tr .stb.st-skipped{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--surface))}
+
 .cal .cell.wold .wcard{opacity:.72;filter:saturate(.8);transition:opacity .15s,filter .15s}.cal .cell.wold .wcard.lit{opacity:1;filter:none}
 @media (hover:hover){.cal .cell.wold .wcard:hover{opacity:1;filter:none}}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cal .cell.wold .wcard:not(.lit):not(:hover){opacity:.6;filter:saturate(.75)}}
-.wcard .t .vis{margin-left:auto;flex:none;align-self:flex-start;border:0;background:none;padding:3px;margin:-3px -4px 0 0;border-radius:6px;color:var(--faint);display:flex;cursor:pointer}
-.wcard .t .vis:hover{color:var(--ink);background:var(--surface2)}
-.wcard .t .vis svg{width:15px;height:15px}
+.wcard .tr .vis{flex:none;border:0;background:none;padding:3px;margin:-2px -3px 0 0;border-radius:6px;color:var(--faint);display:flex;cursor:pointer}
+.wcard .tr .vis:hover{color:var(--ink);background:var(--surface2)}
+.wcard .tr .vis svg{width:15px;height:15px}
 .wcard.hid{border-top-style:dashed;border-right-style:dashed;border-bottom-style:dashed;background:color-mix(in srgb,var(--warn) 5%,var(--surface))}
-.wcard.hid .t .vis{color:var(--warn)}
+.wcard.hid .tr .vis{color:var(--warn)}
 .wcard .hidl{font-size:10.5px;font-weight:700;color:var(--warn);margin-top:2px}
 .chip .chiphid{margin-left:auto;display:flex;color:var(--warn)}.chip .chiphid svg{width:13px;height:13px}
 .vispill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
@@ -260,7 +260,7 @@ body.nosel{user-select:none}
 .wcard.st-done{border-left:3px solid var(--ok)}
 .wcard.st-progress{border-left:3px solid var(--warn)}
 .wcard.st-missed,.wcard.st-skipped{border-left:3px solid var(--bad)}
-.wcard .kindt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:1px}
+.wcard .kindt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:4px}
 .wcard .moved{margin-top:3px;font-size:11px;color:var(--muted);font-style:italic}
 .wcard .meta{margin-top:5px;font-size:11px;color:var(--ok);font-weight:600}
 
@@ -2904,7 +2904,7 @@ function cardHtml(email, w, pl){
   const plh = !pl ? "" : pl === "off" ? `<div class="kpl off" title="Seduta non prevista dal piano della settimana">fuori piano</div>`
     : `<div class="kpl" title="RPE di seduta previsto${c ? " → dato dall'atleta: " + c[2] : ""}">prev. <b>${fmt1(pl.rpe)}</b>${c ? ` → <span class="${c[0]}">${fmt1(r)} ${c[1]}</span>` : ""}</div>`;
   return `<div class="wcard st-${st} ${pl ? "mk" : ""} ${S.calSel.has(w.id) ? "sel" : ""} ${w.hidden ? "hid" : ""}" ${pl ? `style="--kc:${kindColor(kindOf(w))}"` : ""} draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
-    <div class="t"><span class="dot st-${st}"></span><span class="tt">${esc(w.title||"Senza titolo")}</span><span class="tr">${ST_ICON[st] ? `<span class="stb st-${st}" title="${STATUS_TXT[st]}" aria-label="${STATUS_TXT[st]}">${ST_ICON[st]}</span>` : ""}<button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></span></div>
+    <span class="tr">${ST_ICON[st] ? `<span class="stb st-${st}" title="${STATUS_TXT[st]}" aria-label="${STATUS_TXT[st]}">${ST_ICON[st]}</span>` : ""}<button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></span><div class="t"><span class="dot st-${st}"></span><span class="tt">${esc(w.title||"Senza titolo")}</span></div>
     ${w.hidden ? `<div class="hidl">Nascosto all'atleta</div>` : ""}
     <div class="kindt" title="Tipo di seduta${hasKind(w) ? "" : " (dedotto dagli esercizi: sceglilo nell'allenamento)"}"><span>${KINDS[kindOf(w)].l}${hasKind(w) ? "" : " ?"}</span><span class="nex"> · ${(w.exercises || []).length} eserc.</span></div>${plh}
     ${miniListHtml(w.exercises, w)}
@@ -5761,7 +5761,7 @@ const ACT = {
   "ed-vis"(){ const E = S.editor; E.w.hidden = !E.w.hidden; E.dirty = true; drawEditor(); },
   "open-w"(t, e){ const w = S.cache[t.dataset.e]?.[t.dataset.id]; if (!w) return;
     if (((e && (e.ctrlKey || e.metaKey)) || S.calPick) && t.classList.contains("wcard")) { const id = w.id; S.calSel.has(id) ? S.calSel.delete(id) : S.calSel.add(id); drawCalendar(); return; }   // Ctrl + clic: seleziona
-    if (tipPT !== "mouse" && t.closest(".cell.wold") && !t.classList.contains("lit")) { document.querySelectorAll(".wcard.lit").forEach(x => x.classList.remove("lit")); t.classList.add("lit"); return; }   // tablet: settimana passata, il primo tocco la "riaccende", il secondo la apre
+    if (tipPT !== "mouse" && t.closest(".cell.wold") && !t.dataset.pre) return;   // tablet: settimana passata, il primo tocco la "riaccende", il secondo la apre
     openEditor(t.dataset.e, w); },
   "cal-unsel"(){ S.calSel.clear(); drawCalendar(); },
   "sel-pick"(t){ S.calPick = t.dataset.v === "1"; if (!S.calPick) S.calSel.clear(); drawCalendar(); },
@@ -6011,7 +6011,9 @@ const ACT = {
 
 /* ---------- tablet/telefono: i "passa sopra" (title) non esistono → un tocco su un elemento con data-tip mostra il fumetto ---------- */
 let tipPT = "mouse";
-document.addEventListener("pointerdown", e => { tipPT = e.pointerType; const l = e.target.closest?.(".wcard.lit"); document.querySelectorAll(".wcard.lit").forEach(x => { if (x !== l) x.classList.remove("lit"); }); }, true);   /* un tocco altrove "rispegne" la scheda accesa */
+document.addEventListener("pointerdown", e => { tipPT = e.pointerType; const c = e.target.closest?.(".cal .cell.wold .wcard");
+  document.querySelectorAll(".wcard.lit").forEach(x => { if (x !== c) x.classList.remove("lit"); });   /* un tocco altrove "rispegne" la scheda accesa */
+  if (c && e.pointerType !== "mouse") { c.dataset.pre = c.classList.contains("lit") ? "1" : ""; c.classList.add("lit"); }   /* tablet: si accende già al primo tocco (anche quando iPad lo usa solo come "passaggio") */ }, true);   /* un tocco altrove "rispegne" la scheda accesa */
 function hideTapTip(){ $("#taptip")?.remove(); }
 document.addEventListener("click", e => {
   const t = e.target.closest?.("[data-tip]");

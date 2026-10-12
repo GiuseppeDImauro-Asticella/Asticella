@@ -179,13 +179,14 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .tlegend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
 .tlegend span{display:inline-flex;gap:4px;align-items:center}
 /* mesocicli */
-.mband{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:6px 12px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--mc) 14%,var(--surface));border-left:4px solid var(--mc);cursor:pointer;text-align:left;border-top:0;border-right:0;font:inherit;color:inherit}
+.mband{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:6px 12px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--mc) 20%,var(--surface));border-left:4px solid var(--mc);cursor:pointer;text-align:left;border-top:0;border-right:0;font:inherit;color:inherit}
 .mband:hover{background:color-mix(in srgb,var(--mc) 22%,var(--surface))}
 .mband b{font-family:var(--display);font-size:17px;font-weight:700;color:var(--mc);letter-spacing:.02em}
 .mband .g{font-weight:600}
 .mband .r{color:var(--muted);font-size:12px}
 .mband .e{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
 .cal .rail.inm{box-shadow:inset 4px 0 0 var(--mc);background:color-mix(in srgb,var(--mc) 10%,var(--surface2))}
+.cal .rail .rtop{display:flex;flex-direction:column;align-items:center;gap:3px}.cal .rail .rtag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);writing-mode:horizontal-tb}.cal .rail .rtag.cur{color:var(--accent)}
 .cal .rail .mw{font-size:11px;font-weight:700;color:var(--mc);writing-mode:horizontal-tb}
 .swatches{display:flex;gap:8px}
 .swatches label{width:28px;height:28px;border-radius:50%;background:var(--c);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;border:2px solid transparent}
@@ -208,6 +209,8 @@ body.nosel{user-select:none}
 .calsel .selact{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:auto}.calsel .tch{display:none}
 @media (hover:none){.calsel .dsk{display:none}.calsel .tch{display:inline-flex}}   /* tablet: niente mouse → pulsante "Seleziona" */
 .cal .cell.past{background:color-mix(in srgb,var(--surface2) 40%,var(--surface))}
+.cal .cell.wcur:not(.drop),.cal .mcrow.wcur{background:color-mix(in srgb,var(--accent) 9%,var(--surface))}   /* settimana in corso */
+.cal .mband:not(:first-child){border-top:6px solid var(--bg)}   /* stacco prima di un mesociclo nuovo */
 .cal .dh{display:flex;justify-content:space-between;align-items:center;font-size:13.5px;color:var(--muted);font-weight:700}
 .cal .dh .d{font-variant-numeric:tabular-nums}
 .cal .cell.today .dh .d{background:var(--accent);color:var(--accent-ink);border-radius:5px;padding:1px 6px}
@@ -2578,7 +2581,7 @@ function mcBandHtml(a, ws, mc){
   const {p, i, m, days, ov} = mc, ph = p ? (p.phases || []).find(b => b.from <= i && b.to >= i) : null, ld = p?.load?.[i], first = esc(a.name.split(" ")[0]);
   const info = [p ? `piano «${esc(p.name)}»${p.scope === "group" ? ` del gruppo ${esc(p.key)}` : ""} · sett. ${i + 1}/${p.weeks}` : "", ph ? esc(ph.name) : "", ld ? `carico ${ld}/5` : ""].filter(Boolean).join(" · ");
   const I = p ? ideasAt(p, i) : [], AM = p ? abMethAt(p, i) : [], op = S.mcIdeaOpen?.has(ws);
-  return `<div class="mcrow"><div class="mcbox ${I.length || AM.length ? "hasi" : ""}"><div class="mcband"><span class="mcl">Microciclo</span>${m && !ov ? `<span class="mcn" style="--mc:${mcCol(p, m)}">${esc(m.name)}</span>` : ""}${ov ? `<span class="mcn ov">personalizzato per ${first}${m ? ` <small>(modello ${esc(m.name)})</small>` : ""}</span>` : ""}${!days ? `<span class="faint">nessun modello per questa settimana</span>` : ""}
+  return `<div class="mcrow ${ws === monday(TODAY()) ? "wcur" : ""}"><div class="mcbox ${I.length || AM.length ? "hasi" : ""}"><div class="mcband"><span class="mcl">Microciclo</span>${m && !ov ? `<span class="mcn" style="--mc:${mcCol(p, m)}">${esc(m.name)}</span>` : ""}${ov ? `<span class="mcn ov">personalizzato per ${first}${m ? ` <small>(modello ${esc(m.name)})</small>` : ""}</span>` : ""}${!days ? `<span class="faint">nessun modello per questa settimana</span>` : ""}
     <span class="mci">${info}</span><span class="mca">${ov ? `<button class="btn sm ghost" data-act="mc-reset" data-ws="${ws}" title="Togli la personalizzazione e torna al modello del piano">↺ Modello</button>` : ""}<button class="btn sm ghost" data-act="mc-ov" data-ws="${ws}" title="${days ? `Cambia questa settimana solo per ${first}` : `Scrivi il piano di questa settimana per ${first}`}">✎ ${days ? "Personalizza" : "Scrivi il piano"}</button></span></div>${I.length || AM.length ? `<div class="mcideas ${op ? "open" : ""}"><span class="mcl">Idee / metodi</span><span class="mcil">${I.map(b => `<span class="mcidea ${b.done ? "done" : ""} ${ideaTxt(b).length > 48 ? "lg" : ""}" title="${esc((b.done ? "✓ Fatta · " : "Da fare · ") + ideaTxt(b))}">${b.done ? "✓ " : ""}💡 <b>${esc(b.goal)}</b>${b.how ? ` <span class="how">→ ${esc(b.how)}</span>` : ""}</span>`).join("")}${AM.map(m => `<span class="mcidea ab ${m.ab.length + m.name.length + m.t.length > 48 ? "lg" : ""}" style="--ac:${m.col}" title="${esc(`${m.ab} · ${m.name} → ${m.t}`)}"><i class="adot" style="background:${m.col}"></i><span class="an">${esc(m.ab)}:</span> <b>${esc(m.name)}</b> <span class="how">→ ${esc(m.t)}</span></span>`).join("")}</span>
       <button type="button" class="btn sm ghost mcit" data-act="mc-ideas" data-ws="${ws}">${op ? "Riduci ▴" : "Mostra tutto ▾"}</button></div>` : ""}</div></div>`;
 }
@@ -2747,9 +2750,11 @@ function mcOvDialog(a, ws){
 async function mcReset(a, ws){ const doc = mcOvDoc(a.email); if (!doc?.weeks?.[ws]) return; delete doc.weeks[ws]; if (await perSave(doc)) toast("Torna il modello del piano"); drawCalendar(); }
 
 
-function weekNav(act){
+/* Calendario: si apre sulla settimana scorsa (per vedere cosa è stato fatto mentre si programma), se le settimane visibili sono almeno 3; se no su quella in corso */
+const calHome = () => S.calWeeks >= 3 ? addDays(monday(TODAY()), -7) : monday(TODAY());
+function weekNav(act, ws = S.ws){
   return `<div class="weeknav"><button class="btn icon" data-act="${act}" data-d="-7" aria-label="Settimana precedente">‹</button>
-    <span class="wl num">Sett. ${weekNo(S.ws)} · ${fmtRange(S.ws)}</span>
+    <span class="wl num">Sett. ${weekNo(ws)} · ${fmtRange(ws)}</span>
     <button class="btn icon" data-act="${act}" data-d="7" aria-label="Settimana successiva">›</button></div>
     <button class="btn" data-act="${act}" data-d="0">Oggi</button>`;
 }
@@ -2786,18 +2791,20 @@ async function viewCalendar(m){
   const ath = activeAthletes();
   if (!ath.length) { m.innerHTML = `<div class="pagehead"><h1>Calendario</h1></div><div class="empty">Aggiungi prima un atleta dalla sezione <b>Atleti</b>.</div>`; return; }
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = ath[0].email;
+  if (!S.cws) S.cws = calHome();
   const a = athByEmail(S.calAthlete);
   m.innerHTML = `<div class="pagehead"><div><h1>${esc(a.name)}</h1><div class="sub">${esc(a.group||"")} · trascina un allenamento per spostarlo di giorno</div></div>
     <div class="toolbar">
       <select class="in" id="cal-ath" data-change="cal-ath" style="width:auto">${athOptions(a.email)}</select>
-      ${weekNav("cal-week")}
+      ${weekNav("cal-week", S.cws)}
+      ${(mz => mz ? `<button class="btn" data-act="cal-meso0" data-ws="${mz.from}" title="Vai alla prima settimana del mesociclo in corso (${esc(mz.name)})">⇤ Inizio mesociclo</button>` : "")(mesoAt(a, TODAY()))}
       <button class="btn" data-act="meso-new">+ Mesociclo</button>
       <button class="btn" data-act="pg-open" title="Come progrediscono gli esercizi nel periodo: previsto e fatto davvero">↗ Progressione</button>
       <button class="btn" data-act="as-athlete" title="Apri l'app come la vede ${esc(a.name)} (solo da guardare: non si salva niente)">👁 Vedi come ${esc(a.name.split(" ")[0])}</button>
       <span class="stepper" title="Settimane visibili"><button data-act="cal-n" data-d="-1" aria-label="Una settimana in meno" ${S.calWeeks<=1?"disabled":""}>−</button><span class="num" style="padding:0 8px">${S.calWeeks} sett.</span><button data-act="cal-n" data-d="1" aria-label="Una settimana in più" ${S.calWeeks>=16?"disabled":""}>+</button></span>
       <button class="btn icon calcmp ${S.calCompact ? "on" : ""}" data-act="cal-compact" aria-pressed="${S.calCompact}" aria-label="${S.calCompact ? "Vista normale" : "Vista compatta"}" title="${S.calCompact ? "Vista normale: le sedute con tutti gli esercizi" : "Vista compatta: solo titolo, tipo e stato delle sedute (più settimane sullo schermo)"}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${S.calCompact ? '<rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/>' : '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>'}</svg></button>
     </div></div><div class="scroll-x" id="calwrap"><div class="muted" style="padding:20px">Caricamento…</div></div>`;
-  await Promise.all([ensureWeeks(a.email, S.ws, S.calWeeks), ensurePlans()]);
+  await Promise.all([ensureWeeks(a.email, S.cws, S.calWeeks), ensurePlans()]);
   if (S.view !== "calendar") return;
   drawCalendar();
 }
@@ -2805,18 +2812,18 @@ function drawCalendar(){
   const a = athByEmail(S.calAthlete); const today = TODAY(), curWs = monday(today);
   let html = `<div class="cal ${S.calCompact ? "compact" : ""}">`, anyMc = false;
   for (let k=0;k<S.calWeeks;k++){
-    const ws = addDays(S.ws, k*7);
+    const ws = addDays(S.cws, k*7);
     const n = wIn(a.email, ws, addDays(ws,6)).length;
     const mz = mesoAt(a, ws);
     if (mz && (mz.idx === 1 || k === 0)) html += `<button class="mband" style="--mc:${mcol(mz.color)}" data-act="meso-edit" data-id="${mz.id}" title="Clicca per modificare il mesociclo">
       <b>${esc(mz.name)}</b>${mz.goal ? `<span class="g">${esc(mz.goal)}</span>` : ""}<span class="r">${mz.weeks} settimane · ${fmtD(mz.from)} – ${fmtD(mz.end)}</span><span class="e">✎ Modifica</span></button>`;
     const mc = mcFor(a, ws); if (mc?.days) anyMc = true;
-    html += `<div class="rail ${ws===curWs?"cur":""} ${mz?"inm":""}" style="${mz ? `--mc:${mcol(mz.color)};` : ""}${mc ? "grid-row:span 2" : ""}">${mz ? `<span class="mw" title="${esc(mz.name)}: settimana ${mz.idx} di ${mz.weeks}">${mz.idx}/${mz.weeks}</span>` : ""}<div class="wk">Sett. ${weekNo(ws)}<small>${fmtRange(ws)}</small></div>
+    html += `<div class="rail ${ws===curWs?"cur":""} ${mz?"inm":""}" style="${mz ? `--mc:${mcol(mz.color)};` : ""}${mc ? "grid-row:span 2" : ""}"><div class="rtop">${mz ? `<span class="mw" title="${esc(mz.name)}: settimana ${mz.idx} di ${mz.weeks}">${mz.idx}/${mz.weeks}</span>` : ""}${ws === curWs ? `<span class="rtag cur">questa</span>` : ws === addDays(curWs, -7) ? `<span class="rtag">scorsa</span>` : ""}</div><div class="wk">Sett. ${weekNo(ws)}<small>${fmtRange(ws)}</small></div>
       <button class="btn sm" data-act="copy-week" data-ws="${ws}" title="Copia questa settimana" ${n?"":"disabled"}>Copia</button></div>`;
     if (mc) html += mcBandHtml(a, ws, mc);
     for (let i=0;i<7;i++){
       const d = addDays(ws, i);
-      html += `<div class="cell ${d===today?"today":""} ${d<today?"past":""} ${i===6?"sun":""}" data-drop="${d}">
+      html += `<div class="cell ${d===today?"today":""} ${d<today?"past":""} ${i===6?"sun":""} ${ws===curWs?"wcur":""}" data-drop="${d}">
         <div class="dh"><span class="d">${DAYS[i]} ${parse(d).getDate()}${parse(d).getDate()===1||(k===0&&i===0)?" "+MONTHS[parse(d).getMonth()]:""}</span>
         ${mc?.days ? mcBarsHtml(mc.days[i], wOn(a.email, d)) : ""}<button class="btn sm ghost" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" aria-label="Nuovo allenamento il ${fmtD(d)}">+</button></div>
         ${mc?.days ? mcCellHtml(a, d, mc.days[i], wOn(a.email, d)) : wOn(a.email, d).map(w => cardHtml(a.email, w)).join("")}</div>`;
@@ -4459,9 +4466,9 @@ function pgOpenFromEditor(){ const E = S.editor; if (!E || E.tpl || !E.email) re
   ensureWeeks(E.email, addDays(ws, -7 * 16), 19).then(() => { if (S.prog) drawProg(); }); }
 function pgOpen(){
   const a = athByEmail(S.calAthlete); if (!a) return;
-  S.prog = {email: a.email, from: S.ws, to: addDays(S.ws, 7 * S.calWeeks - 1), sel: null, metric: null, P: {base: "exec", step: null, types: null}, manual: {}, drafting: false, mode: "sess", sm: null, sess: null, psRef: "kind"};   // si parte dal confronto con la seduta più recente dello stesso tipo
+  S.prog = {email: a.email, from: S.cws || S.ws, to: addDays(S.cws || S.ws, 7 * S.calWeeks - 1), sel: null, metric: null, P: {base: "exec", step: null, types: null}, manual: {}, drafting: false, mode: "sess", sm: null, sess: null, psRef: "kind"};   // si parte dal confronto con la seduta più recente dello stesso tipo
   drawProg();
-  ensureWeeks(a.email, addDays(S.ws, -7 * 16), S.calWeeks + 16).then(() => { if (S.prog) drawProg(); });   // ~4 mesi di storia per i riferimenti
+  ensureWeeks(a.email, addDays(S.cws || S.ws, -7 * 16), S.calWeeks + 16).then(() => { if (S.prog) drawProg(); });   // ~4 mesi di storia per i riferimenti
 }
 /* ridisegnando la finestra la pagina tornava in cima: salvo e ripristino lo scorrimento di tutte le parti che scorrono */
 function keepScroll(){
@@ -4474,7 +4481,7 @@ function pgHeadHtml(G, a){
 }
 function pgBarHtml(G, a){
   const ms = (a.mesos || []).map(m => ({...m, end: addDays(m.from, 7 * m.weeks - 1)}));
-  const calF = S.ws, calT = addDays(S.ws, 7 * S.calWeeks - 1);
+  const calF = S.cws || S.ws, calT = addDays(calF, 7 * S.calWeeks - 1);
   return `<div class="pgbar"><span class="lbl">Periodo</span>
       <button class="mchip ${G.from === calF && G.to === calT ? "whole" : ""}" data-act="pg-range" data-f="${calF}" data-t="${calT}" style="--mc:var(--faint)"><i></i>Settimane del calendario <span>${fmtD(calF)} – ${fmtD(calT)}</span></button>
       ${ms.map(m => `<button class="mchip ${G.from === m.from && G.to === m.end ? "whole" : ""}" data-act="pg-range" data-f="${m.from}" data-t="${m.end}" style="--mc:${mcol(m.color)}"><i></i>${esc(m.name)}${m.goal ? " · " + esc(m.goal) : ""} <span>${fmtD(m.from)} – ${fmtD(m.end)}</span></button>`).join("")}
@@ -4504,7 +4511,7 @@ function drawProg(){
   const ms = (a.mesos || []).map(m => ({...m, end: addDays(m.from, 7 * m.weeks - 1)}));
   const lastDone = occ.filter(o => o.done).slice(-2);
   const hot = lastDone.length === 2 && lastDone.every(o => { const e = pgVal("rpe", o.exec), p = pgVal("rpe", o.plan); return e != null && p != null && e - p >= 1; });
-  const calF = S.ws, calT = addDays(S.ws, 7 * S.calWeeks - 1);
+  const calF = S.cws || S.ws, calT = addDays(calF, 7 * S.calWeeks - 1);
   const colsOf = x => (x.cols || []).filter(c => !["side", "rest", "tut"].includes(c)).slice(0, 3);
   $("#modal").innerHTML = `<div class="back" style="padding:12px"><div class="modal pgm" role="dialog" aria-label="Progressione">
     ${pgHeadHtml(G, a)}
@@ -5684,8 +5691,9 @@ const ACT = {
   nav(t){ S.view = t.dataset.v; S.athEdit = null; S.exEdit = null; render(); },
   group(t){ S.group = t.dataset.v; renderView(); },
   "ov-week"(t){ const d = +t.dataset.d; S.ws = d ? addDays(S.ws, d) : monday(TODAY()); renderView(); },
-  "cal-week"(t){ const d = +t.dataset.d; S.ws = d ? addDays(S.ws, d) : monday(TODAY()); renderView(); },
-  "cal-n"(t){ S.calWeeks = Math.min(16, Math.max(1, S.calWeeks + +t.dataset.d)); try { localStorage.setItem("asticella-weeks", S.calWeeks); } catch(e){} renderView(); },
+  "cal-week"(t){ const d = +t.dataset.d; S.cws = d ? addDays(S.cws || calHome(), d) : calHome(); renderView(); },
+  "cal-meso0"(t){ S.cws = t.dataset.ws; renderView(); },
+  "cal-n"(t){ const home = S.cws === calHome(); S.calWeeks = Math.min(16, Math.max(1, S.calWeeks + +t.dataset.d)); if (home) S.cws = calHome(); try { localStorage.setItem("asticella-weeks", S.calWeeks); } catch(e){} renderView(); },
   "open-cal"(t){ S.calAthlete = t.dataset.e; S.view = "calendar"; render(); },
   async "w-vis"(t, ev){ ev?.stopPropagation?.(); const em = t.dataset.e, w = S.cache[em]?.[t.dataset.id]; if (!w) return;
     const redraw = () => S.view === "calendar" ? drawCalendar() : renderView();
@@ -5746,7 +5754,7 @@ const ACT = {
     const a = athByEmail(anQ.who); const list = sessListFor(a); const cur = $("#an-sess select")?.value; const i = Math.max(0, list.findIndex(x => x.id === cur));
     const nw = list[i + +t.dataset.d]; if (nw) { anQ.sess = nw.id; redrawSess(); } },
   "meso-new"(){ const a = athByEmail(S.calAthlete); const ms = a.mesos || [];
-    const last = ms[ms.length-1]; const from = last ? addDays(last.from, 7*last.weeks) : S.ws;
+    const last = ms[ms.length-1]; const from = last ? addDays(last.from, 7*last.weeks) : (S.cws || S.ws);
     mesoDialog({name: `Mesociclo ${ms.length + 1}`, goal: "", from, weeks: 4, color: MESO_COLORS[ms.length % MESO_COLORS.length]}); },
   "meso-edit"(t){ const a = athByEmail(S.calAthlete); const m = (a.mesos||[]).find(x => x.id === t.dataset.id); if (m) mesoDialog(clone(m)); },
   "tpl-new"(){ openEditor(null, {id: uid(), title:"", notes:"", exercises:[{...newExercise(), block:"A"}]}, true, true); setTimeout(()=>$("#ed-title")?.focus(), 30); },

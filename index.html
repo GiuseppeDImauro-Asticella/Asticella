@@ -186,6 +186,14 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .mband .r{color:var(--muted);font-size:12px}
 .mband .e{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
 .cal .rail.inm{box-shadow:inset 4px 0 0 var(--mc);background:color-mix(in srgb,var(--mc) 10%,var(--surface2))}
+.calstick{position:fixed;top:0;z-index:40;display:flex;align-items:center;gap:8px;padding:7px 16px;box-sizing:border-box;background:var(--bg);border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;box-shadow:0 6px 16px rgba(0,0,0,.09);transform:translateY(-110%);opacity:0;pointer-events:none;transition:transform .18s ease-out,opacity .18s ease-out}
+.calstick.show{transform:none;opacity:1;pointer-events:auto}
+.calstick{overflow-x:auto;scrollbar-width:none}.calstick::-webkit-scrollbar{display:none}.calstick > *{flex:none}
+.calstick .btn,.calstick select.in{padding-top:4px;padding-bottom:4px;font-size:13px;min-height:0}.calstick select.in{width:auto;min-width:140px;max-width:190px}.calstick .weeknav .wl{font-size:13px;white-space:nowrap}.calstick .grow{flex:1 1 0;min-width:0}
+.calstick.sel .m0,.calstick.sel .stepper{display:none}
+.calstick .csel{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;background:var(--accent-soft);border-radius:8px;padding:2px 4px 2px 10px;white-space:nowrap}
+.calstick .tch{display:none}@media (hover:none){.calstick .tch{display:inline-flex}}
+@media (max-width:600px){.calstick{display:none}}@media (max-width:900px){.calstick .stepper{display:none}}
 #main{transition:opacity .12s ease-out}#main.cjump{opacity:0;transition:none}
 .cal .rail .rtop{display:flex;flex-direction:column;align-items:center;gap:3px}.cal .rail .rtag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);writing-mode:horizontal-tb}.cal .rail .rtag.cur{color:var(--accent)}
 .cal .rail .mw{font-size:11px;font-weight:700;color:var(--mc);writing-mode:horizontal-tb}
@@ -1970,6 +1978,7 @@ async function setDemoRole(r){
 function navMini(){ let v = null; try { v = localStorage.getItem("asticella-navmini"); } catch(e) {}
   return v != null ? v === "1" : matchMedia("(hover:none) and (pointer:coarse)").matches; }
 function render(){
+  if (S.view !== "calendar" || S.user?.role !== "coach") $("#calstick")?.remove();
   if (!S.user) return renderLogin();
   if (S.user.role === "athlete") return renderAthlete();
   const nav = [["overview","Panoramica",ICON.grid],["calendar","Calendario",ICON.cal],["period","Periodizzazione",ICON.period],["templates","Allenamenti",ICON.list],["athletes","Atleti",ICON.users],["exercises","Esercizi",ICON.dumb],["analysis","Analisi",ICON.trend],["data","Dati",ICON.data]];
@@ -1996,7 +2005,7 @@ async function renderView(){
   finally { if (same) { if (!S._noRestore) window.scrollTo(0, y); m.style.minHeight = ""; } S._noRestore = false; m.classList.remove("cjump"); }
 }
 async function renderSection(m, v){
-  PCM = null; INTM = null;
+  PCM = null; INTM = null; if (v !== "calendar") $("#calstick")?.remove();
   if (v === "overview") return viewOverview(m);
   if (v === "calendar") return viewCalendar(m);
   if (v === "templates") return viewTemplates(m);
@@ -2838,15 +2847,36 @@ function drawCalendar(){
       ${S.calPick ? `<button class="btn sm pri" data-act="sel-pick" data-v="0">Fine</button>` : `<button class="btn sm ghost" data-act="cal-unsel">Deseleziona</button>`}</span>`
     : `<span class="dsk">Sul computer: <kbd>Ctrl</kbd> + trascina = copia · trascina su uno spazio vuoto per selezionare più allenamenti · <kbd>Ctrl</kbd> + clic per aggiungerne uno</span><button class="btn sm tch" data-act="sel-pick" data-v="1">☑ Seleziona più allenamenti</button>`}</div>` + (anyMc ? MC_LEGEND : "") + html + `</div>`;
   requestAnimationFrame(mcIdeasFit);
+  calStickDraw(a, nSel);
   if (S.calJump === "smooth") { S.calJump = false; setTimeout(() => calJumpToday(true), 0); }   // "Oggi": si vede lo spostamento, morbido
   else if (S.calJump) { S.calJump = false; calJumpToday(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
     const mm = $("#main"); if (mm?.classList.contains("cjump")) requestAnimationFrame(() => mm.classList.remove("cjump")); }
 }
+/* barra fissa compatta del Calendario: compare quando la parte alta (titolo e tasti) è uscita dallo schermo.
+   Atleta, settimana (‹ › Oggi), inizio mesociclo, settimane visibili; sul tablet "Seleziona più allenamenti" e, se stai selezionando, le azioni */
+function calStickDraw(a, nSel){
+  let b = $("#calstick"); if (!b) { b = document.createElement("div"); b.id = "calstick"; b.className = "calstick"; document.body.appendChild(b); }
+  const mz = mesoAt(a, TODAY()), sel = nSel || S.calPick; b.classList.toggle("sel", !!sel);
+  b.innerHTML = `<select class="in" data-change="cal-ath" aria-label="Atleta">${athOptions(a.email)}</select>${weekNav("cal-week", S.cws)}
+    ${mz ? `<button class="btn m0" data-act="cal-meso0" data-ws="${mz.from}" title="Vai alla prima settimana del mesociclo in corso">⇤ Inizio mesociclo</button>` : ""}<span class="grow"></span>
+    ${sel ? `<span class="csel"><b>${nSel ? `${nSel} selezionat${nSel === 1 ? "o" : "i"}` : "Tocca gli allenamenti"}</b><button class="btn" data-act="sel-copy" ${nSel ? "" : "disabled"}>Copia…</button><button class="btn ghost danger" data-act="sel-del" ${nSel ? "" : "disabled"}>Elimina</button>${S.calPick ? `<button class="btn pri" data-act="sel-pick" data-v="0">Fine</button>` : `<button class="btn ghost" data-act="cal-unsel">Deseleziona</button>`}</span>`
+      : `<button class="btn tch" data-act="sel-pick" data-v="1" title="Seleziona più allenamenti">☑ Seleziona</button>`}
+    <span class="stepper" title="Settimane visibili"><button data-act="cal-n" data-d="-1" aria-label="Una settimana in meno" ${S.calWeeks<=1?"disabled":""}>−</button><span class="num" style="padding:0 8px">${S.calWeeks} sett.</span><button data-act="cal-n" data-d="1" aria-label="Una settimana in più" ${S.calWeeks>=16?"disabled":""}>+</button></span>`;
+  calStickPos();
+}
+function calStickPos(){ const b = $("#calstick"); if (!b) return;
+  if (S.view !== "calendar" || S.user?.role !== "coach") { b.remove(); return; }
+  const tb = document.querySelector("#main .pagehead .toolbar"), m = $("#main"); if (!tb || !m) return;
+  const r = m.getBoundingClientRect(); b.style.left = r.left + "px"; b.style.width = r.width + "px";
+  b.classList.toggle("show", tb.getBoundingClientRect().bottom < 0); }
+addEventListener("scroll", () => { if ($("#calstick")) calStickPos(); }, {passive: true});
+addEventListener("resize", () => { if ($("#calstick")) calStickPos(); });
 /* aprendo il Calendario (o con "Oggi") la pagina scorre fino alla settimana in corso: la settimana scorsa resta subito sopra */
 function calJumpToday(smooth){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return;
   const prev = r.previousElementSibling, el = prev?.classList.contains("mband") ? prev : r;
   if (!r.parentElement.querySelector(".rail") || r.parentElement.querySelector(".rail") === r && el === r) return;   // la settimana in corso è già la prima
-  const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - 8), document.documentElement.scrollHeight - innerHeight);
+  const bar = $("#calstick"), gap = 8 + (bar && getComputedStyle(bar).display !== "none" ? bar.offsetHeight : 0);   // la barra fissa non deve coprire l'inizio della settimana
+  const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - gap), document.documentElement.scrollHeight - innerHeight);
   if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
   const from = window.scrollY, d = to - from; if (Math.abs(d) < 2) return; const T = Math.min(650, 320 + Math.abs(d) * 0.25), t0 = performance.now();
   const ease = x => 1 - Math.pow(1 - x, 3);   // parte veloce e rallenta dolcemente

@@ -117,6 +117,12 @@ textarea.in{resize:vertical;min-height:60px}
   .mini .brand span{display:none}.mini .navtog{margin:0}
   .mini .nav{justify-content:center;padding:9px 0}.mini .nav .nl{display:none}.mini .nav svg{width:19px;height:19px}
   .mini .side .who{display:none}.mini .nav.mob{display:flex;font-size:11px}
+  /* barra laterale fissa (non "sticky"): su iPad, quando la pagina salta subito alla settimana in corso, una barra sticky
+     restava per un istante fuori dallo schermo e sembrava sparire. Nella demo (con la striscia DEMO in alto) resta sticky */
+  .shell > #main{grid-column:2}
+  .shell > .side{position:fixed;top:16px;left:16px;width:210px;max-height:calc(100vh - 32px);overflow-y:auto}
+  .shell.mini > .side{width:44px}
+  .demobar + .shell > .side{position:sticky;left:auto;width:auto;max-height:none;overflow:visible}
 }
 .side .who{margin-top:24px;padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 main{min-width:0}
@@ -2863,7 +2869,7 @@ function drawCalendar(){
   requestAnimationFrame(mcIdeasFit);
   calStickDraw(a, nSel);
   if (S.calJump === "smooth") { S.calJump = false; setTimeout(() => calJumpToday(true), 0); }   // "Oggi": si vede lo spostamento, morbido
-  else if (S.calJump) { S.calJump = false; calJumpToday(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
+  else if (S.calJump) { S.calJump = false; calJumpToday(); calStickPos(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
   }
 }
 /* barra fissa compatta del Calendario: compare quando la parte alta (titolo e tasti) è uscita dallo schermo.

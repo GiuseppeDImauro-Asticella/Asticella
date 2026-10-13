@@ -2902,7 +2902,7 @@ function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .ra
   const bar = $("#calstick"), gap = 8 + (bar && getComputedStyle(bar).display !== "none" ? bar.offsetHeight : 0);   // la barra fissa non deve coprire l'inizio della settimana
   const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - gap), document.documentElement.scrollHeight - innerHeight);
   if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
-  if (navigator.maxTouchPoints > 0) { calAnim = null; return window.scrollTo({top: to, behavior: "smooth"}); }   // iPad/tablet: lo scorrimento morbido lo fa il sistema (più fluido sulla pagina pesante; si ferma da solo se tocchi)
+  if (matchMedia("(pointer: coarse)").matches) { calAnim = null; return window.scrollTo({top: to, behavior: "smooth"}); }   // iPad/tablet (dito come puntatore principale; un PC con schermo touch usa il mouse e resta sull'animazione di prima): lo scorrimento morbido lo fa il sistema (più fluido sulla pagina pesante; si ferma da solo se tocchi)
   const from = window.scrollY, d = to - from; if (Math.abs(d) < 2) return; const T = enter ? Math.min(550, 300 + Math.abs(d) * 0.2) : Math.min(650, 320 + Math.abs(d) * 0.25), t0 = performance.now(), tok = calAnim = {};
   const ease = x => 1 - Math.pow(1 - x, 3);   // parte veloce e rallenta dolcemente
   const step = now => { if (calAnim !== tok || S.view !== "calendar") return; const k = Math.min(1, (now - t0) / T); window.scrollTo(0, from + d * ease(k)); if (k < 1) requestAnimationFrame(step); else calAnim = null; };

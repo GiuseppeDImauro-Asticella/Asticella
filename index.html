@@ -260,7 +260,7 @@ body.nosel{user-select:none}
 .wcard.st-done{border-left:3px solid var(--ok)}
 .wcard.st-progress{border-left:3px solid var(--warn)}
 .wcard.st-missed,.wcard.st-skipped{border-left:3px solid var(--bad)}
-.wcard .kindt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.wcard .kindt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:6px 0 4px}
 .wcard .moved{margin-top:3px;font-size:11px;color:var(--muted);font-style:italic}
 .wcard .meta{margin-top:5px;font-size:11px;color:var(--ok);font-weight:600}
 
@@ -2560,6 +2560,9 @@ const kShort = k => k === "correttivi" ? "Correttivi" : KINDS[k]?.l || "?";
 function mcCol(p, m){ const n = m?.name || "";
   if (/scaric/i.test(n)) return "#3DC88B"; if (/gar/i.test(n)) return "#E6AA3C"; if (/transiz|recuper/i.test(n)) return "#8A93A3";
   const others = (p?.models || []).filter(x => !/scaric|gar|transiz|recuper/i.test(x.name)); return MC_COLS[Math.max(0, others.indexOf(m)) % MC_COLS.length]; }
+function plansRefreshBg(){ if (!S.plans || S._plRef || Date.now() - (S.plansAt || 0) < 15000) return; S._plRef = true; const old = JSON.stringify(S.plans);
+  DB.listPlans().then(p => { S.plans = p; S.plansAt = Date.now(); if (S.view === "calendar" && $("#calwrap .cal") && JSON.stringify(p) !== old) drawCalendar(); })
+    .catch(e => console.warn(e)).finally(() => { S._plRef = false; }); }
 async function ensurePlans(){ if (S.plans && Date.now() - (S.plansAt || 0) < 15000) return; try { S.plans = await DB.listPlans(); S.plansAt = Date.now(); } catch(e) { console.error(e); S.plans ??= []; } }
 const planCovers = (p, ws) => p.start <= ws && perWs(p, p.weeks) > ws;
 /* il piano che vale per l'atleta in quella settimana: il suo, se no quello del gruppo */
@@ -2823,8 +2826,12 @@ async function viewCalendar(m){
       <span class="stepper" title="Settimane visibili"><button data-act="cal-n" data-d="-1" aria-label="Una settimana in meno" ${S.calWeeks<=1?"disabled":""}>−</button><span class="num" style="padding:0 8px">${S.calWeeks} sett.</span><button data-act="cal-n" data-d="1" aria-label="Una settimana in più" ${S.calWeeks>=16?"disabled":""}>+</button></span>
       <button class="btn icon calcmp ${S.calCompact ? "on" : ""}" data-act="cal-compact" aria-pressed="${S.calCompact}" aria-label="${S.calCompact ? "Vista normale" : "Vista compatta"}" title="${S.calCompact ? "Vista normale: le sedute con tutti gli esercizi" : "Vista compatta: solo titolo, tipo e stato delle sedute (più settimane sullo schermo)"}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${S.calCompact ? '<rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/>' : '<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>'}</svg></button>
     </div></div><div class="scroll-x" id="calwrap"><div class="muted" style="padding:20px">Caricamento…</div></div>`;
-  if (S.calJump && !S._same) m.classList.add("cjump");   // finché non è pronto e posizionato sulla settimana in corso, la pagina resta invisibile (poi compare con una breve dissolvenza)
-  await Promise.all([ensureWeeks(a.email, S.cws, S.calWeeks), ensurePlans()]);
+  /* se le settimane e i piani sono già in memoria il calendario compare subito, senza attese né dissolvenza;
+     i piani "vecchi" (più di 15 s) si ricaricano dietro le quinte e il calendario si aggiorna solo se è cambiato qualcosa */
+  const ready = S.plans && [...Array(S.calWeeks)].every((_, i) => S.loaded[a.email]?.has(addDays(S.cws, i*7)));
+  if (S.calJump && !S._same && !ready) m.classList.add("cjump");   // solo se deve aspettare i dati: la pagina resta invisibile finché non è pronta e posizionata sulla settimana in corso
+  if (S.plans) plansRefreshBg();
+  await Promise.all([ensureWeeks(a.email, S.cws, S.calWeeks), S.plans ? null : ensurePlans()]);
   if (S.view !== "calendar") return;
   drawCalendar();
 }

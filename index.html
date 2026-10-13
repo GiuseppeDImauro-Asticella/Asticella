@@ -2895,18 +2895,26 @@ addEventListener("scroll", () => { if ($("#calstick")) calStickPos(); }, {passiv
 addEventListener("resize", () => { if ($("#calstick")) calStickPos(); });
 /* aprendo il Calendario (o con "Oggi") la pagina scorre fino alla settimana in corso: la settimana scorsa resta subito sopra */
 /* uno scorrimento automatico si ferma appena tocchi, scorri o premi un tasto: il gesto non va a vuoto */
-let calAnim = null; ["wheel", "touchstart", "pointerdown", "keydown"].forEach(ev => addEventListener(ev, () => { calAnim = null; }, {capture: true, passive: true}));
+let calAnim = null; ["wheel", "touchstart", "pointerdown", "keydown"].forEach(ev => addEventListener(ev, () => { calAnim = null; calSlideEnd(); }, {capture: true, passive: true}));
+/* scorrimento "a scivolo": la pagina salta subito alla meta (senza mostrarlo) e il contenuto scivola dalla posizione di partenza a quella finale
+   con una transizione CSS: la fa la scheda grafica, quindi resta fluida anche su una pagina pesante come il Calendario (PC e iPad uguali) */
+let calSlide = null;
+function calSlideEnd(){ const m = calSlide; if (!m) return; calSlide = null; m.style.transition = ""; m.style.transform = ""; m.style.willChange = ""; calStickPos(); }
 function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return;
   const prev = r.previousElementSibling, el = prev?.classList.contains("mband") ? prev : r;
   if (!r.parentElement.querySelector(".rail") || r.parentElement.querySelector(".rail") === r && el === r) return;   // la settimana in corso è già la prima
   const bar = $("#calstick"), gap = 8 + (bar && getComputedStyle(bar).display !== "none" ? bar.offsetHeight : 0);   // la barra fissa non deve coprire l'inizio della settimana
   const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - gap), document.documentElement.scrollHeight - innerHeight);
   if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
-  if (matchMedia("(pointer: coarse)").matches) { calAnim = null; return window.scrollTo({top: to, behavior: "smooth"}); }   // iPad/tablet (dito come puntatore principale; un PC con schermo touch usa il mouse e resta sull'animazione di prima): lo scorrimento morbido lo fa il sistema (più fluido sulla pagina pesante; si ferma da solo se tocchi)
-  const from = window.scrollY, d = to - from; if (Math.abs(d) < 2) return; const T = enter ? Math.min(550, 300 + Math.abs(d) * 0.2) : Math.min(650, 320 + Math.abs(d) * 0.25), t0 = performance.now(), tok = calAnim = {};
-  const ease = x => 1 - Math.pow(1 - x, 3);   // parte veloce e rallenta dolcemente
-  const step = now => { if (calAnim !== tok || S.view !== "calendar") return; const k = Math.min(1, (now - t0) / T); window.scrollTo(0, from + d * ease(k)); if (k < 1) requestAnimationFrame(step); else calAnim = null; };
-  requestAnimationFrame(step); }
+  const from = window.scrollY, d = to - from, m = $("#main"); if (Math.abs(d) < 2 || !m) return;
+  calSlideEnd(); calAnim = null;
+  const T = Math.round(enter ? Math.min(800, 520 + Math.abs(d) * 0.12) : Math.min(850, 560 + Math.abs(d) * 0.12));
+  m.style.transition = "none"; m.style.willChange = "transform"; m.style.transform = `translateY(${d}px)`;   // il contenuto resta dov'era…
+  window.scrollTo(0, to); m.getBoundingClientRect();                                                       // …mentre la pagina è già sulla meta
+  calSlide = m; const me = m;
+  requestAnimationFrame(() => { if (calSlide !== me) return;
+    m.style.transition = `transform ${T}ms cubic-bezier(.22,.7,.25,1)`; m.style.transform = "translateY(0)";   // parte decisa e frena dolcemente
+    setTimeout(() => { if (calSlide === me) calSlideEnd(); }, T + 60); }); }
 /* idee della settimana nel Calendario: su una riga sola; se il testo non ci sta compare "Mostra tutto" */
 function mcIdeasFit(){ document.querySelectorAll(".mcideas:not(.open)").forEach(el => { const l = el.querySelector(".mcil");
   el.classList.toggle("ovf", l.scrollWidth > l.clientWidth + 1 || [...l.children].some(c => c.scrollWidth > c.clientWidth + 1)); }); }

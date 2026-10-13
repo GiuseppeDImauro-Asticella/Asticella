@@ -2870,7 +2870,8 @@ function drawCalendar(){
   calStickDraw(a, nSel);
   if (S.calJump === "smooth") { S.calJump = false; setTimeout(() => calJumpToday(true), 0); }   // "Oggi": si vede lo spostamento, morbido
   else if (S.calJump === "enter") { S.calJump = false; window.scrollTo(0, 0); S._noRestore = true; calStickPos();   // arrivando da un'altra sezione: si parte dall'inizio
-    const at = $("#calwrap .cal"), wt = calAnim = {}; setTimeout(() => { if ($("#calwrap .cal") === at && calAnim === wt) calJumpToday(true, true); }, 300); }   // se nel frattempo tocchi o scorri tu, non parte   // e dopo un istante scorre, morbido e veloce, alla settimana in corso (come "Oggi")
+    calPrep();   // la "foto" si prepara durante la pausa
+    const at = $("#calwrap .cal"), wt = calAnim = {}; setTimeout(() => { if ($("#calwrap .cal") === at && calAnim === wt) calJumpToday(true, true); else calPrepOff(); }, 300); }   // se nel frattempo tocchi o scorri tu, non parte   // e dopo un istante scorre, morbido e veloce, alla settimana in corso (come "Oggi")
   else if (S.calJump) { S.calJump = false; calJumpToday(); calStickPos(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
   }
 }
@@ -2899,15 +2900,23 @@ let calAnim = null; ["wheel", "touchstart", "pointerdown", "keydown"].forEach(ev
 /* scorrimento "a scivolo": la pagina salta subito alla meta (senza mostrarlo) e il contenuto scivola dalla posizione di partenza a quella finale
    con una transizione CSS: la fa la scheda grafica, quindi resta fluida anche su una pagina pesante come il Calendario (PC e iPad uguali) */
 let calSlide = null;
+/* prepara in anticipo il livello grafico del contenuto (iPad: senza, il primo fotogramma dello scivolo era vuoto) */
+function calPrep(){ const m = $("#main"); if (m) { m.style.willChange = "transform"; m.style.transform = "translateY(0)"; } }
+function calPrepOff(){ const m = $("#main"); if (m && !calSlide) { m.style.willChange = ""; m.style.transform = ""; } }
 function calSlideEnd(){ const m = calSlide; if (!m) return; calSlide = null; m.style.transition = ""; m.style.transform = ""; m.style.willChange = ""; calStickPos(); }
-function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return;
+function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return calPrepOff();
   const prev = r.previousElementSibling, el = prev?.classList.contains("mband") ? prev : r;
-  if (!r.parentElement.querySelector(".rail") || r.parentElement.querySelector(".rail") === r && el === r) return;   // la settimana in corso è già la prima
+  if (!r.parentElement.querySelector(".rail") || r.parentElement.querySelector(".rail") === r && el === r) return calPrepOff();   // la settimana in corso è già la prima
   const bar = $("#calstick"), gap = 8 + (bar && getComputedStyle(bar).display !== "none" ? bar.offsetHeight : 0);   // la barra fissa non deve coprire l'inizio della settimana
   const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - gap), document.documentElement.scrollHeight - innerHeight);
-  if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
-  const from = window.scrollY, d = to - from, m = $("#main"); if (Math.abs(d) < 2 || !m) return;
-  calSlideEnd(); calAnim = null;
+  if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) { calPrepOff(); return window.scrollTo({top: to}); }
+  const m = $("#main"); if (Math.abs(to - window.scrollY) < 2 || !m) { calPrepOff(); return; }
+  calSlideEnd();
+  if (m.style.willChange !== "transform") {   // "foto" del contenuto non ancora pronta (es. "Oggi"): la si prepara e si parte 2 fotogrammi dopo
+    calPrep(); const tok = calAnim = {};
+    return requestAnimationFrame(() => requestAnimationFrame(() => { if (calAnim === tok) calJumpToday(true, enter); else calPrepOff(); })); }
+  calAnim = null;
+  const from = window.scrollY, d = to - from;
   const T = Math.round(enter ? Math.min(850, 580 + Math.abs(d) * 0.12) : Math.min(900, 620 + Math.abs(d) * 0.12));
   m.style.transition = "none"; m.style.willChange = "transform"; m.style.transform = `translateY(${d}px)`;   // il contenuto resta dov'era…
   window.scrollTo(0, to); m.getBoundingClientRect();                                                       // …mentre la pagina è già sulla meta

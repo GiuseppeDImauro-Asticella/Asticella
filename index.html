@@ -242,9 +242,9 @@ body.nosel{user-select:none}
 .wcard .tr .stb.st-done{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--surface))}.wcard .tr .stb.st-progress{color:var(--warn);background:color-mix(in srgb,var(--warn) 20%,var(--surface))}
 .wcard .tr .stb.st-missed,.wcard .tr .stb.st-skipped{color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--surface))}
 
-.cal .cell.wold .wcard{opacity:.72;filter:saturate(.8);transition:opacity .15s,filter .15s}.cal .cell.wold .wcard.lit{opacity:1;filter:none}
-@media (hover:hover){.cal .cell.wold .wcard:hover{opacity:1;filter:none}}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cal .cell.wold .wcard:not(.lit):not(:hover){opacity:.6;filter:saturate(.75)}}
+.cal .cell.wold .wcard{opacity:.68;transition:opacity .15s}.cal .cell.wold .wcard.lit{opacity:1}
+@media (hover:hover){.cal .cell.wold .wcard:hover{opacity:1}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cal .cell.wold .wcard:not(.lit):not(:hover){opacity:.58}}
 .wcard .tr .vis{flex:none;border:0;background:none;padding:3px;margin:-2px -3px 0 0;border-radius:6px;color:var(--faint);display:flex;cursor:pointer}
 .wcard .tr .vis:hover{color:var(--ink);background:var(--surface2)}
 .wcard .tr .vis svg{width:15px;height:15px}
@@ -2908,12 +2908,12 @@ function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .ra
   if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
   const from = window.scrollY, d = to - from, m = $("#main"); if (Math.abs(d) < 2 || !m) return;
   calSlideEnd(); calAnim = null;
-  const T = Math.round(enter ? Math.min(800, 520 + Math.abs(d) * 0.12) : Math.min(850, 560 + Math.abs(d) * 0.12));
+  const T = Math.round(enter ? Math.min(850, 580 + Math.abs(d) * 0.12) : Math.min(900, 620 + Math.abs(d) * 0.12));
   m.style.transition = "none"; m.style.willChange = "transform"; m.style.transform = `translateY(${d}px)`;   // il contenuto resta dov'era…
   window.scrollTo(0, to); m.getBoundingClientRect();                                                       // …mentre la pagina è già sulla meta
   calSlide = m; const me = m;
   requestAnimationFrame(() => { if (calSlide !== me) return;
-    m.style.transition = `transform ${T}ms cubic-bezier(.22,.7,.25,1)`; m.style.transform = "translateY(0)";   // parte decisa e frena dolcemente
+    m.style.transition = `transform ${T}ms cubic-bezier(.6,0,.3,1)`; m.style.transform = "translateY(0)";   // parte dolce, accelera, frena dolcemente
     setTimeout(() => { if (calSlide === me) calSlideEnd(); }, T + 60); }); }
 /* idee della settimana nel Calendario: su una riga sola; se il testo non ci sta compare "Mostra tutto" */
 function mcIdeasFit(){ document.querySelectorAll(".mcideas:not(.open)").forEach(el => { const l = el.querySelector(".mcil");

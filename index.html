@@ -2871,7 +2871,11 @@ function drawCalendar(){
   if (S.calJump === "smooth") { S.calJump = false; setTimeout(() => calJumpToday(true), 0); }   // "Oggi": si vede lo spostamento, morbido
   else if (S.calJump === "enter") { S.calJump = false; window.scrollTo(0, 0); S._noRestore = true; calStickPos();   // arrivando da un'altra sezione: si parte dall'inizio
     calPrep();   // la "foto" si prepara durante la pausa
-    const at = $("#calwrap .cal"), wt = calAnim = {}; setTimeout(() => { if ($("#calwrap .cal") === at && calAnim === wt) calJumpToday(true, true); else calPrepOff(); }, 300); }   // se nel frattempo tocchi o scorri tu, non parte   // e dopo un istante scorre, morbido e veloce, alla settimana in corso (come "Oggi")
+    /* la pausa di 300 ms parte solo quando il calendario è davvero comparso sullo schermo (2 fotogrammi disegnati):
+       su un dispositivo più lento (iPad) che impiega di più a disegnarlo, la pausa si allunga da sola di quel tanto */
+    const at = $("#calwrap .cal"), wt = calAnim = {}, ok = () => $("#calwrap .cal") === at && calAnim === wt;
+    requestAnimationFrame(() => requestAnimationFrame(() => { if (!ok()) return calPrepOff();
+      setTimeout(() => { if (ok()) calJumpToday(true, true); else calPrepOff(); }, 300); })); }   // se nel frattempo tocchi o scorri tu, non parte   // e dopo un istante scorre, morbido e veloce, alla settimana in corso (come "Oggi")
   else if (S.calJump) { S.calJump = false; calJumpToday(); calStickPos(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
   }
 }

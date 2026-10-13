@@ -2869,6 +2869,8 @@ function drawCalendar(){
   requestAnimationFrame(mcIdeasFit);
   calStickDraw(a, nSel);
   if (S.calJump === "smooth") { S.calJump = false; setTimeout(() => calJumpToday(true), 0); }   // "Oggi": si vede lo spostamento, morbido
+  else if (S.calJump === "enter") { S.calJump = false; window.scrollTo(0, 0); S._noRestore = true; calStickPos();   // arrivando da un'altra sezione: si parte dall'inizio
+    const at = $("#calwrap .cal"); setTimeout(() => { if ($("#calwrap .cal") === at) calJumpToday(true, true); }, 150); }   // e dopo un istante scorre, morbido e veloce, alla settimana in corso (come "Oggi")
   else if (S.calJump) { S.calJump = false; calJumpToday(); calStickPos(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
   }
 }
@@ -2892,15 +2894,17 @@ function calStickPos(){ const b = $("#calstick"); if (!b) return;
 addEventListener("scroll", () => { if ($("#calstick")) calStickPos(); }, {passive: true});
 addEventListener("resize", () => { if ($("#calstick")) calStickPos(); });
 /* aprendo il Calendario (o con "Oggi") la pagina scorre fino alla settimana in corso: la settimana scorsa resta subito sopra */
-function calJumpToday(smooth){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return;
+/* uno scorrimento automatico si ferma appena tocchi, scorri o premi un tasto: il gesto non va a vuoto */
+let calAnim = null; ["wheel", "touchstart", "pointerdown", "keydown"].forEach(ev => addEventListener(ev, () => { calAnim = null; }, {capture: true, passive: true}));
+function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return;
   const prev = r.previousElementSibling, el = prev?.classList.contains("mband") ? prev : r;
   if (!r.parentElement.querySelector(".rail") || r.parentElement.querySelector(".rail") === r && el === r) return;   // la settimana in corso è già la prima
   const bar = $("#calstick"), gap = 8 + (bar && getComputedStyle(bar).display !== "none" ? bar.offsetHeight : 0);   // la barra fissa non deve coprire l'inizio della settimana
   const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - gap), document.documentElement.scrollHeight - innerHeight);
   if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
-  const from = window.scrollY, d = to - from; if (Math.abs(d) < 2) return; const T = Math.min(650, 320 + Math.abs(d) * 0.25), t0 = performance.now();
+  const from = window.scrollY, d = to - from; if (Math.abs(d) < 2) return; const T = enter ? Math.min(550, 300 + Math.abs(d) * 0.2) : Math.min(650, 320 + Math.abs(d) * 0.25), t0 = performance.now(), tok = calAnim = {};
   const ease = x => 1 - Math.pow(1 - x, 3);   // parte veloce e rallenta dolcemente
-  const step = now => { const k = Math.min(1, (now - t0) / T); window.scrollTo(0, from + d * ease(k)); if (k < 1) requestAnimationFrame(step); };
+  const step = now => { if (calAnim !== tok || S.view !== "calendar") return; const k = Math.min(1, (now - t0) / T); window.scrollTo(0, from + d * ease(k)); if (k < 1) requestAnimationFrame(step); else calAnim = null; };
   requestAnimationFrame(step); }
 /* idee della settimana nel Calendario: su una riga sola; se il testo non ci sta compare "Mostra tutto" */
 function mcIdeasFit(){ document.querySelectorAll(".mcideas:not(.open)").forEach(el => { const l = el.querySelector(".mcil");
@@ -5757,13 +5761,13 @@ const ACT = {
     try { localStorage.setItem("asticella-navmini", on ? "1" : "0"); } catch(e) {}
     t.setAttribute("aria-pressed", on); t.title = t.ariaLabel = on ? "Apri il menu" : "Stringi il menu (più spazio per le pagine)";
     renderView(); },   // le pagine si ridisegnano con la nuova larghezza (calendario, grafici)
-  nav(t){ S.view = t.dataset.v; if (S.view === "calendar") S.calJump = true; S.athEdit = null; S.exEdit = null; render(); },
+  nav(t){ const from = S.view; S.view = t.dataset.v; if (S.view === "calendar") S.calJump = from === "calendar" ? true : "enter"; S.athEdit = null; S.exEdit = null; render(); },
   group(t){ S.group = t.dataset.v; renderView(); },
   "ov-week"(t){ const d = +t.dataset.d; S.ws = d ? addDays(S.ws, d) : monday(TODAY()); renderView(); },
   "cal-week"(t){ const d = +t.dataset.d; S.cws = d ? addDays(S.cws || calHome(), d) : calHome(); if (!d) S.calJump = "smooth"; renderView(); },
   "cal-meso0"(t){ S.cws = t.dataset.ws; renderView(); },
   "cal-n"(t){ const home = S.cws === calHome(); S.calWeeks = Math.min(16, Math.max(1, S.calWeeks + +t.dataset.d)); if (home) S.cws = calHome(); try { localStorage.setItem("asticella-weeks", S.calWeeks); } catch(e){} renderView(); },
-  "open-cal"(t){ S.calAthlete = t.dataset.e; S.view = "calendar"; S.calJump = true; render(); },
+  "open-cal"(t){ S.calAthlete = t.dataset.e; S.view = "calendar"; S.calJump = "enter"; render(); },
   async "w-vis"(t, ev){ ev?.stopPropagation?.(); const em = t.dataset.e, w = S.cache[em]?.[t.dataset.id]; if (!w) return;
     const redraw = () => S.view === "calendar" ? drawCalendar() : renderView();
     w.hidden = !w.hidden; w.updatedAt = new Date().toISOString(); redraw();

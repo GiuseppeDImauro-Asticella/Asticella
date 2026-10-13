@@ -362,7 +362,7 @@ table.sets{border-collapse:collapse}
 .sets td.n{color:var(--faint);font-size:12px;text-align:center;width:24px}
 /* serie trascinabili: si prende il numero; la maniglia ⋮⋮ compare a sinistra solo passandoci sopra (mouse) o dopo un tocco (tablet) */
 .sets td.n:has(.sgrip){width:30px;padding-left:0;padding-right:0}
-.sets .sgrip{position:relative;display:block;width:100%;text-align:center;padding:9px 0;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:6px}
+.sets .sgrip{position:relative;display:block;width:100%;text-align:center;padding:9px 0;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border-radius:6px}
 .sets .sgrip .gi{position:absolute;left:0;top:50%;transform:translateY(-50%);display:flex;opacity:0;transition:opacity .12s;color:var(--faint);pointer-events:none}
 .sets .sgrip .gi svg{width:8px;height:12px}
 .sets .sgrip.on .gi,.sets tbody.sdragging tr.sdrag .gi{opacity:1}
@@ -6062,24 +6062,34 @@ const ACT = {
 };
 
 /* ---------- tablet/telefono: i "passa sopra" (title) non esistono → un tocco su un elemento con data-tip mostra il fumetto ---------- */
-/* serie dell'allenamento: trascina la maniglia (⋮⋮ numero) su o giù per cambiare l'ordine; funziona con mouse e dito */
+/* serie dell'allenamento: trascina il numero su o giù per cambiare l'ordine.
+   Mouse: si trascina subito. Tablet: bisogna tenere il dito fermo sul numero ~0,35 s (la riga si "solleva"), poi si sposta;
+   se il dito si muove prima, è uno scorrimento normale della pagina e la serie non si sposta */
+let SDRAG_ON = false;
+document.addEventListener("touchmove", ev => { if (SDRAG_ON) ev.preventDefault(); }, {passive: false});   // durante lo spostamento la pagina non scorre
 document.addEventListener("pointerdown", e => {
   const g = e.target.closest?.("[data-sgrip]"); if (!g || !S.editor || (e.pointerType === "mouse" && e.button !== 0)) return;
-  e.preventDefault();
+  const touch = e.pointerType !== "mouse"; if (!touch) e.preventDefault();
   const tr = g.closest("tr"), tb = tr.parentElement, rows = [...tb.children], from = rows.indexOf(tr), i = +g.dataset.i;
-  const R = rows.map(r => r.getBoundingClientRect()), h = R[from].height, y0 = e.clientY; let to = from, moved = false;
-  try { g.setPointerCapture(e.pointerId); } catch(_) {}
-  const mv = ev => { const dy = ev.clientY - y0; if (!moved && Math.abs(dy) < 3) return;
-    if (!moved) { moved = true; tb.classList.add("sdragging"); tr.classList.add("sdrag"); }
+  const R = rows.map(r => r.getBoundingClientRect()), h = R[from].height, x0 = e.clientX, y0 = e.clientY; let to = from, moved = false, armed = !touch, timer = 0;
+  const lift = () => { tb.classList.add("sdragging"); tr.classList.add("sdrag"); };
+  if (touch) timer = setTimeout(() => { armed = true; SDRAG_ON = true; moved = true; g.classList.add("on"); lift(); }, 350);
+  else try { g.setPointerCapture(e.pointerId); } catch(_) {}
+  const mv = ev => { const dx = ev.clientX - x0, dy = ev.clientY - y0;
+    if (!armed) { if (Math.abs(dx) > 8 || Math.abs(dy) > 8) end(ev, true); return; }   // tablet: il dito si è mosso prima del tempo → è uno scorrimento
+    if (!moved && Math.abs(dy) < 3) return;
+    if (!moved) { moved = true; lift(); }
     const lim = Math.max(R[0].top - R[from].top, Math.min(R[R.length - 1].bottom - R[from].bottom, dy));
     tr.style.transform = `translateY(${lim}px)`;
     const cy = R[from].top + h / 2 + lim; to = rows.filter((r, k) => k !== from && R[k].top + R[k].height / 2 < cy).length;
     rows.forEach((r, k) => { if (k === from) return; const sh = from < to && k > from && k <= to ? -h : from > to && k >= to && k < from ? h : 0; r.style.transform = sh ? `translateY(${sh}px)` : ""; }); };
-  const up = () => { g.removeEventListener("pointermove", mv); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up);
+  const end = (ev, scrolled) => { clearTimeout(timer); SDRAG_ON = false;
+    g.removeEventListener("pointermove", mv); g.removeEventListener("pointerup", end); g.removeEventListener("pointercancel", end);
     rows.forEach(r => r.style.transform = ""); tb.classList.remove("sdragging"); tr.classList.remove("sdrag");
-    if (!moved) { const on = !g.classList.contains("on"); document.querySelectorAll(".sgrip.on").forEach(x => x.classList.remove("on")); if (e.pointerType !== "mouse") g.classList.toggle("on", on); return; }   // tocco senza spostare: mostra (o nasconde) la maniglia
+    if (scrolled === true || ev?.type === "pointercancel" && !moved) return;
+    if (!moved) { const on = !g.classList.contains("on"); document.querySelectorAll(".sgrip.on").forEach(x => x.classList.remove("on")); if (touch) g.classList.toggle("on", on); return; }   // tocco breve: mostra (o nasconde) la maniglia
     if (to !== from) { const x = S.editor.w.exercises[i]; const [st] = x.sets.splice(from, 1); x.sets.splice(to, 0, st); markDirty(); drawEditor(); } };
-  g.addEventListener("pointermove", mv); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
+  g.addEventListener("pointermove", mv); g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
 });
 let tipPT = "mouse";
 document.addEventListener("pointerdown", e => { tipPT = e.pointerType; const c = e.target.closest?.(".cal .cell.wold .wcard");

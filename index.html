@@ -2870,7 +2870,7 @@ function drawCalendar(){
   calStickDraw(a, nSel);
   if (S.calJump === "smooth") { S.calJump = false; setTimeout(() => calJumpToday(true), 0); }   // "Oggi": si vede lo spostamento, morbido
   else if (S.calJump === "enter") { S.calJump = false; window.scrollTo(0, 0); S._noRestore = true; calStickPos();   // arrivando da un'altra sezione: si parte dall'inizio
-    const at = $("#calwrap .cal"); setTimeout(() => { if ($("#calwrap .cal") === at) calJumpToday(true, true); }, 150); }   // e dopo un istante scorre, morbido e veloce, alla settimana in corso (come "Oggi")
+    const at = $("#calwrap .cal"), wt = calAnim = {}; setTimeout(() => { if ($("#calwrap .cal") === at && calAnim === wt) calJumpToday(true, true); }, 300); }   // se nel frattempo tocchi o scorri tu, non parte   // e dopo un istante scorre, morbido e veloce, alla settimana in corso (come "Oggi")
   else if (S.calJump) { S.calJump = false; calJumpToday(); calStickPos(); S._noRestore = true;   // subito, prima che la pagina venga disegnata: niente "scatto" dall'alto
   }
 }
@@ -2902,6 +2902,7 @@ function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .ra
   const bar = $("#calstick"), gap = 8 + (bar && getComputedStyle(bar).display !== "none" ? bar.offsetHeight : 0);   // la barra fissa non deve coprire l'inizio della settimana
   const to = Math.min(Math.max(0, el.getBoundingClientRect().top + window.scrollY - gap), document.documentElement.scrollHeight - innerHeight);
   if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) return window.scrollTo({top: to});
+  if (navigator.maxTouchPoints > 0) { calAnim = null; return window.scrollTo({top: to, behavior: "smooth"}); }   // iPad/tablet: lo scorrimento morbido lo fa il sistema (più fluido sulla pagina pesante; si ferma da solo se tocchi)
   const from = window.scrollY, d = to - from; if (Math.abs(d) < 2) return; const T = enter ? Math.min(550, 300 + Math.abs(d) * 0.2) : Math.min(650, 320 + Math.abs(d) * 0.25), t0 = performance.now(), tok = calAnim = {};
   const ease = x => 1 - Math.pow(1 - x, 3);   // parte veloce e rallenta dolcemente
   const step = now => { if (calAnim !== tok || S.view !== "calendar") return; const k = Math.min(1, (now - t0) / T); window.scrollTo(0, from + d * ease(k)); if (k < 1) requestAnimationFrame(step); else calAnim = null; };
@@ -5761,7 +5762,10 @@ const ACT = {
     try { localStorage.setItem("asticella-navmini", on ? "1" : "0"); } catch(e) {}
     t.setAttribute("aria-pressed", on); t.title = t.ariaLabel = on ? "Apri il menu" : "Stringi il menu (più spazio per le pagine)";
     renderView(); },   // le pagine si ridisegnano con la nuova larghezza (calendario, grafici)
-  nav(t){ const from = S.view; S.view = t.dataset.v; if (S.view === "calendar") S.calJump = from === "calendar" ? true : "enter"; S.athEdit = null; S.exEdit = null; render(); },
+  nav(t){ if (t.dataset.v === "calendar" && S.view !== "calendar" && !t._go) {   // il Calendario è la pagina più pesante: prima si evidenzia subito l'icona, poi (fotogramma dopo) si disegna la pagina
+      document.querySelectorAll('.side [data-act="nav"]').forEach(b => b.classList.toggle("on", b === t));
+      const tok = S._navTok = {}; requestAnimationFrame(() => setTimeout(() => { if (S._navTok !== tok) return; t._go = true; try { ACT.nav(t); } finally { t._go = false; } }, 0)); return; }
+    S._navTok = null; const from = S.view; S.view = t.dataset.v; if (S.view === "calendar") S.calJump = from === "calendar" ? true : "enter"; S.athEdit = null; S.exEdit = null; render(); },
   group(t){ S.group = t.dataset.v; renderView(); },
   "ov-week"(t){ const d = +t.dataset.d; S.ws = d ? addDays(S.ws, d) : monday(TODAY()); renderView(); },
   "cal-week"(t){ const d = +t.dataset.d; S.cws = d ? addDays(S.cws || calHome(), d) : calHome(); if (!d) S.calJump = "smooth"; renderView(); },

@@ -2905,7 +2905,8 @@ let calAnim = null; ["wheel", "touchstart", "pointerdown", "keydown"].forEach(ev
    con una transizione CSS: la fa la scheda grafica, quindi resta fluida anche su una pagina pesante come il Calendario (PC e iPad uguali) */
 let calSlide = null;
 /* prepara in anticipo il livello grafico del contenuto (iPad: senza, il primo fotogramma dello scivolo era vuoto) */
-function calPrep(){ const m = $("#main"); if (m) { m.style.willChange = "transform"; m.style.transform = "translateY(0)"; } }
+const TOUCH_MAIN = matchMedia("(pointer: coarse)").matches;   // dito come puntatore principale = iPad/tablet/telefono
+function calPrep(){ const m = $("#main"); if (m && !TOUCH_MAIN) { m.style.willChange = "transform"; m.style.transform = "translateY(0)"; } }
 function calPrepOff(){ const m = $("#main"); if (m && !calSlide) { m.style.willChange = ""; m.style.transform = ""; } }
 function calSlideEnd(){ const m = calSlide; if (!m) return; calSlide = null; m.style.transition = ""; m.style.transform = ""; m.style.willChange = ""; calStickPos(); }
 function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .rail.cur"); if (!r || S.view !== "calendar") return calPrepOff();
@@ -2916,6 +2917,7 @@ function calJumpToday(smooth, enter){ const r = document.querySelector(".cal .ra
   if (!smooth || matchMedia("(prefers-reduced-motion: reduce)").matches) { calPrepOff(); return window.scrollTo({top: to}); }
   const m = $("#main"); if (Math.abs(to - window.scrollY) < 2 || !m) { calPrepOff(); return; }
   calSlideEnd();
+  if (TOUCH_MAIN) { calPrepOff(); calAnim = null; return window.scrollTo({top: to, behavior: "smooth"}); }   // iPad/tablet: scorrimento di sistema (lo scivolo su iPad dava un fotogramma vuoto alla partenza)
   if (m.style.willChange !== "transform") {   // "foto" del contenuto non ancora pronta (es. "Oggi"): la si prepara e si parte 2 fotogrammi dopo
     calPrep(); const tok = calAnim = {};
     return requestAnimationFrame(() => requestAnimationFrame(() => { if (calAnim === tok) calJumpToday(true, enter); else calPrepOff(); })); }

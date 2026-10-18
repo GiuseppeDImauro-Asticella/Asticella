@@ -1079,7 +1079,26 @@ div.pblk{display:block;line-height:24px;text-align:center;cursor:default}
 select.in.pmsel{height:28px;padding:0 26px 0 8px;font-size:12px;width:auto;max-width:220px;display:inline-block;margin-left:6px;vertical-align:middle}.kfilt.pmb button{padding:2px 9px;font-size:11.5px}
 .honly{text-transform:none;letter-spacing:0;font-weight:700;font-size:11px;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 8px}
 .wcmp .pk{text-transform:none;letter-spacing:0;font-size:12px}
-.wcmp .sesl{font-size:12px;line-height:1.35;padding:3px 0}.wcmp .sesl + .sesl{border-top:1px dashed var(--line);margin-top:3px;padding-top:5px}
+.wcmp .sesls{display:flex;flex-direction:column;gap:5px;max-width:560px}
+.wcmp .sesl{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:2px 10px;padding:6px 10px 8px;border-radius:8px;background:var(--surface);border-left:3px solid var(--kc);font-size:12.5px;line-height:1.25;overflow:hidden}
+.wcmp .sesl .sd{font-weight:700;color:var(--muted);font-size:11.5px}
+.wcmp .sesl .sn{display:flex;flex-direction:column;min-width:0}.wcmp .sesl .sn b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wcmp .sesl small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.wcmp .sesl .sv{text-align:right;white-space:nowrap}.wcmp .sesl .sv b{font-size:13.5px}.wcmp .sesl .miss{color:var(--warn)}
+.wcmp .sesl .sb{position:absolute;left:0;bottom:0;height:3px;background:color-mix(in srgb,var(--kc) 55%,transparent);border-radius:0 2px 2px 0}
+.wcmp .irf{font-size:11px;margin-top:1px}
+/* sottorighe "↳" chiuse: si aprono toccando la riga sopra */
+.wcmp .cxh{display:none!important}
+.wcmp .k.cxp{cursor:pointer;user-select:none}
+.wcmp .k:has(> .cxa),.wcmp .k:has(> .cxi){display:flex;align-items:flex-start;gap:4px}
+.wcmp .k > .cxa,.wcmp .k > .cxi{flex:none;width:12px;text-align:center}.wcmp .k > .cxt{min-width:0}
+.cxa{display:inline-block;color:var(--faint);transition:transform .15s}.wcmp .k.cxp.open .cxa,.cxa.o{transform:rotate(90deg)}
+.wcmp .k.csub:has(> .cxi){padding-left:22px}
+.nt tr.exmore{display:none}
+.exmorebtn{display:flex;align-items:center;gap:6px;margin:6px 14px 12px;padding:5px 10px;border:0;border-radius:8px;background:none;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer}
+.exmorebtn:hover{background:var(--surface2)}
+.wcmp .k.cxp .cxn{font-weight:600;color:var(--faint);font-size:10.5px;margin-left:4px;text-transform:none;letter-spacing:0}
+@media (hover:hover){.wcmp .k.cxp:hover{color:var(--ink)}}
 .wcmp .pr{padding-top:6px;padding-bottom:6px}
 .wcmp .pv{display:flex;align-items:center;gap:8px}.pbar{display:inline-block;height:7px;border-radius:3px;background:var(--faint)}.pbar.b{background:var(--accent)}
 .wcmp .pnone{grid-column:1/-1;font-size:12px;color:var(--muted)}
@@ -3228,7 +3247,7 @@ function wStats(w){
       { const sv = setVolume(x, exName(w, x), r, x.sets[j]);   // volume per tipo di stimolo
         if (sv && sv.v) { vb[sv.b] = (vb[sv.b] || 0) + sv.v; e.vb[sv.b] = (e.vb[sv.b] || 0) + sv.v; if (hd) e.h.vb[sv.b] = (e.h.vb[sv.b] || 0) + sv.v; } }
       if (ik) { const q = setInt(em, w, x, exName(w, x), r, x.sets[j]);   // intensità relativa (% e1RM / record); Ramping escluse per i pesi
-        if (q?.pct != null && !(q.k === "kg" && ty === "R")) { ints.push({k: q.k, pct: q.pct, cat: catOfName(exName(w, x)), n: exName(w, x), h: !!hd});
+        if (q?.pct != null && !(q.k === "kg" && ty === "R")) { ints.push({k: q.k, pct: q.pct, cat: catOfName(exName(w, x)), n: exName(w, x), h: !!hd, ref: q.ref, d: effDate(w)});
           [e, ...(hd ? [e.h] : [])].forEach(t => { t.is[q.k] = (t.is[q.k] || 0) + q.pct; t.in[q.k] = (t.in[q.k] || 0) + 1; }); } } }); });
   const srpe = w.status === "done" && w.sessionRpe && w.durationMin ? w.sessionRpe * w.durationMin : 0;
   return {sets, vol, vb, reps, srpe, ex, types, typesH, hard, known, ints, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
@@ -3267,13 +3286,14 @@ function accumLoad(o, list){
     const IS = (o.intS ??= {kg: [], spr: [], jmp: []}), IC = (o.intC ??= {kg: {}, spr: {}, jmp: {}});   // intensità relativa di ogni serie, anche per categoria
     const ISH = (o.intSH ??= {kg: [], spr: [], jmp: []}), ICH = (o.intCH ??= {kg: {}, spr: {}, jmp: {}});   // … e solo delle serie allenanti (vista "Serie allenanti")
     st.ints.forEach(q => { IS[q.k].push(q.pct); (IC[q.k][q.cat] ??= []).push(q.pct); if (q.h) { ISH[q.k].push(q.pct); (ICH[q.k][q.cat] ??= []).push(q.pct); } });
-    const IE = (o.intE ??= {kg: {}, spr: {}, jmp: {}}); st.ints.forEach(q => (IE[q.k][q.n] ??= []).push(q.pct));   // intensità per esercizio (dettaglio "Intensità")
+    const IE = (o.intE ??= {kg: {}, spr: {}, jmp: {}}), IR = (o.intEr ??= {kg: {}, spr: {}, jmp: {}});   // intensità per esercizio (dettaglio "Intensità") e il suo riferimento (il più recente)
+    st.ints.forEach(q => { (IE[q.k][q.n] ??= []).push(q.pct); if (q.ref && (!IR[q.k][q.n] || IR[q.k][q.n].at <= q.d)) IR[q.k][q.n] = {ref: q.ref, at: q.d}; });
     (o.sess ??= []).push({w, k, d: effDate(w), done: w.status === "done", srpe: st.srpe, rpe: st.rpe, min: w.status === "done" ? +w.durationMin || 0 : 0});   // sedute (dettaglio "Carico sRPE")
     const vbH = (b.vbH ??= {});
     Object.entries(st.ex).forEach(([n, e]) => { const c = (b.cat[catOfName(n)] ??= {sets: 0, hard: 0, vb: {}, vbH: {}}); c.sets += e.sets; c.hard += e.h.sets;   // per "Dividi per categoria"
       Object.entries(e.vb).forEach(([q, v]) => c.vb[q] = (c.vb[q] || 0) + v);
       Object.entries(e.h.vb).forEach(([q, v]) => { c.vbH[q] = (c.vbH[q] || 0) + v; vbH[q] = (vbH[q] || 0) + v; }); }); });
-  o.intS ??= {kg: [], spr: [], jmp: []}; o.intC ??= {kg: {}, spr: {}, jmp: {}}; o.intE ??= {kg: {}, spr: {}, jmp: {}}; o.sess ??= []; o.intSH ??= {kg: [], spr: [], jmp: []}; o.intCH ??= {kg: {}, spr: {}, jmp: {}};
+  o.intS ??= {kg: [], spr: [], jmp: []}; o.intC ??= {kg: {}, spr: {}, jmp: {}}; o.intE ??= {kg: {}, spr: {}, jmp: {}}; o.intEr ??= {kg: {}, spr: {}, jmp: {}}; o.sess ??= []; o.intSH ??= {kg: [], spr: [], jmp: []}; o.intCH ??= {kg: {}, spr: {}, jmp: {}};
   const rng = L => L.length ? {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), min: Math.min(...L), n: L.length} : null;
   o.intRH = Object.fromEntries(INT_KEYS.map(k => [k, rng(o.intSH[k])]));
   o.intR = Object.fromEntries(INT_KEYS.map(k => { const L = o.intS[k]; return [k, L.length ? {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), min: Math.min(...L), n: L.length} : null]; }));
@@ -3373,8 +3393,8 @@ async function viewAnalysis(m){
     <div class="antables">
       <section class="panel"><h3>Per esercizio</h3><div class="cdesc">${esc(a.name)} · ${fmtD(from)} – ${fmtD(to)}</div>
         <div class="scroll-x"><table class="nt"><thead><tr><th>Esercizio</th><th>Sedute</th><th>Serie</th><th>Reps</th><th>Volume kg</th><th title="Kg massimi, altezza massima o tempo migliore">Migliore</th></tr></thead><tbody>
-        ${exRows.map(([n, e]) => `<tr><td>${esc(n)}</td><td class="num">${e.sessions}</td><td class="num">${e.sets}</td><td class="num">${e.reps ? fmtN(e.reps) : "–"}</td><td class="num">${e.vol ? fmtN(e.vol) : "–"}</td><td class="num">${best(e)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nessun dato registrato nel periodo.</td></tr>`}
-        </tbody></table></div></section>
+        ${exRows.map(([n, e], j) => `<tr class="${j >= EX_SHOW && !anQ.exAll ? "exmore" : ""}"><td>${esc(n)}</td><td class="num">${e.sessions}</td><td class="num">${e.sets}</td><td class="num">${e.reps ? fmtN(e.reps) : "–"}</td><td class="num">${e.vol ? fmtN(e.vol) : "–"}</td><td class="num">${best(e)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nessun dato registrato nel periodo.</td></tr>`}
+        </tbody></table></div>${exRows.length > EX_SHOW ? `<button type="button" class="exmorebtn" data-act="an-exall" aria-expanded="${!!anQ.exAll}">${anQ.exAll ? `<span class="cxa o">▸</span>Mostra meno` : `<span class="cxa">▸</span>Mostra altri ${exRows.length - EX_SHOW}`}</button>` : ""}</section>
       <section class="panel"><h3>Confronto atleti</h3><div class="cdesc">${fmtD(from)} – ${fmtD(to)} · clicca un nome per vederne l'analisi</div>
         <div class="scroll-x"><table class="nt"><thead><tr><th>Atleta</th><th>Sedute fatte</th>${anQ.vk === "serie" ? "" : `<th>Serie</th>`}<th>${esc(VOLK[anQ.vk].l)}${VOLK[anQ.vk].u ? " " + VOLK[anQ.vk].u : ""}${kFilt("volume") ? ` <span class="faint">(${KINDS[kFilt("volume")].l})</span>` : ""}</th><th>sRPE medio sett.</th></tr></thead><tbody>
         ${cmp.map(c => `<tr class="${c.x.email===a.email?"sel":""}"><td><button class="lk" data-act="an-pick" data-e="${esc(c.x.email)}">${esc(c.x.name)}</button><div class="faint" style="font-size:11px">${esc(c.x.group||"")}</div></td>
@@ -3418,9 +3438,10 @@ function weekNums(o, key){ const f = kFilt0(key), ks = f ? [f] : Object.keys(o.b
   const rng = L => L?.length ? {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), n: L.length} : null;
   const sess = (o.sess || []).filter(q => ks.includes(q.k)), srpeK = Object.fromEntries(ks.map(k => [k, o.byK[k]?.srpe || 0]));
   const zones = Object.fromEntries(INT_KEYS.map(k => [k, INT_ZONES.map(([lo, hi]) => (o.intS?.[k] || []).filter(v => v >= lo && v < hi).length)]));
-  const intE = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries(o.intE?.[k] || {}).map(([n, L]) => [n, rng(L)]))]));
+  const intE = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries(o.intE?.[k] || {}).map(([n, L]) => [n, {...rng(L), ref: o.intEr?.[k]?.[n]?.ref || null}]))]));
   return {sess, srpeK, zones, intE, pat, cat, intC, types, vb, hard, known, rpe, H, int: (H ? o.intRH : o.intR) || {}, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: H ? hard : sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
 const cmpKeys = day => day ? ["dA", "dB"] : ["cmpA", "cmpB"];
+const EX_SHOW = 8;   // "Per esercizio": righe visibili prima di "Mostra altri"
 /* fasce di intensità del dettaglio "Intensità" (% e1RM per i pesi, % record per sprint e salti) */
 const INT_ZONES = [[0, 60, "sotto 60%"], [60, 70, "60–70%"], [70, 80, "70–80%"], [80, 90, "80–90%"], [90, Infinity, "90% e oltre"]];
 /* RPE previsto per quella seduta dal microciclo (se c'è): stessa abbinata del Calendario */
@@ -3462,8 +3483,11 @@ function weekCmpHtml(ser, key, a){
   const dayUA = n => DAYS.map((_, i) => n.sess.filter(q => q.done && dayIdx(q.d) === i).reduce((t, q) => t + q.srpe, 0));
   const monoOf = n => { const L = dayUA(n), tot = L.reduce((t, v) => t + v, 0), mean = tot / 7, sd = Math.sqrt(L.reduce((t, v) => t + (v - mean) ** 2, 0) / 7); return sd > 0 ? {m: mean / sd, s: tot * mean / sd} : null; };
   const durOf = n => { const L = n.sess.filter(q => q.done && q.min); return {tot: L.reduce((t, q) => t + q.min, 0), n: L.length}; };
-  const sessLine = q => { const pr = planRpeOf(a, q.w);
-    return `<div class="sesl"><span class="faint">${DAYS[dayIdx(q.d)]} ${parse(q.d).getDate()}</span> ${esc(q.w.title || "Senza titolo")} <span class="faint">· ${KINDS[q.k]?.l || ""}</span><br>${q.srpe ? `RPE <b>${fmt1(q.rpe)}</b> × ${fmtN(q.min)}′ = <b>${fmtN(q.srpe)}</b> UA` : `<span class="faint">manca ${!q.rpe ? "l'RPE" : "la durata"}</span>`}${pr != null ? ` <span class="faint">· previsto RPE ${fmt1(pr)}</span>` : ""}</div>`; };
+  const sessLine = (q, mx) => { const pr = planRpeOf(a, q.w);
+    return `<div class="sesl" style="--kc:${kindColor(q.k)}"><span class="sd">${DAYS[dayIdx(q.d)]} ${parse(q.d).getDate()}</span>
+      <span class="sn"><b>${esc(q.w.title || "Senza titolo")}</b><small>${esc(KINDS[q.k]?.l || "")}</small></span>
+      <span class="sv">${q.srpe ? `<b>${fmtN(q.srpe)}</b> UA<small>RPE ${fmt1(q.rpe)} × ${fmtN(q.min)}′${pr != null ? ` · previsto ${fmt1(pr)}` : ""}</small>` : `<small class="miss">manca ${!q.rpe ? "l'RPE" : "la durata"}</small>`}</span>
+      <i class="sb" style="width:${mx ? Math.round(q.srpe / mx * 100) : 0}%"></i></div>`; };
   const secSrpe = [["§Carico sRPE"],
     ["Carico sRPE", n => `<b>${fmtN(n.srpe)}</b> UA`, (x, y) => dPct(x.srpe, y.srpe), 1],
     ...(kindsS.length > 1 ? kindsS.map(k => [`↳ ${esc(KINDS[k].l)}`, n => n.srpeK[k] ? `${fmtN(n.srpeK[k])} UA <span class="faint">· ${fmtN(n.srpe ? n.srpeK[k] / n.srpe * 100 : 0)}%</span>` : `<span class="faint">–</span>`, (x, y) => dPct(x.srpeK[k] || 0, y.srpeK[k] || 0), 1, 1]) : []),
@@ -3473,7 +3497,7 @@ function weekCmpHtml(ser, key, a){
       ["Strain", n => (q => q ? `<b>${fmtN(q.s)}</b> <span class="faint">carico × monotonia</span>` : `<span class="faint">–</span>`)(monoOf(n)), (x, y) => monoOf(x) && monoOf(y) ? dPct(monoOf(x).s, monoOf(y).s) : "", 1]]),
     rowRpe,
     ["Durata", n => (q => q.tot ? `<b>${fmtN(q.tot)}′</b> <span class="faint">· media ${fmtN(q.tot / q.n)}′ a seduta</span>` : `<span class="faint">–</span>`)(durOf(n)), (x, y) => dPct(durOf(x).tot, durOf(y).tot), 1],
-    ["Sedute", n => (L => L.length ? L.map(sessLine).join("") : `<span class="faint">nessuna seduta svolta</span>`)(n.sess.filter(q => q.done).sort((p, q) => q.srpe - p.srpe)), () => "", 1]];
+    ["Sedute", n => (L => L.length ? `<div class="sesls">${L.map(q => sessLine(q, Math.max(...L.map(z => z.srpe)))).join("")}</div>` : `<span class="faint">nessuna seduta svolta</span>`)(n.sess.filter(q => q.done).sort((p, q) => p.d.localeCompare(q.d) || (p.w.order ?? 1e9) - (q.w.order ?? 1e9))), () => "", 1]];   // in ordine di giorno
   /* --- dettaglio "Intensità": zone e singoli esercizi --- */
   const famI = INT_KEYS.filter(k => nA.int[k] || nB?.int[k]);
   const zRow = (k, z) => [`↳ ${INT_ZONES[z][2]}`, n => (c => { const t = n.zones[k].reduce((p, v) => p + v, 0); return c ? `${c} serie <span class="faint">· ${fmtN(c / t * 100)}%</span>` : `<span class="faint">–</span>`; })(n.zones[k][z]), (x, y) => dAbs(x.zones[k][z], y.zones[k][z]), 1, 1];
@@ -3482,8 +3506,8 @@ function weekCmpHtml(ser, key, a){
       ...intRowsFor(k),
       [`Zone · ${INTK[k].l}`, n => `<span class="faint">serie per fascia di ${INTK[k].m}</span>`, () => "", 1],
       ...INT_ZONES.map((_, z) => zRow(k, z)),
-      [`Esercizi · ${INTK[k].l}`, n => `<span class="faint">media · massimo · serie</span>`, () => "", 1],
-      ...exI(k).map(e => [`↳ ${esc(e)}`, n => (q => q ? `${fmtN(q.avg)}% <span class="faint">max ${fmtN(q.max)}% · ${q.n} serie</span>` : `<span class="faint">–</span>`)(n.intE[k][e]), (x, y) => dPts(x.intE[k][e], y.intE[k][e]), 1, 1])]),
+      [`Esercizi · ${INTK[k].l}`, n => `<span class="faint">media · massimo · serie · riferimento (100%)</span>`, () => "", 1],
+      ...exI(k).map(e => [`↳ ${esc(e)}`, n => (q => q ? `${fmtN(q.avg)}% <span class="faint">max ${fmtN(q.max)}% · ${q.n} serie</span>${q.ref ? `<div class="faint irf" title="${esc(intRefTxt(q.ref))}">rif. ${q.ref.k === "kg" ? `e1RM ${fmtN(q.ref.v, 1)} kg · da ${fmtN(numv(q.ref.r.kg), 1)} kg × ${esc(String(q.ref.r.reps))}${q.ref.r.rpe ? " RPE " + esc(String(q.ref.r.rpe)) : q.ref.r.rir ? " RIR " + esc(String(q.ref.r.rir)) : ""}` : q.ref.k === "spr" ? `${fmtN(q.ref.v, 2)} s` : `${fmtN(q.ref.v, 1)} cm`} · ${fmtD(q.ref.d)}</div>` : ""}` : `<span class="faint">–</span>`)(n.intE[k][e]), (x, y) => dPts(x.intE[k][e], y.intE[k][e]), 1, 1])]),
     ...rowsHard, rowRpe];
   const secInt = [["§Intensità"], ...rowsHard, rowRpe, ...rowsInt];
   const secHard = [["§Serie allenanti"], ...rowsHard];
@@ -3494,7 +3518,17 @@ function weekCmpHtml(ser, key, a){
   return `<div class="wcmp ${B ? "two" : ""}">
     <div class="h"></div><div class="h"><span class="abtag a">A</span>${esc(lab(A))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${A.ws}">vedi i giorni ›</button>`}</div>
     ${B ? `<div class="h"><span class="abtag b">B</span>${esc(lab(B))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${B.ws}">vedi i giorni ›</button>`}</div><div class="h k">B rispetto ad A</div>` : `<div class="h faint" style="font-weight:500">Tocca ${day ? "un altro giorno" : "un'altra colonna"} per confrontarl${day ? "o" : "a"} con questa</div>`}
-    ${rows.map(([l, v, d, nk, sb]) => l[0] === "§" ? `<div class="sec">${l.slice(1)}</div>` : `<div class="k ${nk ? "pk" : ""} ${sb ? "csub" : ""}">${l}</div><div class="${sb ? "csub" : ""}">${v(nA)}</div>${B ? `<div class="${sb ? "csub" : ""}">${v(nB)}</div><div class="d ${sb ? "csub" : ""}">${d(nA, nB)}</div>` : `<div class="${sb ? "csub" : ""}"></div>`}`).join("")}
+    ${(() => { /* ogni gruppo di sottorighe "↳" parte chiuso: toccando la riga sopra si apre (e resta aperto anche cambiando colonna) */
+      const G = rows.map(() => null), N = {}; let par = -1;
+      rows.forEach(([l, v, d, nk, sb], j) => { if (l[0] === "§") { par = -1; return; } if (!sb) { par = j; return; } if (par >= 0) { G[j] = par; N[par] = (N[par] || 0) + 1; } });
+      const lt = j => rows[j][0].replace(/<[^>]*>/g, "").replace(/"/g, "").trim();
+      const key = j => lt(j) + "#" + rows.slice(0, j).filter((r, i) => r[0][0] !== "§" && lt(i) === lt(j)).length;   // stessa etichetta = stesso gruppo, anche cambiando colonna
+      return rows.map(([l, v, d, nk, sb], j) => { if (l[0] === "§") return `<div class="sec">${l.slice(1)}</div>`;
+        const gp = G[j] != null ? key(G[j]) : null, hid = gp && !anQ.cxOpen?.has(gp) ? "cxh" : "", ca = gp ? `data-cg="${gp}"` : "";
+        const isP = N[j] > 0, pk = isP ? key(j) : "", op = isP && anQ.cxOpen?.has(pk);
+        const sub = /^↳\s/.test(l), body = sub ? l.replace(/^↳\s*/, "") : l;
+        const lab = isP ? `<span class="cxa">▸</span><span class="cxt">${body}<span class="cxn">${N[j]}</span></span>` : sub ? `<span class="cxi">↳</span><span class="cxt">${body}</span>` : l;
+        return `<div class="k ${nk ? "pk" : ""} ${sb ? "csub" : ""} ${hid} ${isP ? "cxp" + (op ? " open" : "") : ""}" ${ca} ${isP ? `data-act="an-cx" data-g="${pk}" role="button" aria-expanded="${!!op}" title="${op ? "Chiudi" : "Apri"} il dettaglio"` : ""}>${lab}</div><div class="${sb ? "csub" : ""} ${hid}" ${ca}>${v(nA)}</div>${B ? `<div class="${sb ? "csub" : ""} ${hid}" ${ca}>${v(nB)}</div><div class="d ${sb ? "csub" : ""} ${hid}" ${ca}>${d(nA, nB)}</div>` : `<div class="${sb ? "csub" : ""} ${hid}" ${ca}></div>`}`; }).join(""); })()}
     ${patCmpHtml(nA, nB)}
     <div class="foot">${f ? `Solo sedute: <b>${KINDS[f].l}</b> (filtro del grafico)` : "Tutte le sedute"}<button class="lnk" data-act="an-cmpx" data-day="${day ? 1 : ""}">✕ Togli la scelta</button></div></div>`;
 }
@@ -5892,6 +5926,12 @@ const ACT = {
   "an-metric"(t){ anQ.metric = t.dataset.v; renderView(); },
   "an-gran"(t){ anQ.gran = t.dataset.v; renderView(); },
   "an-days"(t){ anQ.gran = "day"; anQ.dws = t.dataset.ws; renderView(); },
+  "an-exall"(t){ anQ.exAll = !anQ.exAll; const tb = t.closest("section")?.querySelector("tbody"); if (!tb) return;
+    [...tb.rows].forEach((r, j) => r.classList.toggle("exmore", j >= EX_SHOW && !anQ.exAll));
+    t.setAttribute("aria-expanded", anQ.exAll); t.innerHTML = anQ.exAll ? `<span class="cxa o">▸</span>Mostra meno` : `<span class="cxa">▸</span>Mostra altri ${tb.rows.length - EX_SHOW}`; },
+  "an-cx"(t){ const g = t.dataset.g, S2 = (anQ.cxOpen ??= new Set()), op = !S2.has(g); op ? S2.add(g) : S2.delete(g);
+    t.classList.toggle("open", op); t.setAttribute("aria-expanded", op); t.title = (op ? "Chiudi" : "Apri") + " il dettaglio";
+    t.closest(".wcmp")?.querySelectorAll(`[data-cg="${g}"]`).forEach(x => x.classList.toggle("cxh", !op)); },
   "an-cmpx"(t){ if (t.dataset.day) anQ.dA = anQ.dB = null; else anQ.cmpA = anQ.cmpB = null; renderView(); },
   "an-dws"(t){ anQ.dws = addDays(anQ.dws, 7 * +t.dataset.d); renderView(); },
   "an-vk"(t){ anQ.vk = t.dataset.v; renderView(); },

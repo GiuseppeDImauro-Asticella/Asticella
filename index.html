@@ -1088,6 +1088,7 @@ select.in.pmsel{height:28px;padding:0 26px 0 8px;font-size:12px;width:auto;max-w
 .wcmp .sesl .sv{text-align:right;white-space:nowrap}.wcmp .sesl .sv b{font-size:13.5px}.wcmp .sesl .miss{color:var(--warn)}
 .wcmp .sesl .sb{position:absolute;left:0;bottom:0;height:3px;background:color-mix(in srgb,var(--kc) 55%,transparent);border-radius:0 2px 2px 0}
 .wcmp .irf{font-size:11px;margin-top:1px}
+.wcmp .latv{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.wcmp .latbar{display:inline-flex;width:90px;height:8px;border-radius:4px;overflow:hidden;background:var(--surface2);flex:none}.wcmp .latbar i{display:block;height:100%}
 /* sottorighe "↳" chiuse: si aprono toccando la riga sopra */
 .wcmp .cxh{display:none!important}
 .wcmp .k.cxp{cursor:pointer;user-select:none}
@@ -3497,10 +3498,17 @@ function weekCmpHtml(ser, key, a){
   const rowsInt = INT_KEYS.filter(k => nA.int[k] || nB?.int[k]).flatMap(intRowsFor);
   const rowSrpe = ["Carico sRPE", n => `<b>${fmtN(n.srpe)}</b> UA`, (x, y) => dPct(x.srpe, y.srpe), 1];
   /* --- bilaterale / unilaterale (dalla scheda dell'esercizio): per ogni voce del volume quanto è unilaterale --- */
-  const latV = (n, c, q) => n?.lat?.[c]?.vb?.[q] || 0, latOn = [nA, nB].some(n => n && (n.lat.Bilaterale || n.lat.Unilaterale));
-  const secLat = !latOn ? [] : [[`§Esecuzione${HO}`], ...LAT_KEYS.filter(q => [nA, nB].some(n => n && (latV(n, "Bilaterale", q) || latV(n, "Unilaterale", q)))).flatMap(q => [
-    [`${VOLK[q].l}${VOLK[q].u ? ` <span class="faint">(${VOLK[q].u})</span>` : ""}`, n => (u => { const t = u + latV(n, "Bilaterale", q); return t ? `<b>${fmtN(u / t * 100)}%</b> <span class="faint">unilaterale</span>` : `<span class="faint">–</span>`; })(latV(n, "Unilaterale", q)),   // % solo su bilaterali + unilaterali
-      (x, y) => { const pc = n => { const t = latV(n, "Unilaterale", q) + latV(n, "Bilaterale", q); return t ? latV(n, "Unilaterale", q) / t * 100 : null; }, a1 = pc(x), b1 = pc(y); return a1 == null || b1 == null ? "" : dPts({avg: a1}, {avg: b1}); }, 1],
+  const latV = (n, c, q) => n?.lat?.[c]?.vb?.[q] || 0;
+  /* riga della voce: barretta divisa (blu bilaterale, arancio unilaterale, grigio non classificato) + percentuali sul totale */
+  const latSplitHtml = (n, q) => { const v = LAT_ORDER.map(c => latV(n, c, q)), t = v.reduce((p, x) => p + x, 0); if (!t) return `<span class="faint">–</span>`;
+    const pc = v.map(x => x / t * 100), col = ["var(--s1)", "var(--s2)", "var(--faint)"];
+    return `<span class="latv"><span class="latbar">${pc.map((p, i) => p ? `<i style="width:${p}%;background:${col[i]}"></i>` : "").join("")}</span>
+      <span><b style="color:var(--s1)">${fmtN(pc[0])}%</b> <span class="faint">bilat.</span> · <b style="color:var(--s2)">${fmtN(pc[1])}%</b> <span class="faint">unilat.</span>${pc[2] ? ` · <span class="faint">${fmtN(pc[2])}% non class.</span>` : ""}</span></span>`; };
+  const latOn = [nA, nB].some(n => n && (n.lat.Bilaterale || n.lat.Unilaterale));
+  const secLat = !latOn ? [] : [[`§Esecuzione <span style="text-transform:none;letter-spacing:0;font-weight:600">(unilaterale / bilaterale)</span>${HO}`], ...LAT_KEYS.filter(q => [nA, nB].some(n => n && (latV(n, "Bilaterale", q) || latV(n, "Unilaterale", q)))).flatMap(q => [
+    [`${VOLK[q].l}${VOLK[q].u ? ` <span class="faint">(${VOLK[q].u})</span>` : ""}`, n => latSplitHtml(n, q),   // bilaterale · unilaterale · non classificato, % sul totale della voce
+      (x, y) => { const pc = (n, c) => { const t = LAT_ORDER.reduce((p, k) => p + latV(n, k, q), 0); return t ? latV(n, c, q) / t * 100 : null; };
+        return ["Bilaterale", "Unilaterale"].map(c => { const a1 = pc(x, c), b1 = pc(y, c); return a1 == null || b1 == null ? "" : `<span class="faint">${c === "Bilaterale" ? "bi" : "uni"}</span> ${dPts({avg: a1}, {avg: b1})}`; }).filter(Boolean).join("<br>"); }, 1],
     ...LAT_ORDER.filter(c => [nA, nB].some(n => latV(n, c, q))).map(c => [`↳ ${c}`, n => latV(n, c, q) ? fmtN(latV(n, c, q)) : `<span class="faint">–</span>`, (x, y) => q === "serie" ? dAbs(latV(x, c, q), latV(y, c, q)) : dPct(latV(x, c, q), latV(y, c, q)), 1, 1])])];
   /* --- dettaglio "Carico sRPE": totale e come è stato distribuito --- */
   const kindsS = KIND_KEYS.filter(k => nA.srpeK[k] || nB?.srpeK[k]);

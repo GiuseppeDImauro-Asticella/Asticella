@@ -91,6 +91,7 @@ textarea.in{resize:vertical;min-height:60px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
 .seg button{border:0;background:transparent;padding:6px 11px;font-size:13px;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--accent-soft);color:var(--accent)}
+.latseg{align-self:flex-start}
 
 /* demo bar */
 .pvbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;background:var(--warn-soft);color:var(--ink);font-size:13px;border-bottom:1px solid var(--line)}
@@ -3092,13 +3093,13 @@ function exFormIntoView(){ const f = $("#ex-form"); if (!f) return; const r = f.
   if (r.top < 0 || r.top > innerHeight - 120) f.scrollIntoView({behavior: "smooth", block: "start"}); setTimeout(() => $("#x-name")?.focus({preventScroll: true}), 350); }
 function viewExercises(m){
   const q = S.exQuery.toLowerCase();
-  const list = S.exercises.filter(x => !q || (x.name+" "+x.category+" "+x.pattern).toLowerCase().includes(q));
+  const list = S.exercises.filter(x => !q || (x.name+" "+x.category+" "+x.pattern+" "+latLbl(x.lat)).toLowerCase().includes(q));
   const cats = [...new Set(list.map(x => x.category || "Altro"))].sort();
   const e = S.exEdit;
   m.innerHTML = `<div class="pagehead"><div><h1>Esercizi</h1><div class="sub">La tua libreria: nome, categoria e parametri già pronti quando lo inserisci in un allenamento.</div></div><div class="toolbar">${S.exercises.length ? "" : `<button class="btn" data-act="ex-base">Aggiungi esercizi di base</button>`}<button class="btn pri" data-act="ex-new">+ Nuovo esercizio</button></div></div>
   <div class="two"><div class="panel"><div style="padding:12px;border-bottom:1px solid var(--line)"><input class="in" id="ex-q" placeholder="Cerca esercizio…" value="${esc(S.exQuery)}" data-input="ex-q"></div>
     <div class="scroll-x"><table class="list"><tbody>${cats.map(c => `<tr><th colspan="3" style="background:var(--surface2)">${esc(c)}</th></tr>` + list.filter(x => (x.category||"Altro")===c).map(x => `<tr>
-      <td><b>${esc(x.name)}</b><div class="faint" style="font-size:12px">${esc(x.pattern||"")}</div></td>
+      <td><b>${esc(x.name)}</b><div class="faint" style="font-size:12px">${esc([x.pattern, latLbl(x.lat)].filter(Boolean).join(" · "))}</div></td>
       <td class="muted" style="font-size:12px">${(x.cols||[]).map(k => COLS[k]?.l).filter(Boolean).join(" · ")}</td>
       <td style="text-align:right"><button class="btn sm ghost" data-act="ex-edit" data-id="${x.id}">Modifica</button></td></tr>`).join("")).join("") || `<tr><td class="muted">Nessun esercizio trovato.</td></tr>`}</tbody></table></div></div>
   <div class="panel">${e ? `<form class="form" id="ex-form">
@@ -3112,10 +3113,15 @@ ${exFieldsHtml(e)}
     S.exEdit = null; toast(takeRenMsg("Esercizio salvato")); renderView(); };
 }
 /* campi della scheda esercizio: usati nella pagina Esercizi e nella finestra "Aggiungilo alla libreria" dell'editor */
+/* esecuzione dell'esercizio: bilaterale (due arti insieme) o unilaterale (un arto alla volta); "" = non indicato */
+const LAT_OPTS = {bi: "Bilaterale", uni: "Unilaterale"};
+const latLbl = v => LAT_OPTS[v] || "";
 function exFieldsHtml(e){
   return `    <div class="field"><label class="lbl" for="x-name">Nome</label><input class="in" id="x-name" value="${esc(e.name||"")}" required></div>
     <div class="row"><div class="field grow"><label class="lbl" for="x-cat">Categoria</label>${optSelect("cat", e.category)}</div>
       <div class="field grow"><label class="lbl" for="x-pat">Pattern motorio</label>${optSelect("pat", e.pattern)}</div></div>
+    <div class="field"><span class="lbl">Esecuzione</span><span class="seg latseg" role="group" aria-label="Esecuzione">${Object.entries(LAT_OPTS).map(([k, l]) => `<button type="button" class="${e.lat === k ? "on" : ""}" data-act="ex-lat" data-v="${k}" aria-pressed="${e.lat === k}" title="${k === "bi" ? "Con tutti e due gli arti insieme (es. squat, stacco, CMJ)" : "Un arto alla volta (es. squat bulgaro, step-up, balzi monopodalici)"}">${l}</button>`).join("")}</span>
+      <span class="faint" style="font-size:12px">${e.lat ? "Tocca di nuovo per togliere." : "Non classificato. Scegli se si fa con tutti e due gli arti insieme o con uno alla volta; lascialo vuoto per corsa, sprint e andature (sempre alternate)."}</span></div>
     <div class="field"><span class="lbl">Parametri predefiniti</span><div class="colpick">${pickable().map(k => `<button type="button" class="${(e.cols||[]).includes(k)?"on":""}" data-act="ex-col" data-c="${k}">${esc(COLS[k].l)}</button>`).join("")}</div></div>
     <div class="field"><span class="lbl">Alternative (se l'atleta non riesce a farlo: attrezzo occupato, mancante…)</span><div class="altrow">
       ${(e.alts||[]).map((n,k) => `<span class="altc">${esc(n)}<button type="button" data-act="xalt-rm" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
@@ -3126,7 +3132,7 @@ function exFieldsHtml(e){
     <div class="field"><label class="lbl" for="x-notes">Indicazioni tecniche</label><textarea class="in" id="x-notes">${esc(e.notes||"")}</textarea></div>`;
 }
 async function saveExForm(e){
-  const x = {id: e.id || uid(), name: $("#x-name").value.trim(), category: readOpt("cat"), pattern: readOpt("pat"), cols: e.cols||[], alts: (e.alts||[]).filter(n => !sameName(n, $("#x-name").value)), video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
+  const x = {id: e.id || uid(), name: $("#x-name").value.trim(), category: readOpt("cat"), pattern: readOpt("pat"), lat: LAT_OPTS[e.lat] ? e.lat : "", cols: e.cols||[], alts: (e.alts||[]).filter(n => !sameName(n, $("#x-name").value)), video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
   if (!x.name) return null;
   const dup = S.exercises.find(y => y.id !== x.id && sameName(y.name, x.name));
   if (dup) { toast(`«${dup.name}» è già nella libreria`); return null; }
@@ -3262,6 +3268,9 @@ function weeklySeries(email, from, to){
 /* pattern motorio di un esercizio (dalla libreria) e metriche per pattern in Analisi */
 const patOfName = n => libByName(n)?.pattern?.trim() || "Senza pattern";
 const catOfName = n => libByName(n)?.category?.trim() || "Senza categoria";
+const LAT_ORDER = ["Bilaterale", "Unilaterale", "Non classificato"];
+const LAT_KEYS = ["serie", "carico", "rip", "plio", "stacchi", "tempo"];   // voci del volume dove bilaterale/unilaterale ha senso (tempo = isometrie, spesso unilaterali; non corsa, sprint, durata)
+const latOfName = n => latLbl(libByName(n)?.lat) || "Non classificato";   // esecuzione dalla libreria
 const catOrder = cs => { const d = optBase("cat").map(x => String(x).toLowerCase()), i = x => x === "Senza categoria" ? 1e4 : (d.indexOf(x.toLowerCase()) + 1 || 1e3);
   return [...cs].sort((a, b) => i(a) - i(b) || a.localeCompare(b, "it")); };
 /* chiavi per l'Analisi: il pattern (totale) e "pattern␁categoria" (dettaglio, mostrato se nel periodo ci sono più categorie) */
@@ -3290,6 +3299,8 @@ function accumLoad(o, list){
     st.ints.forEach(q => { (IE[q.k][q.n] ??= []).push(q.pct); if (q.ref && (!IR[q.k][q.n] || IR[q.k][q.n].at <= q.d)) IR[q.k][q.n] = {ref: q.ref, at: q.d}; });
     (o.sess ??= []).push({w, k, d: effDate(w), done: w.status === "done", srpe: st.srpe, rpe: st.rpe, min: w.status === "done" ? +w.durationMin || 0 : 0});   // sedute (dettaglio "Carico sRPE")
     const vbH = (b.vbH ??= {});
+    Object.entries(st.ex).forEach(([n, e]) => { const c = ((b.lat ??= {})[latOfName(n)] ??= {sets: 0, hard: 0, vb: {}, vbH: {}}); c.sets += e.sets; c.hard += e.h.sets;   // per "Dividi per esecuzione" (bilaterale / unilaterale)
+      Object.entries(e.vb).forEach(([q, v]) => c.vb[q] = (c.vb[q] || 0) + v); Object.entries(e.h.vb).forEach(([q, v]) => c.vbH[q] = (c.vbH[q] || 0) + v); });
     Object.entries(st.ex).forEach(([n, e]) => { const c = (b.cat[catOfName(n)] ??= {sets: 0, hard: 0, vb: {}, vbH: {}}); c.sets += e.sets; c.hard += e.h.sets;   // per "Dividi per categoria"
       Object.entries(e.vb).forEach(([q, v]) => c.vb[q] = (c.vb[q] || 0) + v);
       Object.entries(e.h.vb).forEach(([q, v]) => { c.vbH[q] = (c.vbH[q] || 0) + v; vbH[q] = (vbH[q] || 0) + v; }); }); });
@@ -3343,12 +3354,12 @@ async function viewAnalysis(m){
   if (!anQ.dws || anQ.dws < minWs || anQ.dws > maxWs) anQ.dws = monday(to < TODAY() ? to : TODAY()) < minWs ? minWs : monday(to < TODAY() ? to : TODAY());
   const byDay = anQ.gran === "day", dser = byDay ? dailySeries(a.email, anQ.dws) : null;
   /* "Dividi per categoria" + una categoria scelta: la metrica (volume, serie, serie allenanti) conta solo gli esercizi di quella categoria */
-  const SPL = anQ.split === "cat" && ["volume", "sets", "hard"].includes(anQ.metric);
-  const catsD = SPL ? new Set(ser.flatMap(o => Object.entries(weekNums(o, anQ.metric).cat).filter(([, c]) => anQ.metric === "volume" ? c.vb[anQ.vk] : anQ.metric === "sets" ? c.sets : c.hard).map(([n]) => n))) : new Set();
-  const catsP = SPL ? catOrder([...new Set([...optList("cat"), ...catsD])]) : [];   // tutte le categorie, anche senza dati (tratteggiate): si vede cosa non è stato allenato
+  const SPL = (anQ.split === "cat" || anQ.split === "lat") && ["volume", "sets", "hard"].includes(anQ.metric), GK = anQ.split === "lat" ? "lat" : "cat";
+  const catsD = SPL ? new Set(ser.flatMap(o => Object.entries(weekNums(o, anQ.metric)[GK]).filter(([, c]) => anQ.metric === "volume" ? c.vb[anQ.vk] : anQ.metric === "sets" ? c.sets : c.hard).map(([n]) => n))) : new Set();
+  const catsP = !SPL ? [] : GK === "lat" ? LAT_ORDER.filter(c => c !== "Non classificato" || catsD.has(c)) : catOrder([...new Set([...optList("cat"), ...catsD])]);   // tutte le categorie, anche senza dati (tratteggiate): si vede cosa non è stato allenato
   if (SPL && anQ.cf && anQ.cf !== "all" && !catsP.includes(anQ.cf)) anQ.cf = "all";
   const CF = SPL && anQ.cf && anQ.cf !== "all" ? anQ.cf : "";
-  if (CF) [ser, ...(dser ? [dser] : [])].forEach(L => L.forEach(o => { const c = weekNums(o, anQ.metric).cat[CF]; o[anQ.metric] = !c ? 0 : anQ.metric === "volume" ? (c.vb[anQ.vk] || 0) : anQ.metric === "sets" ? c.sets : c.hard; }));
+  if (CF) [ser, ...(dser ? [dser] : [])].forEach(L => L.forEach(o => { const c = weekNums(o, anQ.metric)[GK][CF]; o[anQ.metric] = !c ? 0 : anQ.metric === "volume" ? (c.vb[anQ.vk] || 0) : anQ.metric === "sets" ? c.sets : c.hard; }));
   const mono = (() => { if (!byDay) return null; const L = dser.map(o => o.srpe), tot = L.reduce((t,v) => t+v, 0), mean = tot / 7;
     const sd = Math.sqrt(L.reduce((t,v) => t + (v-mean)**2, 0) / 7); return {tot, mean, mono: sd > 0 ? mean / sd : null}; })();
   const kFilt = k => { const f = k === "volume" ? anQ.kv : k === "sets" || k === "hard" ? anQ.ks : "all"; return f && f !== "all" ? f : ""; };
@@ -3374,14 +3385,14 @@ async function viewAnalysis(m){
       <span class="k-l">${mm.l} · media settimanale${kFilt(k) ? ` · <b style="color:var(--ink)">${KINDS[kFilt(k)].l}</b>` : ""}${CF && k === anQ.metric ? ` · <b style="color:var(--ink)">${esc(CF)}</b>` : ""}</span><span class="k-v num">${compact(avg(k))}${mm.u ? `<small>${mm.u}</small>` : ""}</span>
       <span class="k-s">${k === "int" && !fullK(k).length ? "Nessun dato: servono riferimenti (vedi sotto)" : full.length ? `Ultima settimana conclusa: <b>${k === "int" && !last.int ? "–" : fmtN(last[k]) + (k === "int" ? "%" : "")}</b>${delta(k)}` : "Nessuna settimana intera conclusa nel periodo"}</span></button>`).join("")}</div>
     <section class="panel chartcard"><h3>${M.l} per ${byDay ? "giorno" : "settimana"}${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
-      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto). Clicca un giorno per sceglierlo e un altro per confrontarli, anche di settimane diverse." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per sceglierla e un'altra per confrontarle (sotto il grafico); da lì vedi anche i giorni."}${CF ? ` Solo gli esercizi della categoria <b>${esc(CF)}</b>.` : SPL ? " Ogni colonna è divisa per categoria dell'esercizio (quella della libreria)." : anQ.metric === "srpe" || (anQ.metric !== "int" && !kFilt(anQ.metric)) ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
+      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto). Clicca un giorno per sceglierlo e un altro per confrontarli, anche di settimane diverse." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per sceglierla e un'altra per confrontarle (sotto il grafico); da lì vedi anche i giorni."}${CF ? ` Solo gli esercizi della categoria <b>${esc(CF)}</b>.` : SPL ? (GK === "lat" ? " Ogni colonna è divisa tra esercizi bilaterali e unilaterali (Esecuzione nella scheda dell'esercizio)." : " Ogni colonna è divisa per categoria dell'esercizio (quella della libreria).") : anQ.metric === "srpe" || (anQ.metric !== "int" && !kFilt(anQ.metric)) ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
       <div class="kfilt" role="group" aria-label="Vista"><span class="lbl">Vista</span>${[["week","Settimane"],["day","Giorni"]].map(([k,l]) => `<button class="${anQ.gran === k ? "on" : ""}" data-act="an-gran" data-v="${k}" aria-pressed="${anQ.gran === k}">${l}</button>`).join("")}
         ${byDay ? `<span class="wkn"><button class="btn sm ghost icon" data-act="an-dws" data-d="-1" aria-label="Settimana precedente" ${anQ.dws <= minWs ? "disabled" : ""}>‹</button><b>Sett. ${weekNo(anQ.dws)} · ${esc(fmtRange(anQ.dws))}</b><button class="btn sm ghost icon" data-act="an-dws" data-d="1" aria-label="Settimana successiva" ${anQ.dws >= maxWs ? "disabled" : ""}>›</button></span>` : ""}</div>
       ${anQ.metric === "volume" ? `<div class="kfilt" role="group" aria-label="Tipo di volume"><span class="lbl">Volume</span>${VOL_KEYS.map(q => `<button class="${anQ.vk === q ? "on" : ""} ${volHas[q] ? "" : "nodata"}" data-act="an-vk" data-v="${q}" aria-pressed="${anQ.vk === q}" ${volHas[q] ? "" : `title="Nessun dato nel periodo: questo stimolo non è stato allenato"`}>${VOLK[q].l}${VOLK[q].u ? ` (${VOLK[q].u})` : ""}</button>`).join("")}</div>` : ""}
       ${anQ.metric === "int" ? `<div class="kfilt" role="group" aria-label="Tipo di intensità"><span class="lbl">Intensità</span>${INT_KEYS.map(q => { const has = ser.some(o => o.intR?.[q]);
         return `<button class="${anQ.ik === q ? "on" : ""} ${has ? "" : "nodata"}" data-act="an-ik" data-v="${q}" aria-pressed="${anQ.ik === q}" ${has ? "" : `title="Nessun dato nel periodo"`}>${INTK[q].l} (${INTK[q].m})</button>`; }).join("")}</div>` : ""}
-      ${["volume", "sets", "hard"].includes(anQ.metric) ? `<div class="kfilt" role="group" aria-label="Dividi le colonne per"><span class="lbl">Dividi per</span>${[["kind", "Tipo di seduta"], ["cat", "Categoria"]].map(([k, l]) => `<button class="${(anQ.split || "kind") === k ? "on" : ""}" data-act="an-split" data-v="${k}" aria-pressed="${(anQ.split || "kind") === k}">${l}</button>`).join("")}</div>` : ""}
-      ${SPL ? `<div class="kfilt" role="group" aria-label="Categoria"><span class="lbl">Categoria</span>${["all", ...catsP].map(c => `<button class="${(anQ.cf || "all") === c ? "on" : ""} ${c === "all" || catsD.has(c) ? "" : "nodata"}" data-act="an-cf" data-v="${esc(c)}" aria-pressed="${(anQ.cf || "all") === c}" ${c === "all" || catsD.has(c) ? "" : `title="Nessun dato nel periodo: questa categoria non è stata allenata"`}>${c === "all" ? "Tutte" : esc(c)}</button>`).join("")}</div>`
+      ${["volume", "sets", "hard"].includes(anQ.metric) ? `<div class="kfilt" role="group" aria-label="Dividi le colonne per"><span class="lbl">Dividi per</span>${[["kind", "Tipo di seduta"], ["cat", "Categoria"], ["lat", "Esecuzione"]].map(([k, l]) => `<button class="${(anQ.split || "kind") === k ? "on" : ""}" data-act="an-split" data-v="${k}" aria-pressed="${(anQ.split || "kind") === k}">${l}</button>`).join("")}</div>` : ""}
+      ${SPL ? `<div class="kfilt" role="group" aria-label="${GK === "lat" ? "Esecuzione" : "Categoria"}"><span class="lbl">${GK === "lat" ? "Esecuzione" : "Categoria"}</span>${["all", ...catsP].map(c => `<button class="${(anQ.cf || "all") === c ? "on" : ""} ${c === "all" || catsD.has(c) ? "" : "nodata"}" data-act="an-cf" data-v="${esc(c)}" aria-pressed="${(anQ.cf || "all") === c}" ${c === "all" || catsD.has(c) ? "" : `title="Nessun dato nel periodo${GK === "lat" ? "" : ": questa categoria non è stata allenata"}"`}>${c === "all" ? "Tutte" : esc(c)}</button>`).join("")}</div>`
       : anQ.metric === "srpe" || anQ.metric === "int" ? "" : `<div class="kfilt" role="group" aria-label="Tipo di seduta"><span class="lbl">Sedute</span>${["all", ...KIND_KEYS].map(k => { const on = (anQ.metric === "volume" ? anQ.kv : anQ.ks) === k;
         return `<button class="${on ? "on" : ""}" data-act="an-kind" data-v="${k}" aria-pressed="${on}">${k === "all" ? "Tutte" : KINDS[k].l}</button>`; }).join("")}</div>`}
       <div class="chartwrap" id="an-chart"></div>
@@ -3430,7 +3441,8 @@ function weekNums(o, key){ const f = kFilt0(key), ks = f ? [f] : Object.keys(o.b
   const H = key === "hard", pat = {}; ks.forEach(k => Object.entries((H ? o.byK[k]?.patH : o.byK[k]?.pat) || {}).forEach(([pt, q]) => { const t = (pat[pt] ??= {sets:0, reps:0, vol:0, vb:{}, is:{}, in:{}}); t.sets += q.sets; t.reps += q.reps; t.vol += q.vol;
     Object.entries(q.vb || {}).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); Object.entries(q.is || {}).forEach(([v, x]) => { t.is[v] = (t.is[v] || 0) + x; t.in[v] = (t.in[v] || 0) + q.in[v]; }); }));
   /* vista "Serie allenanti": volume, serie, categorie e intensità contano solo le serie allenanti (RPE ≥ 7 o RIR ≤ 3) */
-  const cat = {}; ks.forEach(k => Object.entries(o.byK[k]?.cat || {}).forEach(([c, q]) => { const t = (cat[c] ??= {sets: 0, hard: 0, vb: {}}); t.sets += H ? q.hard : q.sets; t.hard += q.hard; Object.entries((H ? q.vbH : q.vb) || {}).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); }));
+  const grpOf = f => { const m = {}; ks.forEach(k => Object.entries(o.byK[k]?.[f] || {}).forEach(([c, q]) => { const t = (m[c] ??= {sets: 0, hard: 0, vb: {}}); t.sets += H ? q.hard : q.sets; t.hard += q.hard; Object.entries((H ? q.vbH : q.vb) || {}).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); })); return m; };
+  const cat = grpOf("cat"), lat = grpOf("lat");
   const intC = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries((H ? o.intCH : o.intC)?.[k] || {}).map(([c, L]) => [c, {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), n: L.length}]))]));
   const types = {}, rpes = [], vb = {}; let hard = 0, known = 0;
   ks.forEach(k => { const b = o.byK[k]; if (!b) return; Object.entries((H ? b.vbH : b.vb) || {}).forEach(([q, v]) => vb[q] = (vb[q] || 0) + v); Object.entries((H ? b.typesH : b.types) || {}).forEach(([t, n]) => types[t] = (types[t] || 0) + n); hard += b.hard || 0; known += b.known || 0; rpes.push(...(b.rpes || [])); });
@@ -3439,7 +3451,7 @@ function weekNums(o, key){ const f = kFilt0(key), ks = f ? [f] : Object.keys(o.b
   const sess = (o.sess || []).filter(q => ks.includes(q.k)), srpeK = Object.fromEntries(ks.map(k => [k, o.byK[k]?.srpe || 0]));
   const zones = Object.fromEntries(INT_KEYS.map(k => [k, INT_ZONES.map(([lo, hi]) => (o.intS?.[k] || []).filter(v => v >= lo && v < hi).length)]));
   const intE = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries(o.intE?.[k] || {}).map(([n, L]) => [n, {...rng(L), ref: o.intEr?.[k]?.[n]?.ref || null}]))]));
-  return {sess, srpeK, zones, intE, pat, cat, intC, types, vb, hard, known, rpe, H, int: (H ? o.intRH : o.intR) || {}, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: H ? hard : sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
+  return {sess, srpeK, zones, intE, pat, cat, lat, intC, types, vb, hard, known, rpe, H, int: (H ? o.intRH : o.intR) || {}, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: H ? hard : sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
 const cmpKeys = day => day ? ["dA", "dB"] : ["cmpA", "cmpB"];
 const EX_SHOW = 8;   // "Per esercizio": righe visibili prima di "Mostra altri"
 /* fasce di intensità del dettaglio "Intensità" (% e1RM per i pesi, % record per sprint e salti) */
@@ -3478,6 +3490,12 @@ function weekCmpHtml(ser, key, a){
       ...intCats([nA, nB], k).map(c => [`↳ ${esc(c)}`, n => n.intC[k]?.[c] ? `${fmtN(n.intC[k][c].avg)}% <span class="faint">max ${fmtN(n.intC[k][c].max)}%</span>` : `<span class="faint">–</span>`, (x, y) => dPts(x.intC[k]?.[c], y.intC[k]?.[c]), 1, 1])];
   const rowsInt = INT_KEYS.filter(k => nA.int[k] || nB?.int[k]).flatMap(intRowsFor);
   const rowSrpe = ["Carico sRPE", n => `<b>${fmtN(n.srpe)}</b> UA`, (x, y) => dPct(x.srpe, y.srpe), 1];
+  /* --- bilaterale / unilaterale (dalla scheda dell'esercizio): per ogni voce del volume quanto è unilaterale --- */
+  const latV = (n, c, q) => n?.lat?.[c]?.vb?.[q] || 0, latOn = [nA, nB].some(n => n && (n.lat.Bilaterale || n.lat.Unilaterale));
+  const secLat = !latOn ? [] : [[`§Esecuzione${HO}`], ...LAT_KEYS.filter(q => [nA, nB].some(n => n && (latV(n, "Bilaterale", q) || latV(n, "Unilaterale", q)))).flatMap(q => [
+    [`${VOLK[q].l}${VOLK[q].u ? ` <span class="faint">(${VOLK[q].u})</span>` : ""}`, n => (u => { const t = u + latV(n, "Bilaterale", q); return t ? `<b>${fmtN(u / t * 100)}%</b> <span class="faint">unilaterale</span>` : `<span class="faint">–</span>`; })(latV(n, "Unilaterale", q)),   // % solo su bilaterali + unilaterali
+      (x, y) => { const pc = n => { const t = latV(n, "Unilaterale", q) + latV(n, "Bilaterale", q); return t ? latV(n, "Unilaterale", q) / t * 100 : null; }, a1 = pc(x), b1 = pc(y); return a1 == null || b1 == null ? "" : dPts({avg: a1}, {avg: b1}); }, 1],
+    ...LAT_ORDER.filter(c => [nA, nB].some(n => latV(n, c, q))).map(c => [`↳ ${c}`, n => latV(n, c, q) ? fmtN(latV(n, c, q)) : `<span class="faint">–</span>`, (x, y) => q === "serie" ? dAbs(latV(x, c, q), latV(y, c, q)) : dPct(latV(x, c, q), latV(y, c, q)), 1, 1])])];
   /* --- dettaglio "Carico sRPE": totale e come è stato distribuito --- */
   const kindsS = KIND_KEYS.filter(k => nA.srpeK[k] || nB?.srpeK[k]);
   const dayUA = n => DAYS.map((_, i) => n.sess.filter(q => q.done && dayIdx(q.d) === i).reduce((t, q) => t + q.srpe, 0));
@@ -3511,10 +3529,10 @@ function weekCmpHtml(ser, key, a){
     ...rowsHard, rowRpe];
   const secInt = [["§Intensità"], ...rowsHard, rowRpe, ...rowsInt];
   const secHard = [["§Serie allenanti"], ...rowsHard];
-  const rows = M === "srpe" ? [...secSed, ...secSrpe, ...secVol, ...secTys, ["§Intensità"], ...rowsHard, ...rowsInt]   // l'RPE seduta è già nella sezione sRPE
-    : M === "int" ? [...secSed, ...secIntFull, rowSrpe, ...secVol, ...secTys]
-    : M === "hard" ? [...secSed, ...secHard, ...secVol, ...secTys, ["§Intensità"], rowRpe, ...rowsInt, rowSrpe]
-    : [...secSed, ...secVol, ...secTys, ...secInt, rowSrpe];
+  const rows = M === "srpe" ? [...secSed, ...secSrpe, ...secVol, ...secLat, ...secTys, ["§Intensità"], ...rowsHard, ...rowsInt]   // l'RPE seduta è già nella sezione sRPE
+    : M === "int" ? [...secSed, ...secIntFull, rowSrpe, ...secVol, ...secLat, ...secTys]
+    : M === "hard" ? [...secSed, ...secHard, ...secVol, ...secLat, ...secTys, ["§Intensità"], rowRpe, ...rowsInt, rowSrpe]
+    : [...secSed, ...secVol, ...secLat, ...secTys, ...secInt, rowSrpe];
   return `<div class="wcmp ${B ? "two" : ""}">
     <div class="h"></div><div class="h"><span class="abtag a">A</span>${esc(lab(A))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${A.ws}">vedi i giorni ›</button>`}</div>
     ${B ? `<div class="h"><span class="abtag b">B</span>${esc(lab(B))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${B.ws}">vedi i giorni ›</button>`}</div><div class="h k">B rispetto ad A</div>` : `<div class="h faint" style="font-weight:500">Tocca ${day ? "un altro giorno" : "un'altra colonna"} per confrontarl${day ? "o" : "a"} con questa</div>`}
@@ -3594,10 +3612,11 @@ function weekTableHtml(ser, key, g){
 }
 function drawBarChart(el, ser, key, a){
   if (!PATM[anQ.patM]) anQ.patM = "vol";
-  const INT = key === "int", CAT = !INT && anQ.split === "cat" && ["volume", "sets", "hard"].includes(key), CFb = CAT && anQ.cf && anQ.cf !== "all" ? anQ.cf : "", stacked = !INT && !CFb && (CAT || key === "srpe" || !kFilt0(key));
+  const GKc = anQ.split === "lat" ? "lat" : "cat", INT = key === "int", CAT = !INT && (anQ.split === "cat" || anQ.split === "lat") && ["volume", "sets", "hard"].includes(key), CFb = CAT && anQ.cf && anQ.cf !== "all" ? anQ.cf : "", stacked = !INT && !CFb && (CAT || key === "srpe" || !kFilt0(key));
   /* "Dividi per categoria": pezzi della colonna = categorie degli esercizi (dalla libreria), stessi colori in tutte le colonne */
-  const NW = CAT ? ser.map(o => weekNums(o, key)) : null, cv = (n, c) => !n.cat[c] ? 0 : key === "volume" ? (n.cat[c].vb[anQ.vk] || 0) : key === "sets" ? n.cat[c].sets : n.cat[c].hard;
-  const CATS = CAT ? catOrder([...new Set(NW.flatMap(n => Object.keys(n.cat).filter(c => cv(n, c))))]) : [], catCol = c => { const i = CATS.indexOf(c); return i >= 0 && i < 8 ? `var(--s${i + 1})` : "var(--faint)"; };   // colonne divise per tipo di seduta: sRPE sempre, volume e serie quando il filtro è "Tutte"
+  const NW = CAT ? ser.map(o => weekNums(o, key)) : null, cv = (n, c) => !n[GKc][c] ? 0 : key === "volume" ? (n[GKc][c].vb[anQ.vk] || 0) : key === "sets" ? n[GKc][c].sets : n[GKc][c].hard;
+  const CATS = !CAT ? [] : (L => GKc === "lat" ? LAT_ORDER.filter(c => L.includes(c)) : catOrder(L))([...new Set(NW.flatMap(n => Object.keys(n[GKc]).filter(c => cv(n, c))))]);
+  const catCol = c => { if (GKc === "lat") return c === "Bilaterale" ? "var(--s1)" : c === "Unilaterale" ? "var(--s2)" : "var(--faint)"; const i = CATS.indexOf(c); return i >= 0 && i < 8 ? `var(--s${i + 1})` : "var(--faint)"; };   // colonne divise per tipo di seduta: sRPE sempre, volume e serie quando il filtro è "Tutte"
   const W = Math.max(320, el.clientWidth || 700), H = 240, padL = 44, padR = 8, padT = 18, padB = 46;
   const iw = W - padL - padR, ih = H - padT - padB;
   let max = niceMax(Math.max(...ser.map(o => o[key]), 0));
@@ -4181,7 +4200,7 @@ async function collectRows(){
   const ath = activeAthletes().filter(a => dataQ.who === "all" || a.email === dataQ.who);
   const ws = monday(dataQ.from), n = Math.ceil((daysBetween(ws, dataQ.to)+1)/7);
   await Promise.all([...ath.map(a => ensureWeeks(a.email, ws, n)), ensurePlans()]);
-  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Stagione","Sett. stagione","Macrociclo","Periodo","Mesociclo","Sett. mesociclo","Modello microciclo","Blocco","Metodo","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Serie","Tipo serie",
+  const head = ["Data","Data prevista","Settimana","Atleta","Gruppo","Allenamento","Tipo seduta","Stato","RPE sessione","Durata (min)","Carico sRPE","Stagione","Sett. stagione","Macrociclo","Periodo","Mesociclo","Sett. mesociclo","Modello microciclo","Blocco","Metodo","Esercizio","Esercizio previsto","Motivo cambio","Categoria","Pattern","Esecuzione","Serie","Tipo serie",
     ...COL_KEYS.flatMap(c => COLS[c].log ? [`${COLS[c].l} prog.`, `${COLS[c].l} eseguito`] : [`${COLS[c].l} prog.`]), "Nota atleta esercizio", "Nota atleta"];
   const rows = [];
   ath.forEach(a => wIn(a.email, dataQ.from, dataQ.to).sort((x,y)=>effDate(x).localeCompare(effDate(y))).forEach(w => {
@@ -4196,7 +4215,7 @@ async function collectRows(){
         const s = x.sets[i] || {}, r = res[i] || {};
         if (i >= x.sets.length && emptyRes(res[i])) continue;
         rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, KINDS[kindOf(w)].l, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
-          pi.season || "", pi.week || "", pi.macro || "", pi.phase || "", mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", pi.model || "", L[xi], methodOf(w, x)?.l || "", done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
+          pi.season || "", pi.week || "", pi.macro || "", pi.phase || "", mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", pi.model || "", L[xi], methodOf(w, x)?.l || "", done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", latLbl(lib.lat), i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
           ...COL_KEYS.flatMap(c => COLS[c].log ? [s[c]||"", r[c]||""] : [s[c]||""]), w.exNotes?.[x.id] || "", w.athleteNote||""]);
       }
     });
@@ -5938,7 +5957,7 @@ const ACT = {
   "an-kind"(t){ if (anQ.metric === "volume") anQ.kv = t.dataset.v; else anQ.ks = t.dataset.v; renderView(); },
   "an-pick"(t){ anQ.who = t.dataset.e; anQ.sess = null; S._rv = null; renderView(); scrollTo(0,0); },
   "an-svk"(t){ anQ.svk = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
-  "an-split"(t){ anQ.split = t.dataset.v; if (anQ.split === "cat") { anQ.kv = "all"; anQ.ks = "all"; } else anQ.cf = "all"; renderView(); },   // un solo filtro alla volta: per tipo di seduta o per categoria
+  "an-split"(t){ const was = anQ.split; anQ.split = t.dataset.v; if (anQ.split !== "kind") { anQ.kv = "all"; anQ.ks = "all"; } if (was !== anQ.split) anQ.cf = "all"; renderView(); },   // un solo filtro alla volta: per tipo di seduta o per categoria
   "an-cf"(t){ anQ.cf = t.dataset.v; renderView(); },
   "an-ik"(t){ anQ.ik = t.dataset.v; renderView(); },
   "ps-sessview"(t){ const G = S.prog; if (!G) return; const w = progW(G, G.wid) || S.cache[G.email]?.[G.wid]; const {KS, OS} = w ? kindRefOf(G, w) : {KS: [], OS: []}; openSessDlg(G.email, t.dataset.id, [...KS, ...OS].sort((x, y) => effDate(y).localeCompare(effDate(x))).map(q => q.id)); },
@@ -6057,7 +6076,7 @@ const ACT = {
     G.sess = null; G.psPop = null; G.psSwap = null; G.wid = t.dataset.id; drawProg(); },
   async "ps-copyref"(t){ const G = S.prog, w = progW(G, G.wid), RS = S.cache[G.email]?.[t.dataset.id]; if (!w || !RS || namedEx(w).length) return;
     const sw = G.psSwap || {}, exs = freshCopy(RS, "").exercises.map((x, k) => { const y = RS.exercises[k], nn = sw[y.id]; if (!nn || sameName(nn, y.name)) return x;
-      const lib = libByName(nn), cols = lib?.cols?.length ? [...lib.cols] : x.cols;   // esercizio cambiato: stesse serie, con i parametri del nuovo esercizio (i valori in comune restano)
+      const lib = libByName(nn), cols = (c => lib?.lat === "uni" && !c.includes("side") ? [...c, "side"] : c)(lib?.cols?.length ? [...lib.cols] : x.cols);   // esercizio cambiato: stesse serie, con i parametri del nuovo esercizio (i valori in comune restano)
       return {...x, name: lib?.name || nn, alts: undefined, cols, sets: x.sets.map(st => Object.fromEntries([...cols.map(c => [c, st[c] ?? ""]), ...(st.type ? [["type", st.type]] : [])]))}; });
     const nw = {...clone(w), exercises: JSON.parse(JSON.stringify(exs)), updatedAt: new Date().toISOString()}; G.psSwap = null;
     if (G.edit && w === S.editor?.w) { w.exercises = nw.exercises; S.editor.dirty = true; G.sess = null; toast("Copiata nell'allenamento: cambia i numeri e poi salvalo"); return drawProg(); }
@@ -6110,6 +6129,9 @@ const ACT = {
     if (!videoEmbed(u)) return toast("Questo link non si può aprire dentro l'app: all'atleta si aprirà in una pagina nuova"); openVideo(u, $("#x-name").value.trim()); },
   async "a-unswap"(t){ const w = athleteWorkout(); if (!w) return; const sw = {...(w.swaps||{})}; delete sw[t.dataset.x]; w.swaps = sw;
     { const y = scrollY; renderWorkout(); scrollTo(0, y); } await flushSave({swaps: sw}); toast("Torni all'esercizio del coach"); },
+  "ex-lat"(t){ const e = keepExForm(); e.lat = e.lat === t.dataset.v ? "" : t.dataset.v;
+    if (e.lat === "uni" && !(e.cols || []).includes("side")) { e.cols = [...(e.cols || []), "side"]; toast("Unilaterale: aggiunto anche il parametro Lato (puoi toglierlo)"); }
+    redrawEx(); },
   "ex-col"(t){ const e = keepExForm(); const c = t.dataset.c;
     e.cols = e.cols.includes(c) ? e.cols.filter(k => k !== c) : [...e.cols, c]; redrawEx(); },
   async "ex-del"(){ const e = S.exEdit; if (!(await confirmBox(`Eliminare «${e.name}» dalla libreria? Gli allenamenti già scritti non cambiano.`, "Elimina"))) return;
@@ -6275,6 +6297,7 @@ document.addEventListener("change", async e => {
   if (k === "ex-name") { const x = S.editor.w.exercises[+t.dataset.i]; const lib = libByName(t.value); delete x.alts;
     const blank = x.sets.every(s => Object.values(s).every(v => !v));
     if (lib && blank && lib.cols?.length) { x.cols = [...lib.cols]; x.sets = x.sets.map(() => Object.fromEntries(lib.cols.map(c => [c, ""]))); }
+    if (lib?.lat === "uni" && !x.cols.includes("side")) { x.cols = [...x.cols, "side"]; x.sets.forEach(st => st.side = st.side || ""); markDirty(); toast("Esercizio unilaterale: aggiunto il parametro Lato"); }   // unilaterale → serve il lato
     setTimeout(() => { if (S.editor) { const f = document.activeElement?.dataset?.bind; drawEditor(); if (f) document.querySelector(`[data-bind="${f}"]`)?.focus(); } }, 0); }
 });
 /* drag & drop nel calendario */

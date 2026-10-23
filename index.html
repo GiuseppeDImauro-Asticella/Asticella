@@ -1663,6 +1663,8 @@ const libByName = n => S.exercises.find(x => x.name.trim().toLowerCase() === Str
    vale per forza, potenza e mobilità). Se a uno dei due manca la categoria conta solo il pattern. */
 const ck = v => String(v || "").trim().toLowerCase();
 const samePC = (a, b) => !!a?.pattern && ck(a.pattern) === ck(b?.pattern) && (!a.category || !b?.category || ck(a.category) === ck(b.category));
+/* stessa esecuzione (bilaterale / unilaterale); se a uno dei due manca, non si controlla (come per la categoria) */
+const sameLat = (a, b) => !a?.lat || !b?.lat || a.lat === b.lat;
 let PCM = null;   // pattern → categorie usate in libreria (si ricalcola a ogni ridisegno della pagina)
 const patCatsMap = () => PCM ??= S.exercises.reduce((m, e) => { if (e.pattern) (m[ck(e.pattern)] ??= new Set()).add(ck(e.category)); return m; }, {});
 /* gruppo di un esercizio per Progressione e confronti: "Squat" se il pattern ha una sola categoria, altrimenti "Squat · Forza" */
@@ -1681,10 +1683,14 @@ function swapOptions(x){
   const own = altsOf(x).filter(n => n && !sameName(n, x.name));
   /* prima le alternative del coach, poi (come riserva) gli esercizi con lo stesso pattern motorio */
   const lib = libByName(x.name);
-  const same = !lib?.pattern ? [] : S.exercises.filter(e => e.id !== lib.id && samePC(lib, e) && !own.some(n => sameName(n, e.name)))
-    .sort((a,b) => (b.category === lib.category) - (a.category === lib.category) || a.name.localeCompare(b.name, "it")).slice(0, 8).map(e => e.name);
+  const pc = !lib?.pattern ? [] : S.exercises.filter(e => e.id !== lib.id && samePC(lib, e) && !own.some(n => sameName(n, e.name)))
+    .sort((a,b) => (b.category === lib.category) - (a.category === lib.category) || a.name.localeCompare(b.name, "it"));
+  /* stesso pattern + categoria + esecuzione; se non ce n'è nessuno, come ripiego quelli con esecuzione diversa (segnalati) */
+  let same = pc.filter(e => sameLat(lib, e)), diff = false;
+  if (!same.length && pc.length) { same = pc; diff = true; }
+  same = same.slice(0, 8).map(e => e.name);
   const list = [...own, ...same];
-  return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: lib?.pattern || "", category: lib?.category || "", nCoach: own.length, list};
+  return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: lib?.pattern || "", category: lib?.category || "", lat: lib?.lat || "", diff, nCoach: own.length, list};
 }
 
 function statusOf(w){
@@ -3126,7 +3132,7 @@ function exFieldsHtml(e){
     <div class="field"><span class="lbl">Alternative (se l'atleta non riesce a farlo: attrezzo occupato, mancante…)</span><div class="altrow">
       ${(e.alts||[]).map((n,k) => `<span class="altc">${esc(n)}<button type="button" data-act="xalt-rm" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
       <input class="in altin" id="x-alt" list="exlib" aria-label="Aggiungi alternativa" data-change="xalt-add" placeholder="+ alternativa"></div>
-      <span class="faint" style="font-size:12px">${(e.alts||[]).length ? "L'atleta le vedrà per prime; sotto, come riserva, anche gli esercizi con stesso pattern motorio e stessa categoria." : "Se non ne metti, all'atleta verranno proposti gli esercizi con stesso pattern motorio e stessa categoria."}</span></div>
+      <span class="faint" style="font-size:12px">${(e.alts||[]).length ? "L'atleta le vedrà per prime; sotto, come riserva, anche gli esercizi con stesso pattern motorio, categoria ed esecuzione." : "Se non ne metti, all'atleta verranno proposti gli esercizi con stesso pattern motorio, categoria ed esecuzione (bilaterale / unilaterale)."}</span></div>
     <div class="field"><label class="lbl" for="x-video">Link video (YouTube, Instagram…)</label><div class="row" style="flex-wrap:nowrap"><input class="in grow" id="x-video" type="url" value="${esc(e.video||"")}" placeholder="https://"><button type="button" class="btn" data-act="x-video-try" title="Guarda come lo vedrà l'atleta">▶ Prova</button></div>
       <span class="faint" style="font-size:12px">Si apre dentro l'app con YouTube, Vimeo, Google Drive (condiviso a "chiunque abbia il link") e Instagram.</span></div>
     <div class="field"><label class="lbl" for="x-notes">Indicazioni tecniche</label><textarea class="in" id="x-notes">${esc(e.notes||"")}</textarea></div>`;
@@ -5191,13 +5197,13 @@ function drawPgChart(el, a, occ, metric, draft){
 /* alternative che l'atleta può scegliere se non riesce a fare l'esercizio */
 function altsRowHtml(x, i, lib){
   const own = Array.isArray(x.alts), list = altsOf(x);
-  const pat = lib?.pattern ? S.exercises.filter(e => e.id !== lib.id && samePC(lib, e)).length : 0;
+  const pat = lib?.pattern ? S.exercises.filter(e => e.id !== lib.id && samePC(lib, e)).length : 0, patL = lib?.pattern ? S.exercises.filter(e => e.id !== lib.id && samePC(lib, e) && sameLat(lib, e)).length : 0;
   return `<div class="altrow"><span class="lbl" title="Se l'atleta non riesce a fare questo esercizio (attrezzo occupato, mancante…) può sceglierne uno di questi">Se non può farlo ↔</span>
     ${list.map((n,k) => `<span class="altc ${own ? "" : "inh"}">${esc(n)}<button type="button" data-act="alt-rm" data-i="${i}" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
     ${!own && list.length ? `<span class="faint" style="font-size:11px">dalla libreria</span>` : ""}
     <input class="in altin" list="exlib" aria-label="Aggiungi alternativa" data-change="alt-add" data-i="${i}" placeholder="+ alternativa">
     ${own && lib ? `<button type="button" class="btn sm ghost" data-act="alt-reset" data-i="${i}" title="Usa le alternative scritte nella libreria">↺ come in libreria</button>` : ""}
-    ${list.length ? "" : `<span class="faint" style="font-size:11px">${pat ? `nessuna: gli proporrò gli esercizi con stesso pattern e categoria (${esc([lib.pattern, lib.category].filter(Boolean).join(" · "))})` : "nessuna: non potrà cambiarlo"}</span>`}</div>`;
+    ${list.length ? "" : `<span class="faint" style="font-size:11px">${pat ? `nessuna: gli proporrò gli esercizi con stesso pattern, categoria${lib.lat ? " ed esecuzione" : ""} (${esc([lib.pattern, lib.category, latLbl(lib.lat)].filter(Boolean).join(" · "))})${lib.lat && !patL ? ` · nessuno con la stessa esecuzione: vedrà quelli con esecuzione diversa` : ""}` : "nessuna: non potrà cambiarlo"}</span>`}</div>`;
 }
 /* ---------- correzione dei dati registrati (coach) ---------- */
 async function saveCoachFix(patch){
@@ -5766,9 +5772,10 @@ function swapSheet(xid){
       <div id="sw-o" style="display:flex;flex-direction:column;gap:14px">
       ${o.nCoach ? `<div class="field"><span class="lbl">Alternative indicate dal coach</span>
         <div class="wopts" role="radiogroup" aria-label="Alternative indicate dal coach">${o.list.slice(0, o.nCoach).map((n,k) => opt(k, n, "")).join("")}</div></div>` : ""}
-      ${o.list.length > o.nCoach ? `<div class="field"><span class="lbl">${o.nCoach ? "Altre possibilità · stesso pattern e categoria" : "Esercizi simili · stesso pattern e categoria"} (${esc([o.pattern, o.category].filter(Boolean).join(" · "))})</span>
+      ${o.list.length > o.nCoach ? `<div class="field"><span class="lbl">${o.nCoach ? "Altre possibilità" : "Esercizi simili"} · ${o.diff ? "stesso pattern e categoria, esecuzione diversa" : `stesso pattern${o.lat ? ", categoria ed esecuzione" : " e categoria"}`} (${esc([o.pattern, o.category, o.diff ? "" : latLbl(o.lat)].filter(Boolean).join(" · "))})</span>
+        ${o.diff ? `<span class="faint" style="font-size:12px;margin-top:-2px">Non ce ne sono ${o.lat === "uni" ? "a una gamba / un braccio" : "bilaterali"} come l'esercizio del coach: usali solo se serve.</span>` : ""}
         ${o.nCoach ? `<span class="faint" style="font-size:12px;margin-top:-2px">Solo se non riesci nemmeno con quelle del coach.</span>` : ""}
-        <div class="wopts" role="radiogroup" aria-label="Esercizi con stesso pattern motorio e stessa categoria">${o.list.slice(o.nCoach).map((n,k) => { const l = libByName(n); return opt(o.nCoach + k, n, l?.category || ""); }).join("")}</div></div>` : ""}
+        <div class="wopts" role="radiogroup" aria-label="Esercizi con stesso pattern motorio e stessa categoria">${o.list.slice(o.nCoach).map((n,k) => { const l = libByName(n); return opt(o.nCoach + k, n, [l?.category, o.diff && l?.lat ? `esecuzione diversa (${latLbl(l.lat).toLowerCase()})` : ""].filter(Boolean).join(" · ")); }).join("")}</div></div>` : ""}
       </div>
       <div class="field"><span class="lbl">Perché lo cambi?</span><div class="rchips" id="sw-r">${Object.entries(SWAP_REASONS).map(([k,v]) => `<button type="button" data-r="${k}" aria-pressed="false">${v}</button>`).join("")}</div></div>
       <div class="field"><label class="lbl" for="sw-note">Dettagli <span class="faint" id="sw-req">(facoltativo)</span></label><input class="in" id="sw-note" placeholder="es. rack occupato da un'altra squadra" maxlength="140"></div>`}

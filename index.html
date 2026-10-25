@@ -473,14 +473,15 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .cgh .faint{font-family:var(--sans);font-size:13px;font-weight:500;letter-spacing:0}
 /* circuito: le spiegazioni sotto il nome rientrano un po' (allineate al nome, dopo la lettera A1, A2…) */
 .aex.circbox .sub > :not(.h){margin-left:30px}
-.crow{display:grid;grid-template-columns:minmax(0,1fr) 42px;grid-template-areas:"nm ck" "fs ck";gap:4px 8px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--surface2)}
+.crow{display:grid;grid-template-columns:minmax(0,1fr) 42px;grid-template-areas:"nm nm" "fs ck";gap:4px 8px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--surface2)}
 .crow.ok{background:var(--ok-soft)}
 .crow .cnm{grid-area:nm;font-size:13.5px;font-weight:600}
-.crow .cfs{grid-area:fs;display:flex;flex-wrap:wrap;gap:6px}
-.crow .ck{grid-area:ck}
+.crow .cfs{grid-area:fs;display:flex;flex-wrap:nowrap;align-items:flex-end;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-width:0}.crow .cfs::-webkit-scrollbar{display:none}   /* caselle sempre su una riga: si stringono un po' sul telefono, e se proprio non ci stanno scorrono di lato */
+.crow .ck{grid-area:ck;align-self:end;height:38px}   /* spunta sulla riga delle caselle, alla loro altezza (come negli esercizi normali) */
 .crow.ok .ck{background:var(--ok);border-color:var(--ok)}.crow.ok .ck svg{stroke:#fff}
-.cfl{display:flex;flex-direction:column;align-items:center;gap:2px}.cfl .fl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:center;white-space:nowrap}   /* nome del parametro centrato sulla casella, come nelle tabelle */
-.cfl input,.cfl .pick,.cfl .ro{width:72px !important;min-width:0;height:38px !important}
+.cfl{display:flex;flex-direction:column;align-items:center;gap:2px;flex:0 1 72px;min-width:50px}.cfl:has(.side-in),.cfl:has(.ro.lng){flex:none}.cfl .fl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:center;line-height:1.15}   /* nome del parametro centrato sulla casella, come nelle tabelle */
+.cfl input,.cfl .pick,.cfl .ro{width:100% !important;min-width:0;height:38px !important}
+.cfl .ro.lng{width:112px !important;height:auto !important;min-height:38px}
 .crow.ok input,.crow.ok .pick{background:var(--surface);border-color:transparent}
 .crounds{display:flex;flex-wrap:wrap;gap:8px}
 .cround-ck{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:700;font-size:15px}
@@ -764,7 +765,10 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .lt th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding:4px 2px;text-align:center}
 .lt td{padding:3px 2px;text-align:center}
 .lt td.n{color:var(--faint);font-weight:700;width:22px}
-.lt .ro{height:42px;min-width:44px;display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--line);border-radius:9px;color:var(--muted);font-weight:600;font-size:15px;padding:0 4px;white-space:nowrap}
+.lt .ro{height:42px;min-width:44px;display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--line);border-radius:9px;color:var(--muted);font-weight:600;font-size:15px;padding:0 4px;white-space:nowrap;overflow:hidden}
+/* indicazione del coach lunga (es. "lento in discesa, esplosivo"): casella più larga, testo a capo su max 3 righe; toccandola si legge tutta */
+.lt .ro.lng,.lt.many .ro.lng{width:124px;height:auto;min-height:42px;white-space:normal;font-size:11.5px;line-height:1.2;padding:3px 6px;cursor:help}
+.lt .ro.lng span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-align:center}
 .lt th.roh{color:var(--faint);font-weight:500}
 .ro.mini{display:inline-flex;height:18px;min-width:22px;font-size:11px;border:1.5px dashed var(--line);border-radius:5px;padding:0 3px;color:var(--muted);margin-right:2px}
 .rmx{width:26px;height:26px;border-radius:50%;border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);background:var(--bad-soft);color:var(--bad);font-size:12px;font-weight:700;padding:0;line-height:1}
@@ -5722,6 +5726,7 @@ function renderWorkout(){
   <div class="bottombar"><button class="btn pri" data-act="a-finish">${st==="done"?"Modifica RPE e durata":"Termina allenamento"}</button></div>`;
   lockPreview();
 }
+function roHtml(v){ const t = v || "–"; return t.length > 8 ? `<div class="ro lng" data-tip="${esc(t)}" title="${esc(t)}"><span>${esc(t)}</span></div>` : `<div class="ro" title="Indicazione del coach: non va compilata">${esc(t)}</div>`; }   // casella grigia tratteggiata (indicazione del coach)
 function athExHtml(w, x, label, res, compact){
   const logCols = x.cols.filter(c => COLS[c].log);
   const infoCols = x.cols.filter(c => !COLS[c].log);
@@ -5732,7 +5737,7 @@ function athExHtml(w, x, label, res, compact){
   const last = historyFor(name, w, 1)[0];
   const em = wEmail(w), sug = x.sets.map(s => !oneNum(s.kg) && x.cols.includes("kg") ? pctKg(em, x, name, s, effDate(w)) : null);   // kg suggeriti dal %1RM (e1RM delle 12 settimane prima)
   const cell = (c, j, s, rr) => {
-    if (!COLS[c].log) return `<td><div class="ro" title="Indicazione del coach: non va compilata">${esc(s[c] || "–")}</div></td>`;
+    if (!COLS[c].log) return `<td>${roHtml(s[c])}</td>`;
     if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k), plan = k => new RegExp(k, "i").test(s.side || "");
       return `<td><span class="side-in" title="${s.side ? "Da fare: "+esc(SIDE_LBL[s.side] ?? s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""} ${plan(k) && !has(k) ? "plan" : ""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} serie ${j+1}">${k}</button>`).join("")}</span></td>`; }
     if (COLS[c].pick && pickOpts(c).length) return `<td>${pickCell(c, x.id, j, rr[c], s[c])}</td>`;
@@ -5773,7 +5778,7 @@ function athCircHtml(w, g, L, res){
   else log = Array.from({length: n}, (_, j) => `<div class="cgiro"><div class="cgh">Giro ${j + 1}${c.fmt === "emom" ? ` <span class="faint">· minuti ${j * g.length + 1}–${(j + 1) * g.length}</span>` : ""}</div>
       ${g.map(i => { const x = exs[i], s = x.sets[j] || {}, rr = (res[x.id] || [])[j] || {};
         const flds = (x.cols || []).map(cc => { const lab = `<span class="fl">${esc(COLS[cc].l)}${COLS[cc].u && COLS[cc].u !== "%" && COLS[cc].u.toLowerCase() !== COLS[cc].l.toLowerCase() ? " " + esc(COLS[cc].u) : ""}</span>`;
-          if (!COLS[cc].log) return `<div class="cfl">${lab}<div class="ro">${esc(s[cc] || "–")}</div></div>`;
+          if (!COLS[cc].log) return `<div class="cfl">${lab}${roHtml(s[cc])}</div>`;
           if (cc === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k), plan = k => new RegExp(k, "i").test(s.side || "");   // lato da fare contornato, come negli esercizi singoli
             return `<div class="cfl">${lab}<span class="side-in" title="${s.side ? "Da fare: " + esc(SIDE_LBL[s.side] ?? s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""} ${plan(k) && !has(k) ? "plan" : ""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}">${k}</button>`).join("")}</span></div>`; }
           if (COLS[cc].pick && pickOpts(cc).length) return `<div class="cfl">${lab}${pickCell(cc, x.id, j, rr[cc], s[cc])}</div>`;

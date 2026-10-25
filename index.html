@@ -436,6 +436,10 @@ button.done-box:hover .fix{color:var(--ink)}
 .apgh{margin-left:1px !important;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--bc);margin:0 0 6px 2px}
 .api .nm{font-weight:600;font-size:15px;color:var(--ink);line-height:1.25;padding-top:2px}
 .api .sc{font-size:13px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.api .sc .scg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;margin-top:3px}
+.api .sc .scl{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding-top:2px;white-space:nowrap;min-width:84px}
+.api .sc .scv{color:var(--ink);opacity:.85;overflow-wrap:break-word}.api .sc .scv b{font-weight:700}
+.api .sc .sgr{display:block}.api .sc .sgs{font-size:11px;color:var(--muted);margin-left:4px}
 .api .sst{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--bc);vertical-align:2px}
 .empty{padding:28px 12px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:14px}
 .status-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surface2);color:var(--muted)}
@@ -1843,6 +1847,26 @@ function circAmrapApply(w, exs, g){
     if (E > 0) { const pr = numv(s.reps); if ((x.cols || []).includes("reps") && pr) { const take = Math.min(E, pr); rows.push({done: true, ...circLogVals(x, s), reps: String(take)}); E -= take; } else E = 0; }
     w.results[x.id] = rows; });
 }
+/* schema a righe per la lista del piano dell'atleta: etichetta a sinistra, valori a destra.
+   Tempo esec. e Recupero uguali in set consecutivi vengono raggruppati: "3-1-3-1 · set 1–4", "1-1-1-1 · set 5–8" */
+function schemeGridHtml(x){
+  const sets = x.sets || []; if (!sets.length) return ""; const cols = x.cols || [];
+  const raw = c => sets.map(s => String(s[c] ?? "").trim());
+  const has = c => raw(c).some(v => v && v !== "–");
+  const same = c => raw(c).every(v => v === raw(c)[0]);
+  const unit = c => { const u = COLS[c]?.u; return u ? (u === "%" ? "%" : " " + u) : ""; };
+  const seq = c => (same(c) ? esc(raw(c)[0]) : raw(c).map(v => esc(v || "–")).join("/<wbr>")) + unit(c);
+  const grouped = c => { const L = raw(c); if (same(c)) return esc(L[0]) + unit(c);
+    const g = []; L.forEach((v, j) => { const t = g[g.length - 1]; if (t && t.v === v) t.b = j; else g.push({v, a: j, b: j}); });
+    if (g.length === L.length) return seq(c);   // tutti diversi: uno per set, come prima
+    return g.map(t => `<span class="sgr">${esc(t.v || "–")}${unit(c)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join(""); };
+  const n = sets.length, sd = cols.includes("side") ? sideSummary(sets) : null, rows = [];
+  rows.push(["Serie", `<b>${n}</b>${cols.includes("reps") && has("reps") ? ` × ${seq("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`]);
+  if (sd && !sd.both && sd.txt) rows.push(["Lato", esc(sd.txt)]);
+  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest").forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" ? grouped(c) : seq(c)]); });
+  if (cols.includes("rest") && has("rest")) rows.push(["Recupero", grouped("rest")]);
+  return `<div class="scg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;
+}
 function schemeText(x){
   const sets = x.sets || []; if (!sets.length) return "";
   const cols = x.cols || [];
@@ -1866,7 +1890,7 @@ function miniListHtml(exs, w){
 function planListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const item = (x, i, col, link, c) => `<li class="api ${link ? "link" : ""} ${c === "single" ? "single" : ""}" style="--bc:${col}"><div class="lc"><span class="lab">${esc(L[i] || "•")}</span></div>
-      <div><div class="nm">${esc(exName(w, x))}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${esc(c && c !== "single" ? (c.fmt === "amrap" && !amrapReps(c) ? "per giro: " : "") + circScheme(x, amrapReps(c)) : schemeText(x)).replace(/\//g, "/<wbr>")}</div></div></li>`;
+      <div><div class="nm">${esc(exName(w, x))}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${!c || c === "single" ? schemeGridHtml(x) : esc(c && c !== "single" ? (c.fmt === "amrap" && !amrapReps(c) ? "per giro: " : "") + circScheme(x, amrapReps(c)) : schemeText(x)).replace(/\//g, "/<wbr>")}</div></div></li>`;
   /* superserie e circuiti: un riquadro che raccoglie gli esercizi collegati, con il nome del metodo in alto */
   return `<ul class="aplan">${ssGroups(exs).map(g => { const c = circOfGroup(exs, g), lead = exs[g[0]];
     if (g.length === 1 && !c) return item(lead, g[0], blockColor(lead.block || L[g[0]]), false, "single");

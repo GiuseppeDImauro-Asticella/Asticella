@@ -481,7 +481,8 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .crow .cnm{grid-area:nm;font-size:13.5px;font-weight:600}
 .crow .cfs{grid-area:fs;display:flex;flex-wrap:nowrap;align-items:flex-end;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-width:0}.crow .cfs::-webkit-scrollbar{display:none}   /* caselle sempre su una riga: si stringono un po' sul telefono, e se proprio non ci stanno scorrono di lato */
 .crow .ck{grid-area:ck;align-self:end}
-.crow:has(.cfs.ovf) .ck{box-shadow:-8px 0 8px -6px rgba(0,0,0,.18)}   /* come la colonna della spunta negli esercizi normali (.lt.many td.ckc): caselle tagliate nette, nessuna sfumatura */
+.crow:has(.cfs.ovf) .ck{box-shadow:-8px 0 8px -6px rgba(0,0,0,.18)}
+.crow:has(.cfs.ovf:not(.end))::after{content:"";position:absolute;right:58px;bottom:6px;width:20px;height:42px;pointer-events:none;background:linear-gradient(to left,rgba(0,0,0,.26),transparent);border-radius:0 9px 9px 0}   /* leggera ombra sul bordo destro delle caselle finché la riga scorre: si vede anche quando il taglio cade tra due caselle */   /* come la colonna della spunta negli esercizi normali (.lt.many td.ckc): caselle tagliate nette, nessuna sfumatura */
 .crow{position:relative}.crow:has(.cfs.ovf) .cnm{padding-right:58px}
 .crow:has(.cfs.ovf) .cnm::after{content:"scorri →";position:absolute;right:10px;top:9px;font-size:11px;font-weight:500;color:var(--faint);transition:opacity .2s}
 .crow:has(.cfs.ovf.end) .cnm::after{opacity:0}   /* spunta sulla riga delle caselle, alla loro altezza (come negli esercizi normali) */

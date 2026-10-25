@@ -436,10 +436,10 @@ button.done-box:hover .fix{color:var(--ink)}
 .apgh{margin-left:1px !important;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--bc);margin:0 0 6px 2px}
 .api .nm{font-weight:600;font-size:15px;color:var(--ink);line-height:1.25;padding-top:2px}
 .api .sc{font-size:13px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
-.api .sc .scg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;margin-top:3px}
-.api .sc .scl{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding-top:2px;white-space:nowrap;min-width:84px}
-.api .sc .scv{color:var(--ink);opacity:.85;overflow-wrap:break-word}.api .sc .scv b{font-weight:700}
-.api .sc .sgr{display:block}.api .sc .sgs{font-size:11px;color:var(--muted);margin-left:4px}
+.sc .scg{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;margin-top:3px}
+.sc .scl{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding-top:2px;white-space:nowrap;min-width:84px}
+.sc .scv{color:var(--ink);opacity:.85;overflow-wrap:break-word}.sc .scv b{font-weight:700}
+.sc .sgr{display:block}.sc .scg.cg{gap:1px 10px;margin-top:2px}.sc .pgiro{font-size:11px;color:var(--muted);margin-top:1px}.sc .sgs{font-size:11px;color:var(--muted);margin-left:4px}
 .api .sst{display:inline-block;margin-left:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--bc);vertical-align:2px}
 .empty{padding:28px 12px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:14px}
 .status-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surface2);color:var(--muted)}
@@ -466,7 +466,7 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .mtag.circ{background:color-mix(in srgb,var(--circ) 14%,var(--surface));color:var(--circ)}.mtag.ss{background:var(--accent-soft);color:var(--accent)}
 .aex .chow{font-size:13px;line-height:1.4;background:color-mix(in srgb,var(--circ) 10%,var(--surface));border-radius:8px;padding:8px 10px;color:var(--ink)}
 .aex.circbox .h .b,.crow .cnm b{color:var(--circ) !important}
-.aex .cscheme{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.aex .cscheme{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin:2px 0 4px}
 .clogwrap{display:flex;flex-direction:column;gap:10px;border-top:1.5px solid color-mix(in srgb,var(--circ) 45%,var(--line));padding-top:10px;margin-top:8px}
 .cgiro{display:flex;flex-direction:column;gap:6px}
 .cgh{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.1;color:var(--circ);letter-spacing:.03em;margin-top:6px}
@@ -1867,6 +1867,20 @@ function schemeGridHtml(x){
   if (cols.includes("rest") && has("rest")) rows.push(["Recupero", grouped("rest")]);
   return `<div class="scg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;
 }
+/* stesso schema a righe per un esercizio del circuito: niente riga "Serie" (i giri sono nel titolo del circuito);
+   un valore che cambia da un giro all'altro viene scritto con i giri: "12 · giro 1", "10 · giri 2–3" */
+function circGridHtml(x, maxReps, perGiro){
+  const sets = x.sets || []; if (!sets.length) return ""; const cols = x.cols || [];
+  const raw = c => sets.map(s => String(s[c] ?? "").trim()), has = c => raw(c).some(v => v && v !== "–"), same = c => raw(c).every(v => v === raw(c)[0]);
+  const unit = c => { const u = COLS[c]?.u; return u ? (u === "%" ? "%" : " " + u) : ""; };
+  const val = c => { const L = raw(c); if (same(c)) return esc(L[0]) + unit(c);
+    const g = []; L.forEach((v, j) => { const t = g[g.length - 1]; if (t && t.v === v) t.b = j; else g.push({v, a: j, b: j}); });
+    return g.map(t => `<span class="sgr">${esc(t.v || "–")}${t.v ? unit(c) : ""} <span class="sgs">${t.b > t.a ? `giri ${t.a + 1}–${t.b + 1}` : `giro ${t.a + 1}`}</span></span>`).join(""); };
+  const rows = []; if (maxReps) rows.push(["Reps", "max"]);
+  cols.filter(c => c !== "side").forEach(c => { if (c === "reps" && maxReps) return; if (has(c)) rows.push([COLS[c]?.l || c, val(c)]); });
+  if (!rows.length) return "";
+  return `${perGiro ? `<div class="pgiro">per giro</div>` : ""}<div class="scg cg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;
+}
 function schemeText(x){
   const sets = x.sets || []; if (!sets.length) return "";
   const cols = x.cols || [];
@@ -1890,7 +1904,7 @@ function miniListHtml(exs, w){
 function planListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const item = (x, i, col, link, c) => `<li class="api ${link ? "link" : ""} ${c === "single" ? "single" : ""}" style="--bc:${col}"><div class="lc"><span class="lab">${esc(L[i] || "•")}</span></div>
-      <div><div class="nm">${esc(exName(w, x))}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${!c || c === "single" ? schemeGridHtml(x) : esc(c && c !== "single" ? (c.fmt === "amrap" && !amrapReps(c) ? "per giro: " : "") + circScheme(x, amrapReps(c)) : schemeText(x)).replace(/\//g, "/<wbr>")}</div></div></li>`;
+      <div><div class="nm">${esc(exName(w, x))}</div>${swapOf(w, x) ? `<div class="sc swl">↔ al posto di ${esc(x.name)}</div>` : ""}<div class="sc">${!c || c === "single" ? schemeGridHtml(x) : c ? circGridHtml(x, amrapReps(c), c.fmt === "amrap" && !amrapReps(c)) : esc(c && c !== "single" ? (c.fmt === "amrap" && !amrapReps(c) ? "per giro: " : "") + circScheme(x, amrapReps(c)) : schemeText(x)).replace(/\//g, "/<wbr>")}</div></div></li>`;
   /* superserie e circuiti: un riquadro che raccoglie gli esercizi collegati, con il nome del metodo in alto */
   return `<ul class="aplan">${ssGroups(exs).map(g => { const c = circOfGroup(exs, g), lead = exs[g[0]];
     if (g.length === 1 && !c) return item(lead, g[0], blockColor(lead.block || L[g[0]]), false, "single");
@@ -5729,11 +5743,12 @@ function athExHtml(w, x, label, res, compact){
   return `<div class="sub">
     <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(name)}</span>${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn hv" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}" title="Guarda il video dell'esercizio">▶ Video</button>` : `<a class="vbtn hv" href="${esc(lib.video)}" target="_blank" rel="noopener" title="Guarda il video dell'esercizio">▶ Video ↗</a>`) : ""}<span class="hsp"></span>${sw ? "" : `<button class="swbtn" data-act="a-swap" data-x="${x.id}" title="Non riesci a farlo? Cambialo con un'alternativa">↔ Cambia</button>`}</div>
     ${sw ? `<div class="swinfo"><span>↔ Al posto di <b>${esc(x.name)}</b>${swapWhy(sw) ? ` · ${esc(swapWhy(sw))}` : ""}</span><button class="btn sm ghost" data-act="a-unswap" data-x="${x.id}">Annulla cambio</button></div>` : ""}
+    ${compact ? `<div class="sc cscheme">${circGridHtml(x, compact === "amrapreps", compact === "amrap")}</div>` : ""}
     ${sideHint && compact !== "light" ? (sd => `<div class="info sidehint">${sd?.both ? `<b>Ogni serie con tutti e due i lati:</b> fai le ripetizioni con il destro e con il sinistro, e segna <b>Sx</b> e <b>Dx</b>.` : `<b>Lato:</b> ${esc(sd?.how || sd?.txt || sideHint)} — ogni serie con il lato indicato (quello contornato); segna quello che hai fatto.`}</div>`)(sideSummary(x.sets)) : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
     ${sugTxt ? `<div class="info"><b>Kg consigliati:</b> ${sugTxt} <span class="faint">(dal tuo e1RM stimato: ${fmtN(sug.find(Boolean).ref.v, 1)} kg)</span></div>` : ""}
     ${lib?.notes ? `<div class="info"><b>Indicazioni:</b> ${esc(lib.notes)}</div>` : ""}
-    ${compact ? `<div class="sc cscheme">${esc(compact === "amrap" ? "per giro: " : "")}${esc(circScheme(x, compact === "amrapreps") || "")}</div>` : x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${compact ? "" : x.cols.length ? `${x.cols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${x.cols.length > 4 ? "many" : ""}"><thead><tr><th></th>${x.cols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
         return `<tr class="${rr.done?"ok":""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${x.cols.map(c => cell(c, j, s, rr)).join("")}
           <td class="ckc"><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}

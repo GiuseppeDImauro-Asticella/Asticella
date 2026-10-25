@@ -470,6 +470,7 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .clogwrap{display:flex;flex-direction:column;gap:10px;border-top:1.5px solid color-mix(in srgb,var(--circ) 45%,var(--line));padding-top:10px;margin-top:8px}
 .cgiro{display:flex;flex-direction:column;gap:6px}
 .cgh{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.1;color:var(--circ);letter-spacing:.03em;margin-top:6px}
+.cgh .cgx{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--muted);margin-right:6px}.cgh .rmx{vertical-align:4px}
 .cgh .faint{font-family:var(--sans);font-size:13px;font-weight:500;letter-spacing:0}
 /* circuito: le spiegazioni sotto il nome rientrano un po' (allineate al nome, dopo la lettera A1, A2…) */
 .aex.circbox .sub > :not(.h){margin-left:30px}
@@ -484,7 +485,7 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .crow:has(.cfs.ovf) .cnm::after{content:"scorri →";position:absolute;right:10px;top:9px;font-size:11px;font-weight:500;color:var(--faint);transition:opacity .2s}
 .crow:has(.cfs.ovf.end) .cnm::after{opacity:0}   /* spunta sulla riga delle caselle, alla loro altezza (come negli esercizi normali) */
 .crow.ok .ck{background:var(--ok);border-color:var(--ok)}.crow.ok .ck svg{stroke:#fff}
-.cfl{display:flex;flex-direction:column;align-items:center;gap:2px;flex:0 1 72px;min-width:50px}.cfl:has(.side-in),.cfl:has(.ro.lng){flex:none}.cfl .fl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;line-height:1.15}   /* nome del parametro centrato sulla casella, come nelle tabelle */
+.cfl{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none;width:var(--cw,72px)}.cfl:has(.side-in),.cfl:has(.ro.lng){width:auto}   /* tutte le caselle del circuito larghe uguali (--cw, calcolata da cfsMark) */.cfl:has(.side-in),.cfl:has(.ro.lng){flex:none}.cfl .fl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;line-height:1.15}   /* nome del parametro centrato sulla casella, come nelle tabelle */
 .cfl input,.cfl .pick,.cfl .ro:not(.lng){width:100% !important;min-width:0}   /* altezza, testo, Sx/Dx e indicazioni lunghe: stesse regole degli esercizi normali (.lt) */
 .crow.ok input,.crow.ok .pick{background:var(--surface);border-color:transparent}
 .crounds{display:flex;flex-wrap:wrap;gap:8px}
@@ -2053,7 +2054,7 @@ async function openAsAthlete(email){
 function exitAsAthlete(){ if (!S.coachUser) return; clearTimeout(saveT); saveT = null;
   S.user = S.coachUser; S.coachUser = null; S.view = S.coachView || "calendar"; $("#modal").innerHTML = ""; render(); }
 /* in anteprima le azioni che scriverebbero dati sono bloccate */
-const PREVIEW_BLOCK = ["a-check", "a-side", "a-rmset", "a-addset", "a-finish", "a-skip", "a-swap", "a-unswap", "c-round"];
+const PREVIEW_BLOCK = ["a-check", "a-side", "a-rmset", "a-addset", "c-addgiro", "c-rmgiro", "a-finish", "a-skip", "a-swap", "a-unswap", "c-round"];
 document.addEventListener("click", e => { if (!S.user?.preview) return; const t = e.target.closest?.("[data-act]");
   if (t && PREVIEW_BLOCK.includes(t.dataset.act)) { e.stopImmediatePropagation(); e.preventDefault(); toast("Anteprima: qui l'atleta registrerebbe i dati, ma non si salva niente"); } }, true);
 function lockPreview(){ if (!S.user?.preview) return; document.querySelectorAll("#app [data-r], #app [data-xnote]").forEach(el => { el.disabled = true; }); }
@@ -3019,7 +3020,15 @@ function mcIdeasFit(){ document.querySelectorAll(".mcideas:not(.open)").forEach(
   el.classList.toggle("ovf", l.scrollWidth > l.clientWidth + 1 || [...l.children].some(c => c.scrollWidth > c.clientWidth + 1)); }); }
 /* circuito: se le caselle di un esercizio non ci stanno e la riga scorre di lato, lo si fa vedere (sfumatura a destra, ombra sulla spunta, "scorri →") */
 function cfsEdge(f){ f.classList.toggle("end", f.scrollLeft + f.clientWidth >= f.scrollWidth - 2); }
-function cfsMark(){ requestAnimationFrame(() => document.querySelectorAll(".crow .cfs").forEach(f => { f.classList.toggle("ovf", f.scrollWidth > f.clientWidth + 2); cfsEdge(f); })); }
+function cfsMark(){ requestAnimationFrame(() => {
+  /* una sola larghezza per tutte le caselle di un circuito (come le colonne di una tabella): la più grande (max 72 px) con cui ci stanno tutte le righe;
+     le righe che non ci starebbero nemmeno a 50 px non contano: quelle scorrono di lato */
+  document.querySelectorAll(".circbox").forEach(cb => { let cw = 72;
+    cb.querySelectorAll(".crow .cfs").forEach(f => { const cells = [...f.children], k = cells.filter(c => !c.querySelector(".side-in, .ro.lng")).length; if (!k) return;
+      const fixed = cells.filter(c => c.querySelector(".side-in, .ro.lng")).reduce((a, c) => a + c.offsetWidth, 0) + 5 * (cells.length - 1);
+      const w = Math.floor((f.clientWidth - fixed) / k); if (w >= 50) cw = Math.min(cw, w); });
+    cb.style.setProperty("--cw", cw + "px"); });
+  document.querySelectorAll(".crow .cfs").forEach(f => { f.classList.toggle("ovf", f.scrollWidth > f.clientWidth + 2); cfsEdge(f); }); }); }
 document.addEventListener("scroll", e => { if (e.target.classList?.contains("cfs")) cfsEdge(e.target); }, true);
 document.fonts?.ready.then(cfsMark);
 let cfsT; addEventListener("resize", () => { clearTimeout(cfsT); cfsT = setTimeout(cfsMark, 150); });
@@ -5787,12 +5796,13 @@ function athCircHtml(w, g, L, res){
   else if (c.log === "light") log = `<div class="clog"><div class="crounds">${Array.from({length: n}, (_, j) => { const done = g.every(i => (res[exs[i].id] || [])[j]?.done);
       return `<button class="cround-ck ${done ? "on" : ""}" data-act="c-round" data-g="${lead.id}" data-j="${j}" aria-pressed="${done}">${ICON.check}<span>Giro ${j + 1}</span></button>`; }).join("")}</div>
       <div class="crow2">${rpeBox}<div class="cfld"><span class="lbl">Tempo totale</span><div class="lt"><input data-r="${key}|0|time" value="${esc(cr.time || "")}" placeholder="es. 12'30" aria-label="Tempo totale" style="width:96px"></div></div></div></div>`;
-  else log = Array.from({length: n}, (_, j) => `<div class="cgiro"><div class="cgh">Giro ${j + 1}${c.fmt === "emom" ? ` <span class="faint">· minuti ${j * g.length + 1}–${(j + 1) * g.length}</span>` : ""}</div>
+  else { const nn = Math.max(n, ...g.map(i => (res[exs[i].id] || []).length));   // giri extra aggiunti dall'atleta (come le serie extra)
+    log = Array.from({length: nn}, (_, j) => `<div class="cgiro"><div class="cgh">Giro ${j + 1}${j >= n ? ` <span class="cgx">extra</span><button class="rmx" data-act="c-rmgiro" data-g="${lead.id}" data-j="${j}" aria-label="Togli il giro extra ${j+1}" title="Togli questo giro extra">✕</button>` : c.fmt === "emom" ? ` <span class="faint">· minuti ${j * g.length + 1}–${(j + 1) * g.length}</span>` : ""}</div>
       ${g.map(i => { const x = exs[i], s = x.sets[j] || {}, rr = (res[x.id] || [])[j] || {};
         const sg = !oneNum(s.kg) && x.cols.includes("kg") ? pctKg(wEmail(w), x, exName(w, x), s, effDate(w)) : null;   // kg consigliati dal %1RM, come negli esercizi normali
         const flds = (x.cols || []).map(cc => `<div class="cfl"><span class="fl">${esc(COLS[cc].l)}${unitTag(cc)}</span>${logCellHtml(x, cc, j, s, rr, sg, "giro")}</div>`).join("");
         return `<div class="crow ${rr.done ? "ok" : ""}"><div class="cnm"><b style="color:${blockColor(lead.block || L[i])}">${esc(L[i])}</b> ${esc(exName(w, x))}</div><div class="lt cfs">${flds}</div>
-          <button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="${esc(L[i])} giro ${j+1} fatto">${ICON.check}</button></div>`; }).join("")}</div>`).join("");
+          <button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="${esc(L[i])} giro ${j+1} fatto">${ICON.check}</button></div>`; }).join("")}</div>`).join("") + `<button class="addset" data-act="c-addgiro" data-g="${lead.id}">+ Giro extra</button>`; }
   return `<section class="aex circbox" style="--bc:var(--circ)"><div class="sshead">${esc(circTitle(c, lead.block || ""))}<span>${esc(circDesc(c, n, g.map(i => L[i])))}</span></div><div class="chow">${esc(circHow(c, n, g.map(i => L[i])))}</div>${info}<div class="clogwrap">${log}</div></section>`;
 }
 function athleteWorkout(){ return S.user ? S.cache[S.user.email]?.[S.ath.open] : null; }
@@ -6230,6 +6240,13 @@ const ACT = {
     scheduleSave(); const y = scrollY; renderWorkout(); scrollTo(0, y); },
   "a-rmset"(t){ const w = athleteWorkout(); const r = w.results?.[t.dataset.x]; if (!r) return; r.splice(+t.dataset.j, 1);
     scheduleSave(); const y = scrollY; renderWorkout(); scrollTo(0, y); toast("Serie extra tolta"); },
+  "c-addgiro"(t){ const w = athleteWorkout(); const exs = w.exercises, g = ssGroups(exs).find(g => exs[g[0]].id === t.dataset.g); if (!g) return; w.results ??= {};
+    const nn = Math.max(exs[g[0]].sets.length, ...g.map(i => (w.results[exs[i].id] || []).length));
+    g.forEach(i => { const r = (w.results[exs[i].id] ??= []); while (r.length <= nn) r.push({}); });   // un giro in più per tutti gli esercizi del circuito
+    const y = scrollY; renderWorkout(); scrollTo(0, y); },
+  "c-rmgiro"(t){ const w = athleteWorkout(); const exs = w.exercises, g = ssGroups(exs).find(g => exs[g[0]].id === t.dataset.g); if (!g) return; const j = +t.dataset.j;
+    g.forEach(i => { const r = w.results?.[exs[i].id]; if (r && r.length > j) r.splice(j, 1); });
+    scheduleSave(); const y = scrollY; renderWorkout(); scrollTo(0, y); toast("Giro extra tolto"); },
   "a-addset"(t){ const w = athleteWorkout(); w.results ??= {}; const x = w.exercises.find(x => x.id === t.dataset.x); const r = (w.results[x.id] ??= []);
     while (r.length < x.sets.length) r.push({}); r.push({}); const y = scrollY; renderWorkout(); scrollTo(0, y); },
   "as-athlete"(){ openAsAthlete(S.calAthlete); },

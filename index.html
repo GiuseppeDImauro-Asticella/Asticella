@@ -372,6 +372,8 @@ table.sets{border-collapse:collapse}
 .sets tbody.sdragging,.sets tbody.sdragging .sgrip{cursor:grabbing}
 .sets input{width:74px;text-align:center;border:1px solid var(--line);border-radius:6px;padding:5px 4px;background:var(--surface2)}
 .sets input:focus{background:var(--surface);border-color:var(--accent);outline:none}
+/* testo lungo: cliccando dentro la casella si allarga sopra le colonne accanto e torna normale quando si esce */
+.sets td{position:relative}.sets input.grow{position:absolute;left:3px;top:2px;z-index:6;text-align:left;padding-left:8px;box-shadow:0 4px 14px rgba(0,0,0,.22)}
 .sets .ra{white-space:nowrap}
 .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .stepper button{border:0;background:var(--surface2);width:28px;height:28px;font-size:16px;font-weight:600}
@@ -479,8 +481,7 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .crow .cnm{grid-area:nm;font-size:13.5px;font-weight:600}
 .crow .cfs{grid-area:fs;display:flex;flex-wrap:nowrap;align-items:flex-end;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-width:0}.crow .cfs::-webkit-scrollbar{display:none}   /* caselle sempre su una riga: si stringono un po' sul telefono, e se proprio non ci stanno scorrono di lato */
 .crow .ck{grid-area:ck;align-self:end}
-.crow .cfs.ovf:not(.end){-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent)}
-.crow:has(.cfs.ovf:not(.end)) .ck{box-shadow:-8px 0 8px -6px rgba(0,0,0,.25)}
+.crow:has(.cfs.ovf) .ck{box-shadow:-8px 0 8px -6px rgba(0,0,0,.18)}   /* come la colonna della spunta negli esercizi normali (.lt.many td.ckc): caselle tagliate nette, nessuna sfumatura */
 .crow{position:relative}.crow:has(.cfs.ovf) .cnm{padding-right:58px}
 .crow:has(.cfs.ovf) .cnm::after{content:"scorri →";position:absolute;right:10px;top:9px;font-size:11px;font-weight:500;color:var(--faint);transition:opacity .2s}
 .crow:has(.cfs.ovf.end) .cnm::after{opacity:0}   /* spunta sulla riga delle caselle, alla loro altezza (come negli esercizi normali) */
@@ -3031,6 +3032,25 @@ function cfsMark(){ requestAnimationFrame(() => {
   document.querySelectorAll(".crow .cfs").forEach(f => { f.classList.toggle("ovf", f.scrollWidth > f.clientWidth + 2); cfsEdge(f); }); }); }
 document.addEventListener("scroll", e => { if (e.target.classList?.contains("cfs")) cfsEdge(e.target); }, true);
 document.fonts?.ready.then(cfsMark);
+/* creazione programma: caselle delle serie con testo più lungo della casella */
+function setInGrow(el){ const td = el.parentElement; el.style.width = ""; el.classList.remove("grow");
+  if (document.activeElement !== el || el.scrollWidth <= el.clientWidth + 1) { td.style.minWidth = ""; return; }
+  const box = el.closest(".scroll-x") || document.body, room = box.getBoundingClientRect().right - el.getBoundingClientRect().left - 8;
+  td.style.minWidth = td.offsetWidth + "px";   // la colonna resta larga uguale mentre la casella "esce"
+  el.style.width = Math.max(el.offsetWidth, Math.min(el.scrollWidth + 12, room)) + "px"; el.classList.add("grow"); }
+document.addEventListener("focusin", e => { if (e.target.matches?.(".sets input")) { hideHovTip(); setInGrow(e.target); } });
+document.addEventListener("input", e => { if (e.target.matches?.(".sets input")) setInGrow(e.target); });
+document.addEventListener("focusout", e => { if (e.target.matches?.(".sets input")) { const el = e.target; el.classList.remove("grow"); el.style.width = ""; el.parentElement.style.minWidth = ""; } });
+/* passando col mouse sopra una casella tagliata compare subito tutto il testo */
+function hideHovTip(){ $("#hovtip")?.remove(); }
+document.addEventListener("mouseover", e => { const el = e.target.closest?.(".sets input");
+  if (!el || el === document.activeElement || el.scrollWidth <= el.clientWidth + 1 || !el.value) { if (!e.target.closest?.("#hovtip")) hideHovTip(); return; }
+  if ($("#hovtip")?.dataset.for === el.dataset.bind) return;
+  hideHovTip(); const b = document.createElement("div"); b.id = "hovtip"; b.className = "taptip"; b.textContent = el.value; b.dataset.for = el.dataset.bind; document.body.appendChild(b);
+  const r = el.getBoundingClientRect(), w = b.offsetWidth, h = b.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2; x = Math.max(8, Math.min(x, innerWidth - w - 8)); let y = r.top - h - 6; if (y < 8) y = r.bottom + 6;
+  b.style.left = x + "px"; b.style.top = y + "px"; });
+document.addEventListener("scroll", hideHovTip, true);
 let cfsT; addEventListener("resize", () => { clearTimeout(cfsT); cfsT = setTimeout(cfsMark, 150); });
 let mcFitT; addEventListener("resize", () => { clearTimeout(mcFitT); mcFitT = setTimeout(mcIdeasFit, 150); });
 /* simbolo dello stato nell'angolo in alto a destra della scheda (dentro): ✓ fatta · ◐ in corso · ✕ non registrata / non svolta */

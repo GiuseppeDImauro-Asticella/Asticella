@@ -260,7 +260,7 @@ body.nosel{user-select:none}
 .wcard ol{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
 .wcard li{font-size:12px;display:grid;grid-template-columns:minmax(14px,auto) 1fr;column-gap:5px;line-height:1.25}
 .wcard li .b{color:var(--bc,var(--accent));font-weight:700;font-size:11px}
-.wcard li .s{grid-column:2;color:var(--muted);font-size:11px}
+.wcard li .s{grid-column:2;color:var(--muted);font-size:11px}.wcard li .s .sl,.tpl li .s .sl{display:block}   /* un parametro per riga */
 /* testi lunghi senza spazi (es. 60/100/150/200/150/100/60 m): vanno a capo invece di uscire dalla scheda (iPad) */
 .wcard li > span,.tpl li > span,.chip{min-width:0;overflow-wrap:break-word}
 .api > div{min-width:0}.api .nm,.api .sc,.aex .info,.aex .cscheme,.aex .h .n{overflow-wrap:break-word}
@@ -1909,11 +1909,22 @@ function schemeText(x){
   if (cols.includes("rest")) { const v = vals("rest"); if (v.replace(/[–/]/g,"")) out.push(`rec. ${v}`); }
   return out.join(" · ");
 }
+/* calendario e Allenamenti: schema di un esercizio con un parametro per riga ("3 set × 8/10/12 reps", "RPE 6/7/8", "Tempo esec. 3-1-3-1") */
+function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; const cols = x.cols || [];
+  const same = c => sets.every(s => (s[c]||"") === (sets[0][c]||"")); const vals = c => same(c) ? (sets[0][c]||"") : sets.map(s => s[c]||"–").join("/");
+  const sd = cols.includes("side") ? sideSummary(sets) : null;
+  const out = [{v: `${sets.length} set` + (cols.includes("reps") && vals("reps") ? ` × ${vals("reps")}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}];
+  if (sd && !sd.both) out.push({v: sd.txt, side: 1});
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
+    out.push(u ? {v: u === "%" ? `${v}%` : `${v}\u00a0${u}`} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
+  if (!(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
+  return out; }
+function calSumHtml(x){ return sumParts(x).map(p => `<span class="sl">${p.l ? esc(p.l) + " " : ""}${esc(p.v).replace(/\//g, "/<wbr>")}</span>`).join(""); }
 function miniListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0], c: circOfGroup(exs, g)}));
   return `<ol>${exs.map((x,i) => { const g = inGroup[i]; const link = g.size > 1 && g.k < g.size - 1;
-    return `${g.c && g.k === 0 ? `<li class="ctag" style="--bc:var(--circ)"><span></span><span>${esc(circTag(g.c, exs[g.lead].sets.length, g.size))}</span></li>` : ""}<li class="${link ? "link" : ""}" style="--bc:${g.c ? "var(--circ)" : blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? `title="${g.c ? "Circuito" : "Superserie"}"` : ""}><span class="b">${esc(L[i])}</span>${(sw => sw ? `<span class="swn" title="Cambiato dall'atleta: previsto ${esc(x.name)}${swapWhy(sw) ? " · "+esc(swapWhy(sw)) : ""}"><s>${esc(x.name)}</s> ↔ ${esc(sw.name)}</span>` : `<span>${esc(x.name||"—")}</span>`)(swapOf(w, x))}<span class="s">${esc(summarize(x)).replace(/\//g, "/<wbr>")}</span></li>`; }).join("")}</ol>`;
+    return `${g.c && g.k === 0 ? `<li class="ctag" style="--bc:var(--circ)"><span></span><span>${esc(circTag(g.c, exs[g.lead].sets.length, g.size))}</span></li>` : ""}<li class="${link ? "link" : ""}" style="--bc:${g.c ? "var(--circ)" : blockColor(exs[g.lead].block || L[i])}" ${g.size > 1 ? `title="${g.c ? "Circuito" : "Superserie"}"` : ""}><span class="b">${esc(L[i])}</span>${(sw => sw ? `<span class="swn" title="Cambiato dall'atleta: previsto ${esc(x.name)}${swapWhy(sw) ? " · "+esc(swapWhy(sw)) : ""}"><s>${esc(x.name)}</s> ↔ ${esc(sw.name)}</span>` : `<span>${esc(x.name||"—")}</span>`)(swapOf(w, x))}<span class="s">${calSumHtml(x)}</span></li>`; }).join("")}</ol>`;
 }
 function planListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);

@@ -476,13 +476,12 @@ td.rh .mtag{display:table;margin-top:2px}.hsess .hh .mtag{align-self:flex-start;
 .cgh .faint{font-family:var(--sans);font-size:13px;font-weight:500;letter-spacing:0}
 /* circuito: le spiegazioni sotto il nome rientrano un po' (allineate al nome, dopo la lettera A1, A2…) */
 .aex.circbox .sub > :not(.h){margin-left:30px}
-.crow{display:grid;grid-template-columns:minmax(0,1fr) 42px;grid-template-areas:"nm nm" "fs ck";gap:4px 8px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--surface2)}
+.crow{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"nm" "fs";gap:4px 8px;align-items:center;padding:6px 8px;border-radius:10px;background:var(--surface2)}
 .crow.ok{background:var(--ok-soft)}
 .crow .cnm{grid-area:nm;font-size:13.5px;font-weight:600}
 .crow .cfs{grid-area:fs;display:flex;flex-wrap:nowrap;align-items:flex-end;gap:5px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-width:0}.crow .cfs::-webkit-scrollbar{display:none}   /* caselle sempre su una riga: si stringono un po' sul telefono, e se proprio non ci stanno scorrono di lato */
-.crow .ck{grid-area:ck;align-self:end}
-.crow:has(.cfs.ovf) .ck{box-shadow:-8px 0 8px -6px rgba(0,0,0,.18)}
-.crow:has(.cfs.ovf:not(.end))::after{content:"";position:absolute;right:58px;bottom:6px;width:20px;height:42px;pointer-events:none;background:linear-gradient(to left,rgba(0,0,0,.26),transparent);border-radius:0 9px 9px 0}   /* leggera ombra sul bordo destro delle caselle finché la riga scorre: si vede anche quando il taglio cade tra due caselle */   /* come la colonna della spunta negli esercizi normali (.lt.many td.ckc): caselle tagliate nette, nessuna sfumatura */
+.crow .ckw{position:sticky;right:0;z-index:2;margin-left:auto;align-self:stretch;display:flex;align-items:flex-end;padding-left:6px;background:var(--surface2)}.crow.ok .ckw{background:var(--ok-soft)}   /* spunta ferma a destra: le caselle le passano sotto, come la colonna della spunta negli esercizi normali (.lt td.ckc) */
+.crow .cfs.ovf .ckw{box-shadow:-8px 0 8px -6px rgba(0,0,0,.18)}
 .crow{position:relative}.crow:has(.cfs.ovf) .cnm{padding-right:58px}
 .crow:has(.cfs.ovf) .cnm::after{content:"scorri →";position:absolute;right:10px;top:9px;font-size:11px;font-weight:500;color:var(--faint);transition:opacity .2s}
 .crow:has(.cfs.ovf.end) .cnm::after{opacity:0}   /* spunta sulla riga delle caselle, alla loro altezza (come negli esercizi normali) */
@@ -3026,8 +3025,8 @@ function cfsMark(){ requestAnimationFrame(() => {
   /* una sola larghezza per tutte le caselle di un circuito (come le colonne di una tabella): la più grande (max 72 px) con cui ci stanno tutte le righe;
      le righe che non ci starebbero nemmeno a 50 px non contano: quelle scorrono di lato */
   document.querySelectorAll(".circbox").forEach(cb => { let cw = 72;
-    cb.querySelectorAll(".crow .cfs").forEach(f => { const cells = [...f.children], k = cells.filter(c => !c.querySelector(".side-in, .ro.lng")).length; if (!k) return;
-      const fixed = cells.filter(c => c.querySelector(".side-in, .ro.lng")).reduce((a, c) => a + c.offsetWidth, 0) + 5 * (cells.length - 1);
+    cb.querySelectorAll(".crow .cfs").forEach(f => { const ckw = f.querySelector(".ckw"), cells = [...f.children].filter(c => c !== ckw), k = cells.filter(c => !c.querySelector(".side-in, .ro.lng")).length; if (!k) return;
+      const fixed = cells.filter(c => c.querySelector(".side-in, .ro.lng")).reduce((a, c) => a + c.offsetWidth, 0) + 5 * cells.length + (ckw ? ckw.offsetWidth : 0);
       const w = Math.floor((f.clientWidth - fixed) / k); if (w >= 50) cw = Math.min(cw, w); });
     cb.style.setProperty("--cw", cw + "px"); });
   document.querySelectorAll(".crow .cfs").forEach(f => { f.classList.toggle("ovf", f.scrollWidth > f.clientWidth + 2); cfsEdge(f); }); }); }
@@ -5844,8 +5843,7 @@ function athCircHtml(w, g, L, res){
       ${g.map(i => { const x = exs[i], s = x.sets[j] || {}, rr = (res[x.id] || [])[j] || {};
         const sg = !oneNum(s.kg) && x.cols.includes("kg") ? pctKg(wEmail(w), x, exName(w, x), s, effDate(w)) : null;   // kg consigliati dal %1RM, come negli esercizi normali
         const flds = (x.cols || []).map(cc => `<div class="cfl"><span class="fl">${esc(COLS[cc].l)}${unitTag(cc)}</span>${logCellHtml(x, cc, j, s, rr, sg, "giro")}</div>`).join("");
-        return `<div class="crow ${rr.done ? "ok" : ""}"><div class="cnm"><b style="color:${blockColor(lead.block || L[i])}">${esc(L[i])}</b> ${esc(exName(w, x))}</div><div class="lt cfs">${flds}</div>
-          <button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="${esc(L[i])} giro ${j+1} fatto">${ICON.check}</button></div>`; }).join("")}</div>`).join("") + `<button class="addset" data-act="c-addgiro" data-g="${lead.id}">+ Giro extra</button>`; }
+        return `<div class="crow ${rr.done ? "ok" : ""}"><div class="cnm"><b style="color:${blockColor(lead.block || L[i])}">${esc(L[i])}</b> ${esc(exName(w, x))}</div><div class="lt cfs">${flds}<span class="ckw"><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="${esc(L[i])} giro ${j+1} fatto">${ICON.check}</button></span></div></div>`; }).join("")}</div>`).join("") + `<button class="addset" data-act="c-addgiro" data-g="${lead.id}">+ Giro extra</button>`; }
   return `<section class="aex circbox" style="--bc:var(--circ)"><div class="sshead">${esc(circTitle(c, lead.block || ""))}<span>${esc(circDesc(c, n, g.map(i => L[i])))}</span></div><div class="chow">${esc(circHow(c, n, g.map(i => L[i])))}</div>${info}<div class="clogwrap">${log}</div></section>`;
 }
 function athleteWorkout(){ return S.user ? S.cache[S.user.email]?.[S.ath.open] : null; }

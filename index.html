@@ -260,7 +260,7 @@ body.nosel{user-select:none}
 .wcard ol{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
 .wcard li{font-size:12px;display:grid;grid-template-columns:minmax(14px,auto) 1fr;column-gap:5px;line-height:1.25}
 .wcard li .b{color:var(--bc,var(--accent));font-weight:700;font-size:11px}
-.wcard li .s{grid-column:2;color:var(--muted);font-size:11px}.wcard li .s .sl,.tpl li .s .sl{display:block}   /* un parametro per riga */
+.wcard li .s{grid-column:2;color:var(--muted);font-size:11px}.wcard li .s .sl,.tpl li .s .sl{display:block;position:relative;padding-left:9px}.wcard li .s .sl::before,.tpl li .s .sl::before{content:"";position:absolute;left:1px;top:.55em;width:3px;height:3px;border-radius:50%;background:var(--faint)}.wcard li .s .nw,.tpl li .s .nw{white-space:nowrap}   /* un parametro per riga, con un pallino: se va a capo il testo resta rientrato dopo il pallino */
 /* testi lunghi senza spazi (es. 60/100/150/200/150/100/60 m): vanno a capo invece di uscire dalla scheda (iPad) */
 .wcard li > span,.tpl li > span,.chip{min-width:0;overflow-wrap:break-word}
 .api > div{min-width:0}.api .nm,.api .sc,.aex .info,.aex .cscheme,.aex .h .n{overflow-wrap:break-word}
@@ -1919,7 +1919,8 @@ function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; co
     out.push(u ? {v: u === "%" ? `${v}%` : `${v}\u00a0${u}`} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
   if (!(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
   return out; }
-function calSumHtml(x){ return sumParts(x).map(p => `<span class="sl">${p.l ? esc(p.l) + " " : ""}${esc(p.v).replace(/\//g, "/<wbr>")}</span>`).join(""); }
+function calSumHtml(x){ const val = v => v.split("/").map(t => /^\S*-\S*$/.test(t) ? `<span class="nw">${esc(t)}</span>` : esc(t)).join("/<wbr>");   // "3-1-3-1" non si spezza al trattino: va a capo solo dopo le "/"
+  return sumParts(x).map(p => `<span class="sl">${p.l ? esc(p.l) + " " : ""}${val(p.v)}</span>`).join(""); }
 function miniListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0], c: circOfGroup(exs, g)}));

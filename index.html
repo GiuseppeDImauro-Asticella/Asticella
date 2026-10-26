@@ -1872,7 +1872,11 @@ function schemeGridHtml(x){
     return g.map(t => `<span class="sgr">${esc(t.v || "–")}${unit(c)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join(""); };
   const n = sets.length, sd = cols.includes("side") ? sideSummary(sets) : null, rows = [];
   rows.push(["Serie", `<b>${n}</b>${cols.includes("reps") && has("reps") ? ` × ${seq("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`]);
-  if (sd && !sd.both && sd.txt) rows.push(["Lato", esc(sd.txt)]);
+  if (sd) { const k = q => bothSides(q) ? "Dx + Sx" : /dx/i.test(q) ? "Dx" : /sx/i.test(q) ? "Sx" : "–", L = sets.map(st => k(st.side || ""));   // lato: stessa logica del tempo esec.
+    const g = []; L.forEach((v, j) => { const t = g[g.length - 1]; if (t && t.v === v) t.b = j; else g.push({v, a: j, b: j}); });
+    rows.push(["Lato", g.length === 1 ? esc(L[0])   // tutte uguali: Dx + Sx
+      : g.length === L.length ? L.map(esc).join("/<wbr>")   // cambia a ogni serie (es. alternate): Dx/Sx/Dx/Sx, come l'RPE
+      : g.map(t => `<span class="sgr">${esc(t.v)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join("")]); }   // a blocchi: come il tempo esec.
   cols.filter(c => c !== "reps" && c !== "side" && c !== "rest").forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" ? grouped(c) : seq(c)]); });
   if (cols.includes("rest") && has("rest")) rows.push(["Recupero", grouped("rest")]);
   return `<div class="scg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;

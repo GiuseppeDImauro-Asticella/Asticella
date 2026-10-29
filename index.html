@@ -260,7 +260,10 @@ body.nosel{user-select:none}
 .wcard ol{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
 .wcard li{font-size:12px;display:grid;grid-template-columns:minmax(14px,auto) 1fr;column-gap:5px;line-height:1.25}
 .wcard li .b{color:var(--bc,var(--accent));font-weight:700;font-size:11px}
-.wcard li .s{grid-column:2;color:var(--muted);font-size:11px}.wcard li .s .sl,.tpl li .s .sl{display:block;position:relative;padding-left:9px}.wcard li .s .sl::before,.tpl li .s .sl::before{content:"";position:absolute;left:1px;top:.55em;width:3px;height:3px;border-radius:50%;background:var(--faint)}.wcard li .s .nw,.tpl li .s .nw{white-space:nowrap}   /* un parametro per riga, con un pallino: se va a capo il testo resta rientrato dopo il pallino */
+.wcard li .s{grid-column:2;color:var(--muted);font-size:11px}.wcard li .s .sl,.tpl li .s .sl{display:block;position:relative;padding-left:9px}.wcard li .s .sl::before,.tpl li .s .sl::before{content:"";position:absolute;left:1px;top:.55em;width:3px;height:3px;border-radius:50%;background:var(--faint)}.wcard li .s .nw,.tpl li .s .nw{white-space:nowrap}
+.wcard li .s .sgs,.tpl li .s .sgs{font-size:10px;color:var(--faint);white-space:nowrap}
+/* gruppi (tempo esec., kg dei cluster) uno sotto l'altro: rientrati sotto l'etichetta; senza etichetta (es. kg) allineati al primo */
+.wcard li .s .sg2,.tpl li .s .sg2{display:block;padding-left:8px}.wcard li .s .sl.nol > .sg2,.tpl li .s .sl.nol > .sg2{padding-left:0}   /* un parametro per riga, con un pallino: se va a capo il testo resta rientrato dopo il pallino */
 /* testi lunghi senza spazi (es. 60/100/150/200/150/100/60 m): vanno a capo invece di uscire dalla scheda (iPad) */
 .wcard li > span,.tpl li > span,.chip{min-width:0;overflow-wrap:break-word}
 .api > div{min-width:0}.api .nm,.api .sc,.aex .info,.aex .cscheme,.aex .h .n{overflow-wrap:break-word}
@@ -1990,11 +1993,16 @@ function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; co
       : [{v: `${sets.length} set` + (cols.includes("reps") && vals("reps") ? ` × ${vals("reps")}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}])(plioView(x));
   if (sd && !sd.both) out.push({v: sd.txt, side: 1});
   cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== ccShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
-    out.push(u ? {v: u === "%" ? `${v}%` : `${v}\u00a0${u}`} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
+    const wu = z => u ? (u === "%" ? `${z}%` : `${z}\u00a0${u}`) : z, L = sets.map(s => dv(s)(c)), g = [];
+    L.forEach((z, j) => { const t = g[g.length - 1]; if (t && t.v === z) t.b = j; else g.push({v: z, a: j, b: j}); });
+    if ((c === "tut" || L.some(z => z.includes("→"))) && g.length > 1 && g.length < L.length) {   // come nella vista atleta: tempo esec. (e kg dei cluster) raggruppati per serie
+      out.push({l: u ? "" : COLS[c].l, grp: g.map(t => ({v: t.v ? wu(t.v) : "–", r: `set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}`}))}); return; }
+    out.push(u ? {v: wu(v)} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
   if (!anyCl && !plioView(x) && !(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
   return out; }
-function calSumHtml(x){ const val = v => v.split("/").map(t => /^\S*-\S*$/.test(t) ? `<span class="nw">${esc(t)}</span>` : esc(t)).join("/<wbr>");   // "3-1-3-1" non si spezza al trattino: va a capo solo dopo le "/"
-  return sumParts(x).map(p => `<span class="sl">${p.l ? esc(p.l) + " " : ""}${val(p.v)}</span>`).join(""); }
+function calSumHtml(x){ const val = v => v.split("/").map(t => /^\S*[-→]\S*$/.test(t) ? `<span class="nw">${esc(t)}</span>` : esc(t)).join("/<wbr>");   // "3-1-3-1" non si spezza al trattino: va a capo solo dopo le "/"
+  return sumParts(x).map(p => `<span class="sl ${p.grp && !p.l ? "nol" : ""}">${p.l ? esc(p.l) + " " : ""}${p.grp ? CAL_GRP(p.grp, val) : val(p.v)}</span>`).join(""); }
+const CAL_GRP = (G, val) => G.map(t => `<span class="sg2">${val(t.v)} <span class="sgs">${t.r}</span></span>`).join(" ");
 function miniListHtml(exs, w){
   exs = exs || []; const L = exLabels(exs);
   const inGroup = []; ssGroups(exs).forEach(g => g.forEach((i,k) => inGroup[i] = {size: g.length, k, lead: g[0], c: circOfGroup(exs, g)}));

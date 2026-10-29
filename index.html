@@ -379,7 +379,8 @@ table.sets{border-collapse:collapse}
 .xs .clt{display:inline-block;font-size:9px;font-weight:800;color:var(--accent);border:1px solid currentColor;border-radius:3px;padding:0 2px;margin-right:3px;line-height:1.2;vertical-align:1px}
 .cst{display:flex;flex-direction:column;gap:4px}
 .sets .cst{display:flex;flex-direction:column;gap:4px}.sets .cst > input{height:30px}
-.sets td.cln{padding-right:0}.sets td.cln .cst > span{height:30px;display:flex;align-items:center;font-size:11px;font-weight:700;color:var(--faint)}
+.sets td.cln{padding-right:0}.sets td.cln .cst > span{height:30px;display:flex;align-items:center;gap:1px;font-size:11px;font-weight:700;color:var(--faint)}
+.sets .clrm{border:0;background:none;color:var(--faint);font-size:10px;padding:2px 3px;cursor:pointer;border-radius:4px;line-height:1}.sets .clrm:hover{color:var(--bad);background:var(--bad-soft)}
 .sets tr.clr > td{padding-top:6px;padding-bottom:6px;background:color-mix(in srgb,var(--accent) 5%,transparent)}.sets tr.clr + tr.clr > td{border-top:3px solid var(--surface)}
 .sets input.dash{border-style:dashed;background:transparent}
 .sets th small{display:block;margin-top:3px;font-weight:600}
@@ -1741,7 +1742,7 @@ function summarize(x){
   const same = c => sets.every(s => setDisp(x, s, c, "→") === setDisp(x, sets[0], c, "→"));
   const vals = c => same(c) ? setDisp(x, sets[0], c, "→") : sets.map(s => setDisp(x, s, c, "→") || "–").join("/");
   const sd = cols.includes("side") ? sideSummary(sets) : null;
-  const out = [(anyCl ? serieRuns(x).map(t => t.cl ? `${t.b - t.a + 1}×(${clStruct(t.s)}) cluster` : `${t.b - t.a + 1}×${runReps(x, t)}`).join(" + ")
+  const out = [(anyCl ? serieRuns(x).map(t => t.cl ? `${t.b - t.a + 1}×(${clTxt(x, t.s)}) cluster` : `${t.b - t.a + 1}×${runTxt(x, t)}`).join(" + ")
     : cols.includes("reps") && vals("reps") ? `${sets.length}×${vals("reps")}` : `${sets.length}×`) + (sd?.both ? " per lato" : "")];
   if (sd && !sd.both) out.push(sd.txt);
   cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
@@ -1825,8 +1826,18 @@ function clAgg(x, r){ if (!Array.isArray(r?.cl) || !r.cl.length) return;
 /* valore di un parametro di una serie da mostrare: per cluster "2+2+2" (reps) o "60 → 62,5 → 65" (uguali: un valore solo) */
 function setDisp(x, s, c, sep = " → "){ if (isCl(s) && (c === "reps" || clPer(x, c))) { const v = s.cl.map(q => String(q?.[c] ?? "").trim() || "–"); return c === "reps" ? v.join("+") : v.every(q => q === v[0]) ? (v[0] === "–" ? "" : v[0]) : v.join(sep); } return String(s?.[c] ?? "").trim(); }
 /* serie consecutive con la stessa struttura: "2 × 2+2+2", poi "1 × 6" (per schema atleta, calendario, testo) */
-function serieRuns(x){ const runs = []; (x.sets || []).forEach((s, j) => { const key = isCl(s) ? "C|" + clStruct(s) + "|" + setDisp(x, s, "pi") : "N"; const t = runs[runs.length - 1];
+function serieRuns(x){ const runs = []; (x.sets || []).forEach((s, j) => { const key = isCl(s) ? "C|" + clTxt(x, s) + "|" + setDisp(x, s, "pi") : "N"; const t = runs[runs.length - 1];
   if (t && t.key === key) t.b = j; else runs.push({key, cl: isCl(s), a: j, b: j, s}); }); return runs; }
+/* testo della serie con i contatti (stessa regola delle serie normali, v211): contatti compilati e reps vuote/1 → "5+5 contatti";
+   reps > 1 → "2+2 reps da 3 contatti"; senza contatti → "2+2+2 reps" */
+function clTxt(x, s, sp = " "){ const cc = contCol(x.cols), cv = cc ? setDisp(x, s, cc) : "";
+  if (!cv) return `${clStruct(s)}${sp}reps`;
+  if (s.cl.every(q => ["", "1"].includes(String(q?.reps ?? "").trim()))) return `${s.cl.map(q => String((clPer(x, cc) ? q?.[cc] : s[cc]) ?? "").trim() || "?").join("+")}${sp}contatti`;
+  return `${clStruct(s)}${sp}reps da ${cv}${sp}contatti`; }
+function runTxt(x, t, sp = " "){ const S = (x.sets || []).slice(t.a, t.b + 1), cc = contCol(x.cols), sq = c => { const v = S.map(s => String(s[c] ?? "").trim()); return v.every(q => q === v[0]) ? v[0] : v.map(q => q || "–").join("/"); };
+  if (cc && S.some(s => String(s[cc] ?? "").trim())) return S.every(s => ["", "1"].includes(String(s.reps ?? "").trim())) ? `${sq(cc)}${sp}contatti` : `${sq("reps")}${sp}reps da ${sq(cc)}${sp}contatti`;
+  return (x.cols || []).includes("reps") && sq("reps") ? `${sq("reps")}${sp}reps` : ""; }
+const ccShownOf = x => { const cc = contCol(x.cols); return cc && (x.sets || []).some(s => setDisp(x, s, cc)) ? cc : null; };   // contatti già scritti nella riga della serie: niente riga a parte
 const runReps = (x, t) => { const v = (x.sets || []).slice(t.a, t.b + 1).map(s => String(s.reps ?? "").trim()); return v.every(q => q === v[0]) ? v[0] : v.map(q => q || "–").join("/"); };
 /* serie cluster eseguita, a parole: "2×60 + 2×62,5 + 1×65" */
 function clResTxt(r){ return (r.cl || []).filter(q => Object.values(q || {}).some(z => String(z ?? "").trim() !== "")).map(q => { const kg = q.kg ?? r.kg; return `${q.reps || "?"}${kg ? "×" + String(kg).replace(".", ",") : " rep"}`; }).join(" + "); }
@@ -1928,7 +1939,7 @@ function schemeGridHtml(x){
     return g.map(t => `<span class="sgr">${esc(t.v || "–")}${unit(c)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join(""); };
   const n = sets.length, sd = cols.includes("side") ? sideSummary(sets) : null, rows = [];
   if (anyCl) { const R = serieRuns(x), many = R.length > 1, st = t => many ? ` · set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}` : "";   // cluster: "2 × 2+2+2 reps · cluster · pausa 20″", poi "1 × 6 reps"
-    rows.push(["Serie", R.map(t => `<span class="sgr"><b>${t.b - t.a + 1}</b> × ${t.cl ? `${esc(clStruct(t.s))} reps${sd?.both ? " per lato" : ""} <span class="sgs">cluster${setDisp(x, t.s, "pi") ? " · pausa " + esc(setDisp(x, t.s, "pi")) : ""}${st(t)}</span>` : `${cols.includes("reps") && runReps(x, t) ? esc(runReps(x, t)) + " reps" : "set"}${sd?.both ? " per lato" : ""}${many ? ` <span class="sgs">${st(t).slice(3)}</span>` : ""}`}</span>`).join("")]); }
+    rows.push(["Serie", R.map(t => `<span class="sgr"><b>${t.b - t.a + 1}</b> × ${t.cl ? `${esc(clTxt(x, t.s))}${sd?.both ? " per lato" : ""} <span class="sgs">cluster${setDisp(x, t.s, "pi") ? " · pausa " + esc(setDisp(x, t.s, "pi")) : ""}${st(t)}</span>` : `${esc(runTxt(x, t) || "set")}${sd?.both ? " per lato" : ""}${many ? ` <span class="sgs">${st(t).slice(3)}</span>` : ""}`}</span>`).join("")]); }
   else if (plioView(x)) { const pv = plioView(x); rows.push(["Serie", `<b>${n}</b> × ${pv.cc ? (pv.one ? `${seq(pv.cc)} contatti` : `${seq("reps")} reps da ${seq(pv.cc)} contatti`) : ""}${sd?.both ? " per lato" : ""}`]); }
   else rows.push(["Serie", `<b>${n}</b>${cols.includes("reps") && has("reps") ? ` × ${seq("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`]);
   if (sd) { const k = q => bothSides(q) ? "Dx + Sx" : /dx/i.test(q) ? "Dx" : /sx/i.test(q) ? "Sx" : "–", L = sets.map(st => k(st.side || ""));   // lato: stessa logica del tempo esec.
@@ -1936,7 +1947,7 @@ function schemeGridHtml(x){
     rows.push(["Lato", g.length === 1 ? esc(L[0])   // tutte uguali: Dx + Sx
       : g.length === L.length ? L.map(esc).join("/<wbr>")   // cambia a ogni serie (es. alternate): Dx/Sx/Dx/Sx, come l'RPE
       : g.map(t => `<span class="sgr">${esc(t.v)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join("")]); }   // a blocchi: come il tempo esec.
-  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi" && c !== plioView(x)?.cc).forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || anyCl ? grouped(c) : seq(c)]); });
+  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi" && c !== ccShownOf(x)).forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || anyCl ? grouped(c) : seq(c)]); });
   if (cols.includes("rest") && has("rest")) rows.push(["Recupero", grouped("rest")]);
   return `<div class="scg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;
 }
@@ -1961,7 +1972,7 @@ function schemeText(x){
   const vals = c => same(c) ? setDisp(x, sets[0], c, "→") : sets.map(s => setDisp(x, s, c, "→") || "–").join("/");
   const n = sets.length;
   const sd = cols.includes("side") ? sideSummary(sets) : null;
-  const out = anyCl ? [serieRuns(x).map(t => t.cl ? `${t.b - t.a + 1} cluster set × ${clStruct(t.s)} reps${sd?.both ? " per lato" : ""}${setDisp(x, t.s, "pi") ? " (pausa " + setDisp(x, t.s, "pi") + ")" : ""}` : `${t.b - t.a + 1} set${runReps(x, t) ? ` × ${runReps(x, t)} reps` : ""}${sd?.both ? " per lato" : ""}`).join(" + ")]
+  const out = anyCl ? [serieRuns(x).map(t => t.cl ? `${t.b - t.a + 1} cluster set × ${clTxt(x, t.s)}${sd?.both ? " per lato" : ""}${setDisp(x, t.s, "pi") ? " (pausa " + setDisp(x, t.s, "pi") + ")" : ""}` : `${t.b - t.a + 1} set${runTxt(x, t) ? ` × ${runTxt(x, t)}` : ""}${sd?.both ? " per lato" : ""}`).join(" + ")]
     : [`${n} ${n === 1 ? "set" : "set"}${cols.includes("reps") && vals("reps") ? ` × ${vals("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`];
   if (sd && !sd.both) out.push(sd.txt);
   cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
@@ -1973,12 +1984,12 @@ function schemeText(x){
 function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; const cols = x.cols || [], anyCl = sets.some(isCl);
   const dv = s => c => setDisp(x, s, c, "→"), same = c => sets.every(s => dv(s)(c) === dv(sets[0])(c)); const vals = c => same(c) ? dv(sets[0])(c) : sets.map(s => dv(s)(c) || "–").join("/");
   const sd = cols.includes("side") ? sideSummary(sets) : null;
-  const out = anyCl ? serieRuns(x).map(t => ({v: t.cl ? `${t.b - t.a + 1} cluster set × ${clStruct(t.s)}\u00a0reps${sd?.both ? " per lato" : ""}${setDisp(x, t.s, "pi") ? " · " + setDisp(x, t.s, "pi") : ""}`   // "2 cluster set × 2+2+2 reps · 20″", poi "1 set × 6 reps"
-      : `${t.b - t.a + 1} set` + (cols.includes("reps") && runReps(x, t) ? ` × ${runReps(x, t)}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}))
+  const out = anyCl ? serieRuns(x).map(t => ({v: t.cl ? `${t.b - t.a + 1} cluster set × ${clTxt(x, t.s, "\u00a0")}${sd?.both ? " per lato" : ""}${setDisp(x, t.s, "pi") ? " · " + setDisp(x, t.s, "pi") : ""}`   // "2 cluster set × 2+2+2 reps · 20″", poi "1 set × 6 reps"
+      : `${t.b - t.a + 1} set` + (runTxt(x, t, "\u00a0") ? ` × ${runTxt(x, t, "\u00a0")}` : "") + (sd?.both ? " per lato" : ""), main: 1}))
     : (pv => pv ? [{v: `${sets.length} set × ` + (pv.cc ? (pv.one ? `${vals(pv.cc)}\u00a0contatti` : `${vals("reps")}\u00a0reps da ${vals(pv.cc)}\u00a0contatti`) : `${vals("reps")}\u00a0contatti`) + (sd?.both ? " per lato" : ""), main: 1}]   // pliometria: in contatti
       : [{v: `${sets.length} set` + (cols.includes("reps") && vals("reps") ? ` × ${vals("reps")}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}])(plioView(x));
   if (sd && !sd.both) out.push({v: sd.txt, side: 1});
-  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== plioView(x)?.cc).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== ccShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
     out.push(u ? {v: u === "%" ? `${v}%` : `${v}\u00a0${u}`} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
   if (!anyCl && !plioView(x) && !(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
   return out; }
@@ -3927,7 +3938,13 @@ const SVOL_U = {carico: "kg × rip", rip: "rip", sprint: "m", corsa: "m", plio: 
 function setVolume(x, name, r, s){
   let b = volBucket(x, name); const plan = c => (s && !/[-–/]/.test(String(s[c] ?? ""))) ? s[c] : null;
   /* "Contatti a terra" compilato (dall'atleta o nel programma): la serie conta come Contatti = rip × contatti per rip. Se non è compilato valgono le altre regole (categoria, pattern, parametri) */
-  { const ck2 = b !== "stacchi" ? contCol(x.cols) : null, ct = ck2 ? numv(r[ck2]) ?? oneNum(plan(ck2)) : null;
+  { const ck2 = b !== "stacchi" ? contCol(x.cols) : null;
+    if (ck2 && (isCl(s) || hasClRes(r))) {   // serie cluster: somma dei cluster, contatti × reps di ognuno (reps vuote = 1)
+      const K = Math.max(s?.cl?.length || 0, r?.cl?.length || 0); let tot = 0, any = false;
+      for (let k = 0; k < K; k++) { const ct = numv(r.cl?.[k]?.[ck2]) ?? numv(s?.cl?.[k]?.[ck2]) ?? numv(r[ck2]) ?? oneNum(plan(ck2)); if (ct == null) continue; any = true;
+        tot += ct * (numv(r.cl?.[k]?.reps) ?? numv(s?.cl?.[k]?.reps) ?? 1); }
+      if (any) return {b: "plio", v: tot}; }
+    const ct = ck2 ? numv(r[ck2]) ?? oneNum(plan(ck2)) : null;
     if (ct != null) return {b: "plio", v: ct * (numv(r.reps) ?? numv(plan("reps")) ?? 1)}; }
   const k = numv(r.kg), rp = numv(r.reps), d = numv(r.dist) ?? numv(plan("dist")), n1 = rp ?? numv(plan("reps")) ?? 1, sc = secOf(r.time) ?? secOf(plan("time"));
   if (b === "carico") { if (k != null && rp != null) return {b, v: k * rp}; if (rp != null) return {b: "rip", v: rp}; if (sc != null) return {b: "tempo", v: sc}; return null; }
@@ -4597,7 +4614,7 @@ function exEditorHtml(x, i, res, L){
   const scp = c => !hasCl ? "" : CL_FIX[c] ? `<small><span class="scope fix" title="${c === "reps" ? "Nelle serie cluster le ripetizioni si scrivono sempre per cluster" : "Sempre uno per serie"}">per ${CL_FIX[c]}</span></small>`
     : `<small><button type="button" class="scope ${clPer(x, c) ? "cl" : ""}" data-act="cl-scope" data-i="${i}" data-c="${c}" title="Nelle serie cluster: un valore per tutta la serie o uno per ogni cluster. Clicca per cambiare">per ${clScope(x, c)} ▾</button></small>`;
   const cellCl = (c, j, s) => { const base = `exercises.${i}.sets.${j}`;
-    if (isCl(s) && (c === "reps" || clPer(x, c))) return `<td><div class="cst">${s.cl.map((q, k) => `<input aria-label="${esc(COLS[c].l)} serie ${j+1} cluster ${k+1}" data-bind="${base}.cl.${k}.${c}" value="${esc(q?.[c] ?? "")}"${c === "reps" ? ` title="Svuota le ripetizioni per togliere questo cluster"` : ""}>`).join("")}</div></td>`;
+    if (isCl(s) && (c === "reps" || clPer(x, c))) return `<td><div class="cst">${s.cl.map((q, k) => `<input aria-label="${esc(COLS[c].l)} serie ${j+1} cluster ${k+1}" data-bind="${base}.cl.${k}.${c}" value="${esc(q?.[c] ?? "")}">`).join("")}</div></td>`;
     if (c === "pi" && !isCl(s)) return `<td><input class="dash" disabled placeholder="—" title="Solo per le serie cluster" aria-label="Pausa intra serie ${j+1}"></td>`;
     return ""; };
   const clBtns = (j, s) => `<button type="button" class="clbtn ${isCl(s) ? "on" : ""}" data-act="set-cl" data-i="${i}" data-j="${j}" title="${isCl(s) ? "Serie cluster: clicca per tornare a una serie normale" : "Trasforma in serie cluster: ripetizioni divise in cluster con una pausa breve"}">${isCl(s) ? "✓ " : ""}Cluster</button>${isCl(s) ? `<button type="button" class="btn ghost sm" data-act="cl-add" data-i="${i}" data-j="${j}" title="Aggiungi un cluster" aria-label="Aggiungi un cluster alla serie ${j+1}">+C</button>` : ""}`;
@@ -4615,7 +4632,7 @@ function exEditorHtml(x, i, res, L){
     <div class="cols">${cols.map((c,k) => `<span class="c"><button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="-1" aria-label="Sposta ${COLS[c].l} a sinistra" ${k===0?"disabled":""}>‹</button>${COLS[c].l}<button class="mv" data-act="col-mv" data-i="${i}" data-k="${k}" data-d="1" aria-label="Sposta ${COLS[c].l} a destra" ${k===cols.length-1?"disabled":""}>›</button><button data-act="col-rm" data-i="${i}" data-c="${c}" aria-label="Togli ${COLS[c].l}">×</button></span>`).join("")}
       ${avail.length ? `<select aria-label="Aggiungi parametro" data-change="col-add" data-i="${i}"><option value="">+ parametro</option>${avail.map(c=>`<option value="${c}">${esc(COLS[c].l)}</option>`).join("")}<option value="__new">+ Nuovo parametro…</option></select>` : ""}</div>
     <div class="scroll-x"><table class="sets"><thead><tr><th>${cc ? (cc.fmt === "amrap" ? "" : "Giro") : ""}</th>${cc ? "" : `<th title="Tipo di serie: clicca per cambiare (Ramping, Work, Back-off, Down)">Tipo</th>`}${hasCl ? "<th></th>" : ""}${cols.map(c=>`<th>${COLS[c].l}${unitTag(c)}${scp(c)}</th>`).join("")}<th></th></tr></thead><tbody>
-      ${x.sets.map((s,j) => `<tr class="${isCl(s) && !cc ? "clr" : ""}"><td class="n ${cc ? "gn" : ""}">${cc ? (cc.fmt === "amrap" ? (amrapReps(cc) ? "" : "per giro") : j+1) : x.sets.length > 1 ? `<span class="sgrip" data-sgrip data-i="${i}" title="Trascina il numero per spostare la serie ${j+1}"><i class="gi">${ICON.grip}</i>${j+1}</span>` : j+1}</td>${cc ? "" : `<td><button type="button" class="tbtn ${s.type?"has":""}" data-act="set-type" data-i="${i}" data-j="${j}" title="${s.type ? SET_TYPES[s.type].l+" · clicca per cambiare" : "Nessun tipo · clicca per scegliere"}" aria-label="Tipo serie ${j+1}">${s.type ? typeBadge(s.type) : "—"}</button></td>`}${hasCl ? `<td class="cln">${isCl(s) ? `<div class="cst">${s.cl.map((q, k) => `<span>C${k+1}</span>`).join("")}</div>` : ""}</td>` : ""}${cols.map(c=> (!cc && cellCl(c, j, s)) || (c === "side"
+      ${x.sets.map((s,j) => `<tr class="${isCl(s) && !cc ? "clr" : ""}"><td class="n ${cc ? "gn" : ""}">${cc ? (cc.fmt === "amrap" ? (amrapReps(cc) ? "" : "per giro") : j+1) : x.sets.length > 1 ? `<span class="sgrip" data-sgrip data-i="${i}" title="Trascina il numero per spostare la serie ${j+1}"><i class="gi">${ICON.grip}</i>${j+1}</span>` : j+1}</td>${cc ? "" : `<td><button type="button" class="tbtn ${s.type?"has":""}" data-act="set-type" data-i="${i}" data-j="${j}" title="${s.type ? SET_TYPES[s.type].l+" · clicca per cambiare" : "Nessun tipo · clicca per scegliere"}" aria-label="Tipo serie ${j+1}">${s.type ? typeBadge(s.type) : "—"}</button></td>`}${hasCl ? `<td class="cln">${isCl(s) ? `<div class="cst">${s.cl.map((q, k) => `<span>C${k+1}<button type="button" class="clrm" data-act="cl-rm" data-i="${i}" data-j="${j}" data-k="${k}" title="Togli il cluster ${k+1}" aria-label="Togli il cluster ${k+1} della serie ${j+1}">✕</button></span>`).join("")}</div>` : ""}</td>` : ""}${cols.map(c=> (!cc && cellCl(c, j, s)) || (c === "side"
           ? `<td><select aria-label="Lato serie ${j+1}" data-bind="exercises.${i}.sets.${j}.side">${[...new Set([...SIDES, s.side||""])].map(v => `<option value="${esc(v)}" ${(s.side||"")===v?"selected":""}>${esc(SIDE_LBL[v] ?? v)}</option>`).join("")}</select></td>`
           : `<td><input aria-label="${COLS[c].l} serie ${j+1}" data-bind="exercises.${i}.sets.${j}.${c}" value="${esc(s[c]||"")}" ${c === "reps" && amrapReps(cc) ? `placeholder="max"` : ""}${c === "kg" && !s.kg && S.editor?.email ? (q => q ? ` placeholder="≈ ${fmtN(q.kg, 1)}" title="${fmtN(q.pct, 1)}% dell'e1RM stimato (${fmtN(q.ref.v, 1)} kg) ≈ ${fmtN(q.kg, 1)} kg: lo vede anche l'atleta"` : oneNum(s.pct) ? ` placeholder="?" title="Nessun e1RM stimato per ${esc(x.name || "questo esercizio")} nelle 12 settimane prima: servono serie con kg, max 10 rip e RPE ≥ 7 (o RIR ≤ 3)"` : "")(pctKg(S.editor.email, x, x.name, s, S.editor.w.date || TODAY())) : ""}></td>`)).join("")}
         <td class="ra">${cc ? "" : `${clBtns(j, s)}<button class="btn ghost sm" data-act="set-dup" data-i="${i}" data-j="${j}" title="Duplica serie" aria-label="Duplica serie ${j+1}">${ICON.dup}</button><button class="btn ghost sm" data-act="set-rm" data-i="${i}" data-j="${j}" title="Elimina serie">✕</button>`}</td></tr>`).join("")}
@@ -5936,7 +5953,7 @@ function athExHtml(w, x, label, res, compact){
   const cell = (c, j, s, rr) => isCl(s) && (c === "reps" || clPer(x, c))   // serie cluster: un valore per cluster, uno sotto l'altro
     ? `<td><div class="cst">${s.cl.map((q, k) => logCellHtml(x, c, j, q, rr.cl?.[k] || {}, null, "serie", k)).join("")}</div></td>` : `<td>${logCellHtml(x, c, j, s, rr, sug[j])}</td>`;
   const pz = (s, k) => String((clPer(x, "pi") ? s.cl[k]?.pi : s.pi) ?? "").trim();
-  const clInfo = hasCl ? (() => { const R = serieRuns(x).filter(t => t.cl); return R.map(t => `<b>Cluster${x.sets.length > 1 ? ` (serie ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""})` : ""}:</b> ${esc(clStruct(t.s))}${setDisp(x, t.s, "pi") ? ` con <b>${esc(setDisp(x, t.s, "pi"))}</b> di pausa tra un cluster e l'altro` : ""}`).join("<br>") + `<br><span class="faint">Segna ${(L => L.length > 1 ? L.slice(0, -1).join(", ") + " e " + L[L.length - 1] : L[0])(logCols.filter(c => c === "reps" || clPer(x, c)).map(c => /^[A-Z]+$/.test(COLS[c].l) ? COLS[c].l : COLS[c].l.toLowerCase()))} di ogni cluster.</span>`; })() : "";
+  const clInfo = hasCl ? (() => { const R = serieRuns(x).filter(t => t.cl); return R.map(t => `<b>Cluster${x.sets.length > 1 ? ` (serie ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""})` : ""}:</b> ${esc(clTxt(x, t.s))}${setDisp(x, t.s, "pi") ? ` con <b>${esc(setDisp(x, t.s, "pi"))}</b> di pausa tra un cluster e l'altro` : ""}`).join("<br>") + `<br><span class="faint">Segna ${(L => L.length > 1 ? L.slice(0, -1).join(", ") + " e " + L[L.length - 1] : L[0])(logCols.filter(c => c === "reps" || clPer(x, c)).map(c => /^[A-Z]+$/.test(COLS[c].l) ? COLS[c].l : COLS[c].l.toLowerCase()))} di ogni cluster.</span>`; })() : "";
   if (hasCl) x.sets.forEach((s, j) => { if (isCl(s)) sug[j] = null; });   // kg dal %1RM: non per le serie cluster (i kg sono già per cluster)
   const sugTxt = [...new Map(sug.filter(Boolean).map(q => [q.pct, q])).values()].map(q => `${fmtN(q.pct, 1)}% ≈ <b>${fmtN(q.kg, 1)} kg</b>`).join(" · ");
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
@@ -6291,6 +6308,9 @@ const ACT = {
       s.cl = [{...base, reps: a ? String(a) : ""}, {...base, reps: a ? String(n - a) : ""}]; clSync(x, s);   // es. 6 reps → 3+3, poi il coach la cambia
       if (!x.cols.includes("pi")) { const r = x.cols.indexOf("rest"); r >= 0 ? x.cols.splice(r, 0, "pi") : x.cols.push("pi"); } }
     markDirty(); drawEditor(); },
+  "cl-rm"(t){ const x = S.editor.w.exercises[+t.dataset.i], s = x?.sets[+t.dataset.j]; if (!isCl(s)) return; s.cl.splice(+t.dataset.k, 1);   // ✕ accanto a C1, C2…: con un solo cluster rimasto la serie torna normale
+    if (s.cl.length < 2) { const q = s.cl[0] || {}; (x.cols || []).forEach(c => { if (c !== "reps" && clPer(x, c) && q[c] != null) s[c] = q[c]; }); s.reps = q.reps ?? ""; delete s.cl; delete s.pi; } else clSync(x, s);
+    markDirty(); drawEditor(); },
   "cl-add"(t){ const x = S.editor.w.exercises[+t.dataset.i], s = x.sets[+t.dataset.j]; if (!isCl(s)) return; s.cl.push(clone(s.cl[s.cl.length - 1])); clSync(x, s); markDirty(); drawEditor(); },
   "cl-scope"(t){ const x = S.editor.w.exercises[+t.dataset.i], c = t.dataset.c; if (!x || CL_FIX[c]) return; const to = clPer(x, c) ? "serie" : "cluster"; (x.clsc ??= {})[c] = to;
     x.sets.forEach(s => { if (!isCl(s)) return; if (to === "cluster") s.cl.forEach(q => { q[c] = /\//.test(s[c] || "") ? (q[c] ?? "") : (s[c] ?? ""); }); else { s[c] = s.cl[0]?.[c] ?? s[c] ?? ""; s.cl.forEach(q => delete q[c]); } clSync(x, s); });
@@ -6527,11 +6547,6 @@ document.addEventListener("input", e => {
   if (t.dataset.input === "tpl-q") { S.tplQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#tpl-q"); q.focus(); q.setSelectionRange(pos,pos); return; }
   if (t.dataset.input === "ex-q") { S.exQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#ex-q"); q.focus(); q.setSelectionRange(pos,pos); }
 });
-/* creazione: svuotando le ripetizioni di un cluster il cluster si toglie (con un solo cluster rimasto torna una serie normale) */
-document.addEventListener("change", e => { const t = e.target, m = t.dataset?.bind?.match(/^exercises\.(\d+)\.sets\.(\d+)\.cl\.(\d+)\.reps$/); if (!m || !S.editor || t.value.trim()) return;
-  const x = S.editor.w.exercises[+m[1]], s = x?.sets[+m[2]]; if (!isCl(s)) return; s.cl.splice(+m[3], 1);
-  if (s.cl.length < 2) { const q = s.cl[0] || {}; (x.cols || []).forEach(c => { if (c !== "reps" && clPer(x, c) && q[c] != null) s[c] = q[c]; }); s.reps = q.reps ?? ""; delete s.cl; delete s.pi; } else clSync(x, s);
-  markDirty(); drawEditor(); toast("Cluster tolto"); });
 document.addEventListener("change", async e => {
   const t = e.target, k = t.dataset.change; if (!k) return;
   if (k === "demo-role") return setDemoRole(t.value);

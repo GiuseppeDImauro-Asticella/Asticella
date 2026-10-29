@@ -1910,6 +1910,11 @@ function circAmrapApply(w, exs, g){
 }
 /* schema a righe per la lista del piano dell'atleta: etichetta a sinistra, valori a destra.
    Tempo esec. e Recupero uguali in set consecutivi vengono raggruppati: "3-1-3-1 · set 1–4", "1-1-1-1 · set 5–8" */
+/* contatti nello schema: si guarda solo cosa ha compilato il coach. Con il parametro "Contatti a terra" programmato:
+   reps vuote o 1 → "5 × 6/8/10 contatti"; reps > 1 → "2 × 2 reps da 10 contatti". Senza contatti: reps come sempre */
+function plioView(x){ const cols = x.cols || [], cc = contCol(cols), sets = x.sets || [];
+  if (!cc || sets.some(isCl) || !sets.some(s => String(s[cc] ?? "").trim() && s[cc] !== "–")) return null;
+  return {cc, one: sets.every(s => ["", "1"].includes(String(s.reps ?? "").trim()))}; }
 function schemeGridHtml(x){
   const sets = x.sets || []; if (!sets.length) return ""; const cols = x.cols || [], anyCl = sets.some(isCl);
   const raw = c => sets.map(s => setDisp(x, s, c));
@@ -1924,13 +1929,14 @@ function schemeGridHtml(x){
   const n = sets.length, sd = cols.includes("side") ? sideSummary(sets) : null, rows = [];
   if (anyCl) { const R = serieRuns(x), many = R.length > 1, st = t => many ? ` · set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}` : "";   // cluster: "2 × 2+2+2 reps · cluster · pausa 20″", poi "1 × 6 reps"
     rows.push(["Serie", R.map(t => `<span class="sgr"><b>${t.b - t.a + 1}</b> × ${t.cl ? `${esc(clStruct(t.s))} reps${sd?.both ? " per lato" : ""} <span class="sgs">cluster${setDisp(x, t.s, "pi") ? " · pausa " + esc(setDisp(x, t.s, "pi")) : ""}${st(t)}</span>` : `${cols.includes("reps") && runReps(x, t) ? esc(runReps(x, t)) + " reps" : "set"}${sd?.both ? " per lato" : ""}${many ? ` <span class="sgs">${st(t).slice(3)}</span>` : ""}`}</span>`).join("")]); }
+  else if (plioView(x)) { const pv = plioView(x); rows.push(["Serie", `<b>${n}</b> × ${pv.cc ? (pv.one ? `${seq(pv.cc)} contatti` : `${seq("reps")} reps da ${seq(pv.cc)} contatti`) : ""}${sd?.both ? " per lato" : ""}`]); }
   else rows.push(["Serie", `<b>${n}</b>${cols.includes("reps") && has("reps") ? ` × ${seq("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`]);
   if (sd) { const k = q => bothSides(q) ? "Dx + Sx" : /dx/i.test(q) ? "Dx" : /sx/i.test(q) ? "Sx" : "–", L = sets.map(st => k(st.side || ""));   // lato: stessa logica del tempo esec.
     const g = []; L.forEach((v, j) => { const t = g[g.length - 1]; if (t && t.v === v) t.b = j; else g.push({v, a: j, b: j}); });
     rows.push(["Lato", g.length === 1 ? esc(L[0])   // tutte uguali: Dx + Sx
       : g.length === L.length ? L.map(esc).join("/<wbr>")   // cambia a ogni serie (es. alternate): Dx/Sx/Dx/Sx, come l'RPE
       : g.map(t => `<span class="sgr">${esc(t.v)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join("")]); }   // a blocchi: come il tempo esec.
-  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi").forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || anyCl ? grouped(c) : seq(c)]); });
+  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi" && c !== plioView(x)?.cc).forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || anyCl ? grouped(c) : seq(c)]); });
   if (cols.includes("rest") && has("rest")) rows.push(["Recupero", grouped("rest")]);
   return `<div class="scg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;
 }
@@ -1969,11 +1975,12 @@ function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; co
   const sd = cols.includes("side") ? sideSummary(sets) : null;
   const out = anyCl ? serieRuns(x).map(t => ({v: t.cl ? `${t.b - t.a + 1} cluster set × ${clStruct(t.s)}\u00a0reps${sd?.both ? " per lato" : ""}${setDisp(x, t.s, "pi") ? " · " + setDisp(x, t.s, "pi") : ""}`   // "2 cluster set × 2+2+2 reps · 20″", poi "1 set × 6 reps"
       : `${t.b - t.a + 1} set` + (cols.includes("reps") && runReps(x, t) ? ` × ${runReps(x, t)}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}))
-    : [{v: `${sets.length} set` + (cols.includes("reps") && vals("reps") ? ` × ${vals("reps")}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}];
+    : (pv => pv ? [{v: `${sets.length} set × ` + (pv.cc ? (pv.one ? `${vals(pv.cc)}\u00a0contatti` : `${vals("reps")}\u00a0reps da ${vals(pv.cc)}\u00a0contatti`) : `${vals("reps")}\u00a0contatti`) + (sd?.both ? " per lato" : ""), main: 1}]   // pliometria: in contatti
+      : [{v: `${sets.length} set` + (cols.includes("reps") && vals("reps") ? ` × ${vals("reps")}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}])(plioView(x));
   if (sd && !sd.both) out.push({v: sd.txt, side: 1});
-  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== plioView(x)?.cc).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
     out.push(u ? {v: u === "%" ? `${v}%` : `${v}\u00a0${u}`} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
-  if (!anyCl && !(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
+  if (!anyCl && !plioView(x) && !(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
   return out; }
 function calSumHtml(x){ const val = v => v.split("/").map(t => /^\S*-\S*$/.test(t) ? `<span class="nw">${esc(t)}</span>` : esc(t)).join("/<wbr>");   // "3-1-3-1" non si spezza al trattino: va a capo solo dopo le "/"
   return sumParts(x).map(p => `<span class="sl">${p.l ? esc(p.l) + " " : ""}${val(p.v)}</span>`).join(""); }

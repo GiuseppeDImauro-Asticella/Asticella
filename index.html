@@ -406,6 +406,12 @@ button.done-box:hover .fix{color:var(--ink)}
 .fixt input{width:70px;text-align:center;border:1px solid var(--line);border-radius:6px;padding:6px 4px;background:var(--surface2)}
 .fixt select{border:1px solid var(--line);border-radius:6px;padding:6px 4px;background:var(--surface2)}
 .fixt td,.fixt th{padding:3px}
+.fixt tr.fxex td{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.fixt td small{display:block}.fixt td.n{text-align:center;min-width:34px}
+.fixt .sgrip{position:relative;display:block;padding:2px 0 0;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;color:var(--ink);font-weight:600}
+.fixt .sgrip .gi{position:absolute;left:-2px;top:50%;transform:translateY(-50%);display:flex;opacity:.55;color:var(--faint);pointer-events:none}.fixt .sgrip .gi svg{width:8px;height:12px}
+.fixt .sgrip.on .gi,.fixt tbody.sdragging tr.sdrag .gi{opacity:1}
+.fixt tbody.sdragging tr{transition:transform .15s ease}.fixt tbody.sdragging tr.sdrag{transition:none;position:relative;z-index:3;background:var(--surface);box-shadow:0 3px 12px rgba(0,0,0,.12)}.fixt tbody.sdragging,.fixt tbody.sdragging .sgrip{cursor:grabbing}
 .fixt th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .done-sets{display:flex;flex-wrap:wrap;gap:4px 10px}
 .checks{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto}
@@ -1802,7 +1808,12 @@ function guessKind(w){
 const kindOf = w => kindSet(w) || guessKind(w || {});
 const typeBadge = (t, extra="") => t && SET_TYPES[t] ? `<span class="stb t-${t}" title="${SET_TYPES[t].l}" ${extra}>${t}</span>` : "";
 /* una serie registrata è "vuota" se non ha valori e non è spuntata */
-const emptyRes = r => !r || (!r.done && !Object.entries(r).some(([k,v]) => k === "cl" ? Array.isArray(v) && v.some(q => Object.values(q || {}).some(z => String(z ?? "").trim() !== "")) : k !== "done" && String(v ?? "").trim() !== ""));
+const emptyRes = r => !r || (!r.done && !Object.entries(r).some(([k,v]) => k === "cl" ? Array.isArray(v) && v.some(q => Object.values(q || {}).some(z => String(z ?? "").trim() !== "")) : k !== "done" && k !== "at" && String(v ?? "").trim() !== ""));
+/* serie extra spostate dal coach (Correggi): r.at = dopo quante serie programmate è stata fatta (manca = in fondo).
+   resOrder restituisce gli indici dei risultati nell'ordine in cui le serie sono state fatte */
+function resOrder(x, rr){ const n = (x.sets || []).length, L = (rr || []).length, out = [];
+  for (let k = 0; k <= n; k++) { for (let j = n; j < L; j++) if (Math.max(0, Math.min(n, rr[j]?.at ?? n)) === k) out.push(j); if (k < n) out.push(k); }
+  return out; }
 /* ---------- SERIE CLUSTER ----------
    Programma: s.cl = [{reps, kg, …}, …] (almeno 2 cluster). Ogni parametro vale "per serie" (s[c]) o "per cluster" (s.cl[k][c]):
    lo sceglie il coach per esercizio (x.clsc); reps sempre per cluster, recupero e lato sempre per serie, kg per cluster se non deciso.
@@ -4041,11 +4052,12 @@ function sessionSets(w){
   const out = [], order = [], ex = w.exercises || [], res = w.results || {}, L = exLabels(ex), em = (S.sessDlg && $("#sd-body") ? S.sessDlg.email : null) || anQ.who || wEmail(w);
   ssGroups(ex).forEach(g => {
     const len = Math.max(0, ...g.map(i => Math.max(ex[i].sets.length, (res[ex[i].id] || []).length)));
-    for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], r = (res[x.id] || [])[j];
-      if (!r || emptyRes(r)) return;
+    const ord = g.length === 1 ? resOrder(ex[g[0]], res[ex[g[0]].id] || []).filter(j => j < len) : Array.from({length: len}, (_, j) => j);   // serie extra al loro posto
+    let pos = 0; ord.forEach(j => g.forEach(i => { const x = ex[i], r = (res[x.id] || [])[j];
+      if (!r || emptyRes(r)) return; if (g.length === 1) pos++;
       const name = exName(w, x), s = x.sets[j] || {};
       if (!order.includes(name)) order.push(name);
-      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, x, cols: x.cols, act: setRpe(r), plan: setRpe(s), vol: setVolume(x, name, r, s), int: setInt(em, w, x, name, r, s)}); });
+      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: g.length === 1 ? pos : j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, x, cols: x.cols, act: setRpe(r), plan: setRpe(s), vol: setVolume(x, name, r, s), int: setInt(em, w, x, name, r, s)}); }));
   });
   return {sets: out, order};
 }
@@ -4480,7 +4492,7 @@ async function collectRows(){
       const done = exName(w, x), lib = libByName(done) || {}, sw = swapOf(w, x);
       const res = (w.results||{})[x.id] || [];
       const n = Math.max(x.sets.length, res.length);
-      for (let i=0;i<n;i++){
+      for (const [pos, i] of resOrder(x, res).filter(i => i < n).entries()){   // nell'ordine in cui le serie sono state fatte (serie extra spostate dal coach)
         const s = x.sets[i] || {}, r = res[i] || {};
         if (i >= x.sets.length && emptyRes(res[i])) continue;
         /* serie cluster: una riga per cluster (Metodo "Cluster 2+2+2 · C2"), con i suoi valori; i parametri per serie si ripetono */
@@ -4490,7 +4502,7 @@ async function collectRows(){
         const sk = K > 1 ? {...s, ...(s.cl?.[k] || {}), ...(k === 0 ? {pi: ""} : {})} : s, rk = K > 1 ? {...r, ...(r.cl?.[k] || {})} : r;
         if (K > 1) (x.cols || []).forEach(c => { if (c !== "reps" && !clPer(x, c)) return; if (!(c in (s.cl?.[k] || {}))) delete sk[c]; if (!(c in (r.cl?.[k] || {}))) delete rk[c]; });
         rows.push([effDate(w), w.date, weekNo(effDate(w)), a.name, a.group||"", w.title, KINDS[kindOf(w)].l, STATUS_TXT[st], w.sessionRpe||"", w.durationMin||"", (w.sessionRpe&&w.durationMin)?w.sessionRpe*w.durationMin:"",
-          pi.season || "", pi.week || "", pi.macro || "", pi.phase || "", mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", pi.model || "", L[xi], K > 1 ? [mth, `Cluster ${struct} · C${k + 1}`].filter(Boolean).join(" · ") : mth, done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", latLbl(lib.lat), i+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
+          pi.season || "", pi.week || "", pi.macro || "", pi.phase || "", mz.name ? `${mz.name}${mz.goal ? " · "+mz.goal : ""}` : "", mz.idx || "", pi.model || "", L[xi], K > 1 ? [mth, `Cluster ${struct} · C${k + 1}`].filter(Boolean).join(" · ") : mth, done, sw ? x.name : "", swapWhy(sw), lib.category||"", lib.pattern||"", latLbl(lib.lat), pos+1, s.type ? SET_TYPES[s.type].l : (i >= x.sets.length ? "Extra" : ""),
           ...COL_KEYS.flatMap(c => COLS[c].log ? [sk[c]||"", rk[c]||""] : [sk[c]||""]), w.exNotes?.[x.id] || "", w.athleteNote||""]);
         }
       }
@@ -4671,7 +4683,7 @@ function exEditorHtml(x, i, res, L){
     ${x.name ? altsRowHtml(x, i, lib) : ""}
     ${progHtml(x, i)}
     ${S.editor?.w?.exNotes?.[x.id] ? `<div class="done-box xnote-c"><b>Nota dell'atleta</b><span>${esc(S.editor.w.exNotes[x.id])}</span></div>` : ""}
-    ${res && res.some((r,j) => !(j >= x.sets.length && emptyRes(r))) ? `<button type="button" class="done-box edit" data-act="fix-res" data-i="${i}" title="Clicca per correggere"><b>Eseguito dall'atleta${S.editor.w.coachEditedAt ? ` <span class="faint" style="font-weight:500">· corretto da te</span>` : ""}</b><div class="done-sets">${res.map((r,j)=> j >= x.sets.length && emptyRes(r) ? "" : `<span><span class="faint">${j+1}${j >= x.sets.length ? " extra" : ""})</span> ${esc(resultLine(r, cols) || (r.done?"✓":"–"))}</span>`).join("")}</div><span class="fix">✎ Correggi</span></button>`
+    ${res && res.some((r,j) => !(j >= x.sets.length && emptyRes(r))) ? `<button type="button" class="done-box edit" data-act="fix-res" data-i="${i}" title="Clicca per correggere"><b>Eseguito dall'atleta${S.editor.w.coachEditedAt ? ` <span class="faint" style="font-weight:500">· corretto da te</span>` : ""}</b><div class="done-sets">${resOrder(x, res).filter(j => j < res.length && !(j >= x.sets.length && emptyRes(res[j]))).map((j, pos) => { const r = res[j] || {}; return `<span><span class="faint">${pos+1}${j >= x.sets.length ? " extra" : ""})</span> ${esc(resultLine(r, cols) || (r.done?"✓":"–"))}</span>`; }).join("")}</div><span class="fix">✎ Correggi</span></button>`
       : !S.editor.tpl && S.editor.w.date <= TODAY() && !S.editor.isNew ? `<div><button type="button" class="btn sm ghost" data-act="fix-res" data-i="${i}">✎ Inserisci i dati eseguiti</button></div>` : ""}
   </section>`;
 }
@@ -5504,7 +5516,7 @@ function fixResults(i){
     $("#confirm").innerHTML = `<div class="back" style="z-index:70"><form class="modal sm" id="fix-form" style="max-width:620px"><header><h2>Correggi · ${esc(L[i])} ${esc(exName(S.editor.w, x))}</h2></header><div class="body">
       <div class="faint" style="font-size:12px">In grigio il valore programmato. Quello che scrivi qui sostituisce quello registrato dall'atleta.</div>
       ${cols.length ? `<div class="scroll-x"><table class="fixt"><thead><tr><th></th>${cols.map(c => `<th>${COLS[c].l}</th>`).join("")}<th>Fatta</th><th></th></tr></thead><tbody>
-      ${rows.map((r,j) => { const p = x.sets[j] || {}, K = Math.max(isCl(p) ? p.cl.length : 0, Array.isArray(r.cl) ? r.cl.length : 0); return `<tr><td class="faint">${j+1}${j >= x.sets.length ? "<br><small>extra</small>" : ""}${K > 1 ? "<br><small>cluster</small>" : ""}</td>
+      ${resOrder(x, rows).map((j, pos) => { const r = rows[j] || {}, p = x.sets[j] || {}, K = Math.max(isCl(p) ? p.cl.length : 0, Array.isArray(r.cl) ? r.cl.length : 0), ex = j >= x.sets.length; return `<tr class="${ex ? "fxex" : ""}"><td class="faint n">${ex ? `<span class="sgrip" data-fxgrip="${j}" title="Serie extra: trascina il numero per spostarla dove è stata fatta"><i class="gi">${ICON.grip}</i>${pos+1}</span><small>extra</small>` : pos+1}${K > 1 ? "<small>cluster</small>" : ""}</td>
         ${cols.map(c => K > 1 && (c === "reps" || clPer(x, c)) && c !== "side"   // serie cluster: un campo per cluster, uno sotto l'altro
           ? `<td><div class="cst">${Array.from({length: K}, (_, k) => `<input data-fx="${j}|${c}|${k}" inputmode="${COLS[c].txt ? "text" : "decimal"}" value="${esc(r.cl?.[k]?.[c] || "")}" placeholder="${esc(p.cl?.[k]?.[c] || "–")}" aria-label="${COLS[c].l} serie ${j+1} cluster ${k+1}">`).join("")}</div></td>`
           : c === "side"
@@ -5520,6 +5532,9 @@ function fixResults(i){
       const v = el.type === "checkbox" ? el.checked : COLS[c]?.txt ? el.value.trim() : el.value.trim().replace(",", ".");
       if (k != null) { const r = rows[+j]; r.cl ??= []; while (r.cl.length <= +k) r.cl.push({}); r.cl[+k][c] = v; } else rows[+j][c] = v; });
     f.querySelectorAll("[data-fxrm]").forEach(b => b.onclick = () => { read(); rows.splice(+b.dataset.fxrm, 1); draw(); });
+    /* serie extra trascinate dal numero (stesso gesto della creazione): from/to = posizioni nella tabella (ordine fatto) */
+    FXDROP = (from, to) => { read(); const n = x.sets.length, D = resOrder(x, rows); const [mv] = D.splice(from, 1); D.splice(to, 0, mv);
+      let done = 0; const ex = []; D.forEach(j => { if (j < n) done++; else ex.push({...rows[j], at: done}); }); rows = [...rows.slice(0, n), ...ex]; draw(); };
     const add = $("#fx-add"); if (add) add.onclick = () => { read(); rows.push({}); draw(); };
     /* spuntando "Fatta" i campi vuoti prendono il valore previsto (come quando l'atleta spunta la serie); intervalli tipo 8-10 restano da scrivere */
     const fillRow = tr => tr.querySelectorAll("[data-fx]").forEach(el => { if (el.type === "checkbox") return;
@@ -5530,8 +5545,9 @@ function fixResults(i){
     $("#fx-no").onclick = () => $("#confirm").innerHTML = "";
     f.onsubmit = async e => { e.preventDefault(); read();
       rows.forEach(r => { if (Array.isArray(r?.cl)) { r.cl = r.cl.map(q => Object.fromEntries(Object.entries(q || {}).filter(([, v]) => v !== ""))); if (hasClRes(r)) clAgg(x, r); else delete r.cl; } });
-      rows = rows.map(r => { const o = {}; Object.entries(r).forEach(([k,v]) => { if (k === "done" ? v : v !== "") o[k] = v; });
-        if (!("done" in o) && Object.keys(o).length) o.done = true; if (o.done === false) delete o.done; return o; });
+      rows = rows.map((r, j) => { const o = {}; Object.entries(r).forEach(([k,v]) => { if (k === "done" ? v : v !== "") o[k] = v; });
+        if (j < x.sets.length || o.at == null || o.at >= x.sets.length) delete o.at;   // "at" solo per le serie extra spostate
+        if (!("done" in o) && Object.keys(o).some(k => k !== "at")) o.done = true; if (o.done === false) delete o.done; return o; });
       while (rows.length > x.sets.length && emptyRes(rows[rows.length-1])) rows.pop();
       const results = {...(w.results||{}), [x.id]: rows};
       const patch = {results};
@@ -5916,7 +5932,7 @@ function historyFor(name, cur, limit = 8){
     .sort((a, b) => effDate(b).localeCompare(effDate(a)) || (b.completedAt || "").localeCompare(a.completedAt || ""));
   for (const w of ws) { if (out.length >= limit) break;
     const x = (w.exercises || []).find(x => sameName(exName(w, x), name)); const r = x && (w.results[x.id] || []);
-    const sets = (r || []).map((rr, j) => ({r: rr, type: x.sets[j]?.type || "", extra: j >= x.sets.length})).filter(o => o.r.done || !emptyRes(o.r));
+    const sets = (r ? resOrder(x, r).filter(j => j < r.length) : []).map(j => ({r: r[j], type: x.sets[j]?.type || "", extra: j >= x.sets.length})).filter(o => o.r && (o.r.done || !emptyRes(o.r)));
     if (sets.length) out.push({w, x, date: effDate(w), sets, swapped: !!swapOf(w, x)}); }
   return out;
 }
@@ -5929,7 +5945,7 @@ async function histSheet(xid){
     const body = H.map(h => { const cols = (h.x.cols || []).filter(c => COLS[c].log && h.sets.some(o => o.r[c]));
       return `<div class="hsess"><div class="hh"><b>${esc(fmtLong(h.date))}</b><span>${esc(h.w.title || "Allenamento")}${h.swapped ? " · al posto di " + esc(h.x.name) : ""}</span>${methodTag(methodOf(h.w, h.x))}</div>
         ${cols.length ? `<div class="scroll-x"><table class="ht"><thead><tr><th></th>${cols.map(c => `<th>${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}</tr></thead><tbody>
-          ${h.sets.map((o, k) => `<tr><td class="n">${o.extra ? "+" : k + 1}${o.type ? " " + typeBadge(o.type) : ""}</td>${cols.map(c => `<td>${(v => v ? esc(v) : "–")(hasClRes(o.r) && o.r.cl.some(q => String(q?.[c] ?? "").trim()) ? o.r.cl.map(q => q?.[c] || "–").join(c === "reps" ? "+" : "/") : o.r[c])}</td>`).join("")}</tr>`).join("")}
+          ${h.sets.map((o, k) => `<tr><td class="n">${k + 1}${o.extra ? `<small class="faint"> extra</small>` : ""}${o.type ? " " + typeBadge(o.type) : ""}</td>${cols.map(c => `<td>${(v => v ? esc(v) : "–")(hasClRes(o.r) && o.r.cl.some(q => String(q?.[c] ?? "").trim()) ? o.r.cl.map(q => q?.[c] || "–").join(c === "reps" ? "+" : "/") : o.r[c])}</td>`).join("")}</tr>`).join("")}
         </tbody></table></div>` : `<div class="faint" style="font-size:13px">${h.sets.length} serie fatte ✓</div>`}</div>`; }).join("");
     $("#modal").innerHTML = `<div class="back" style="align-items:flex-end;padding:0" data-act="modal-back"><div class="modal sm" style="margin:0;border-radius:18px 18px 0 0;max-width:560px;max-height:85dvh;padding-bottom:env(safe-area-inset-bottom,0px)">
       <header><h2>Cronologia · ${esc(name)}</h2><button type="button" class="btn ghost icon" data-act="hist-close" aria-label="Chiudi">✕</button></header>
@@ -6493,10 +6509,10 @@ const ACT = {
 /* serie dell'allenamento: trascina il numero su o giù per cambiare l'ordine.
    Mouse: si trascina subito. Tablet: bisogna tenere il dito fermo sul numero ~0,35 s (la riga si "solleva"), poi si sposta;
    se il dito si muove prima, è uno scorrimento normale della pagina e la serie non si sposta */
-let SDRAG_ON = false;
+let SDRAG_ON = false, FXDROP = null;   // FXDROP: serie extra spostata nella finestra "Correggi"
 document.addEventListener("touchmove", ev => { if (SDRAG_ON) ev.preventDefault(); }, {passive: false});   // durante lo spostamento la pagina non scorre
 document.addEventListener("pointerdown", e => {
-  const g = e.target.closest?.("[data-sgrip]"); if (!g || !S.editor || (e.pointerType === "mouse" && e.button !== 0)) return;
+  const g = e.target.closest?.("[data-sgrip], [data-fxgrip]"); if (!g || !S.editor || (e.pointerType === "mouse" && e.button !== 0)) return;
   const touch = e.pointerType !== "mouse"; if (!touch) e.preventDefault();
   const tr = g.closest("tr"), tb = tr.parentElement, rows = [...tb.children], from = rows.indexOf(tr), i = +g.dataset.i;
   const R = rows.map(r => r.getBoundingClientRect()), h = R[from].height, x0 = e.clientX, y0 = e.clientY; let to = from, moved = false, armed = !touch, timer = 0;
@@ -6516,6 +6532,7 @@ document.addEventListener("pointerdown", e => {
     rows.forEach(r => r.style.transform = ""); tb.classList.remove("sdragging"); tr.classList.remove("sdrag");
     if (scrolled === true || ev?.type === "pointercancel" && !moved) return;
     if (!moved) { const on = !g.classList.contains("on"); document.querySelectorAll(".sgrip.on").forEach(x => x.classList.remove("on")); if (touch) g.classList.toggle("on", on); return; }   // tocco breve: mostra (o nasconde) la maniglia
+    if (to !== from && g.dataset.fxgrip != null) { FXDROP?.(from, to); return; }
     if (to !== from) { const x = S.editor.w.exercises[i]; const [st] = x.sets.splice(from, 1); x.sets.splice(to, 0, st); markDirty(); drawEditor(); } };
   g.addEventListener("pointermove", mv); g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
 });

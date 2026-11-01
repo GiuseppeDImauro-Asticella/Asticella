@@ -2061,18 +2061,21 @@ async function onUser(u){
   if (!u) { S.user = null; return renderLogin(); }
   const email = (u.email || "").toLowerCase();
   if (!u.emailVerified) return renderVerify(u);
-  // Chi è il coach lo decidono SOLO le regole di sicurezza di Firebase (l'email del coach non è scritta qui):
-  // se l'utente riesce a leggere l'elenco degli atleti è il coach, altrimenti è un atleta.
+  // Chi è il coach lo decidono SOLO le regole di sicurezza di Firebase (l'email del coach non è scritta qui).
+  // La domanda va fatta AL SERVER (roleOf): senza rete Firestore risponderebbe con i dati salvati sul telefono senza controllare
+  // i permessi, e un atleta sembrerebbe il coach (bug di fine ottobre 2026: vista coach con il solo proprio profilo).
   renderMsg("Caricamento…");
-  try {
-    await loadCoachData();
-    S.user = {email, name: u.displayName || "Coach", role:"coach"};
-    return render();
-  } catch(e) {
-    if (e?.code !== "permission-denied") { console.error(e); return renderMsg("Errore di connessione nel caricare i dati. Controlla la rete e ricarica la pagina. (" + (e?.code || e) + ")"); }
+  const role = await roleOf(email);
+  if (role === "coach") {
+    try {
+      await loadCoachData();
+      S.user = {email, name: u.displayName || "Coach", role:"coach"};
+      return render();
+    } catch(e) { console.error(e); return renderMsg("Errore di connessione nel caricare i dati. Controlla la rete e ricarica la pagina. (" + (e?.code || e) + ")"); }
   }
   try {
     const a = await DB.getAthlete(email);
+    if ((!a || a.archived) && role === "offline") { S.user = null; return renderMsg("Non riesco a collegarmi al server. Controlla la connessione e ricarica la pagina."); }
     if (!a || a.archived) return renderNotRegistered(email);
     S.user = {email, name: a.name, role:"athlete", group: a.group, mesos: a.mesos || []};
     renderMsg("Caricamento programma…");
@@ -2084,6 +2087,23 @@ async function onUser(u){
   } catch(e) { console.error(e); renderNotRegistered(email); }
 }
 
+/* ruolo deciso dal SERVER: una lettura dell'elenco atleti che non può usare i dati salvati sul telefono.
+   Riesce → coach; "permesso negato" → atleta. Senza rete (o server troppo lento) vale l'ultimo ruolo verificato
+   dal server per quell'email; mai verificato → "offline" (l'app prova la vista atleta, che non può fare danni). */
+async function roleOf(email){
+  const key = "asticella-role:" + email, mem = (() => { try { return localStorage.getItem(key); } catch(e) { return null; } })();
+  const keep = r => { try { localStorage.setItem(key, r); } catch(e) {} return r; };
+  let t;
+  try {
+    const q = FB.F.query(FB.F.collection(FB.db, "athletes"), FB.F.limit(1));
+    await Promise.race([FB.F.getDocsFromServer(q), new Promise((_, rej) => { t = setTimeout(() => rej({code: "slow"}), 9000); })]);
+    return keep("coach");
+  } catch(e) {
+    if (e?.code === "permission-denied") return keep("athlete");
+    console.warn("ruolo non verificabile ora:", e?.code || e);
+    return mem === "coach" || mem === "athlete" ? mem : "offline";
+  } finally { clearTimeout(t); }
+}
 async function loadCoachData(){
   let st;
   [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);

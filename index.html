@@ -678,6 +678,51 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 #ps-chart .psbl{font-size:11.5px;font-weight:600;fill:var(--ink)}
 #ps-chart .pspct{fill:var(--muted);font-weight:600;font-size:10.5px}#ps-chart .psreft{fill:var(--muted);font-size:10.5px;font-weight:700}
 #ps-chart .psrefl{stroke:var(--ink);stroke-width:1.2;stroke-dasharray:5 4;opacity:.5}
+.archsvg{display:block;max-width:100%;overflow:visible}
+.archsvg .argrid{stroke:var(--line);stroke-width:1}
+.archsvg .arax{fill:var(--muted);font-size:11px}
+.archsvg .arth{stroke:var(--warn);stroke-width:1.4;stroke-dasharray:2 3}
+.archsvg .arzone{fill:color-mix(in srgb, var(--warn) 7%, transparent)}.archsvg .arzl{fill:var(--warn);font-size:10.5px;font-weight:700;opacity:.8}
+.archsvg .arthl{fill:var(--warn);font-size:11px;font-weight:700}
+.archsvg .arla{fill:none;stroke:var(--ink);stroke-width:2;opacity:.55;stroke-linejoin:round}
+.archsvg .arlr{fill:none;stroke:var(--faint);stroke-width:1.6;stroke-dasharray:5 4}
+.archsvg .ardr{fill:var(--surface);stroke:var(--faint);stroke-width:1.6}.archsvg .ardr.on{fill:var(--faint)}.archsvg .ardr:not(.on):not(.hard){opacity:.55;stroke-dasharray:2 1.5}
+.archsvg .arpl{stroke:var(--surface);stroke-width:1.5}
+.archsvg .arv{fill:var(--ink);font-size:11px;font-weight:700}
+.archsvg .arpk{fill:none;stroke:var(--ink);stroke-width:1.6}
+.archsvg .arpk.rf{stroke:var(--faint);stroke-dasharray:3 2}
+.archsvg .arband{fill:color-mix(in srgb, var(--bc) 18%, var(--surface));stroke:color-mix(in srgb, var(--bc) 55%, transparent);stroke-width:1}
+.archsvg .arband.rf{fill:var(--surface);stroke:var(--line);stroke-dasharray:3 2}
+.archsvg .arbt{fill:var(--ink);font-size:11px;font-weight:600}
+.archsvg .arbt.rf{fill:var(--muted);font-weight:500;font-style:italic}
+.arsum{margin-top:6px;overflow-x:auto}
+.arsum table{border-collapse:collapse;font-size:13px;min-width:520px;width:100%}
+.arsum th,.arsum td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}.arsum td{white-space:normal;vertical-align:top}.arsum td b,.arsum .ard,.arsum .ard0{white-space:nowrap}
+.arsum thead th{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.arsum tbody th{font-weight:600}
+.arsum .ard{font-size:11.5px;color:var(--muted);margin-left:4px}
+.arsum .ard{color:var(--ink);font-weight:600} .arsum .ard0{font-size:11.5px;color:var(--muted);margin-left:4px}
+.archsvg .ardg.ed{cursor:pointer;outline:none}.archsvg .ardg.dr{cursor:ns-resize}.archsvg .ardg.ed:focus-visible circle:nth-child(2){stroke:var(--ink);stroke-width:2}
+.archsvg .arrng{stroke-width:7;stroke-linecap:round;opacity:.3}
+.archsvg .arins,.archsvg .ardel{cursor:pointer;outline:none}.archsvg .arins .hit,.archsvg .ardel .hit{fill:transparent;stroke:none}
+.archsvg .arins circle:not(.hit),.archsvg .ardel circle:not(.hit){fill:var(--surface);stroke:var(--muted);stroke-width:1.1;opacity:.85}
+.archsvg .arins path,.archsvg .ardel path{stroke:var(--muted);stroke-width:1.5;stroke-linecap:round}
+.archsvg .arins:hover circle:not(.hit),.archsvg .arins:focus-visible circle:not(.hit){stroke:var(--ink);opacity:1}.archsvg .arins:hover path,.archsvg .arins:focus-visible path{stroke:var(--ink)}
+.archsvg .ardel:hover circle:not(.hit),.archsvg .ardel:focus-visible circle:not(.hit){stroke:var(--warn);opacity:1}.archsvg .ardel:hover path,.archsvg .ardel:focus-visible path{stroke:var(--warn)}
+.archsvg .artile{fill:var(--surface);stroke:var(--faint);stroke-width:1.2;stroke-dasharray:3 2}
+.archsvg .artile.on{fill:var(--tc);stroke:none}.archsvg .artile.on.rf{fill:color-mix(in srgb, var(--muted) 45%, var(--surface))}
+.archsvg .artn{fill:#fff;font-size:14px;font-weight:800}.archsvg .artn.rf{fill:var(--ink)}
+.archsvg .arblk{fill:color-mix(in srgb, var(--ink) 9%, transparent)}.archsvg .arblk.rf{fill:color-mix(in srgb, var(--ink) 5%, transparent)}
+.archsvg .arblkl{fill:var(--muted);font-size:10.5px;font-weight:600}
+.archsvg .artot{fill:var(--ink);font-size:14px;font-weight:800}.archsvg .artot.rf{fill:var(--muted)}
+.archsvg .ardg.ed .artile{cursor:pointer}
+.arinsp .row.col{flex-direction:column;align-items:stretch}
+.archsvg .arbtn{cursor:pointer}.archsvg .arbtn circle{fill:var(--surface);stroke:var(--muted);stroke-width:1.2}.archsvg .arbtn path{stroke:var(--ink);stroke-width:1.8;stroke-linecap:round}
+.archsvg .arbtn:hover circle{fill:var(--surface2)}.archsvg .arbtn.dis{cursor:default;opacity:.35}
+.arthr{align-items:center}.arthr b{min-width:58px;text-align:center;font-size:13px}
+.arthb{width:30px;height:30px;padding:0;border-radius:50%;font-size:16px;line-height:1}
+#ps-chart{position:relative}
+#ps-chart .psrfl{fill:var(--muted);font-weight:500;font-style:italic}
 #ps-chart .psbl.gh{fill:var(--faint);font-style:italic;font-weight:500}
 #ps-chart .psd{font-size:10.5px;font-weight:800;paint-order:stroke;stroke:var(--surface);stroke-width:3px}
 #ps-chart .psd.up{fill:var(--ok)}#ps-chart .psd.dn{fill:var(--warn)}
@@ -5163,7 +5208,7 @@ function psSeq(G, w){
       const altQ = r.alt ? (r.alt.kind === "ex" ? pickRef(r.alt.sets, st, j) : null) : null;
       const p = psHas(G.sm, x) ? G.sm : null;
       const other = !!q && !sameName(q.name, x.name);   // copre una serie di un altro esercizio dello stesso pattern
-      out.push({x, j, lab: L[i], band: L[i].charAt(0), name, st, ghost, rtype: q ? (q.s?.type || "") : null, old: (x.sets || [])[j], p, dk: "all", cover: other,
+      out.push({x, j, lab: L[i], band: L[i].charAt(0), name, st, ghost, rtype: q ? (q.s?.type || "") : null, old: (x.sets || [])[j], p, dk: "all", cover: other, refName: q?.name || null,
         ref: q?.r || null, refInfo: info, refOk: !!q && !(other && ["kg", "pct"].includes(p)), alt: altQ?.r || null, altInfo: altQ ? refInfoOf(r.alt, altQ) : null, exec: (res[x.id] || [])[j]}); }); });
   if (!ex.length && G.psRef === "kind") { const {RS} = kindRefOf(G, w);
     if (RS) { const R0 = {kind: "kind", date: effDate(RS), title: RS.title};
@@ -5212,6 +5257,7 @@ function drawProgSess(G, a){
   const editable = w && w.status !== "done" && w.status !== "skipped";   // modificabile finché non è conclusa (anche se è passata e non registrata); in corso: solo le serie non fatte
   const PP = w ? psParams(G, w) : []; if (!PP.some(q => q.k === G.sm)) G.sm = PP[0]?.k || "reps";
   const {seq, order} = w ? psSeq(G, w) : {seq: [], order: []};
+  const ARCH = !!w && G.psRef === "kind" && G.psArch === "arch" && namedEx(w).length > 0 && !!kindRefOf(G, w).RS;
   const dirty = w && psDirty(G, w);
   const restore = keepScroll();
   $("#modal").innerHTML = `<div class="back" style="padding:12px"><div class="modal pgm" role="dialog" aria-label="Progressione">
@@ -5224,7 +5270,8 @@ function drawProgSess(G, a){
         <div class="kfilt"><span class="lbl">Confronta con</span>${[["kind", `Seduta più recente (stesso tipo · ${KINDS[kindOf(w)].l})`], ["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "pat") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "pat") === k}">${esc(l)}</button>`).join("")}</div>
         ${G.psRef === "kind" ? (({KS, OS, RS}) => RS || OS.length ? `<div class="kfilt psk"><span class="lbl">Riferimento</span><select class="in" data-change="ps-kref" aria-label="Seduta di riferimento">${RS ? "" : `<option value="" selected>— scegli una seduta —</option>`}${KS.length ? `<optgroup label="Stesso tipo (${esc(KINDS[kindOf(w)].l)})">${KS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")}${q === KS[0] ? " (la più recente)" : ""}</option>`).join("")}</optgroup>` : ""}${OS.length ? `<optgroup label="Altre sedute">${OS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")} · ${esc(KINDS[kindOf(q)].l)}</option>`).join("")}</optgroup>` : ""}</select>
           ${RS ? `<button type="button" class="btn sm ghost pssv" data-act="ps-sessview" data-id="${RS.id}" title="Vedi l'andamento di questa seduta (intensità e volume serie per serie) senza uscire da qui">${ICON.data} Andamento</button>` : `<span class="faint" style="font-size:12px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)}: scegline un'altra.</span>`}
-          <span class="faint" style="font-size:12px">Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE).</span></div>`
+          </div>${RS && namedEx(w).length ? `<div class="kfilt psk"><span class="lbl">Confronta</span>${[["ex", "per esercizio"], ["arch", "architettura"]].map(([k, l]) => `<button class="${(G.psArch || "ex") === k ? "on" : ""}" data-act="ps-arch" data-v="${k}" aria-pressed="${(G.psArch || "ex") === k}">${l}</button>`).join("")}
+          <span class="faint" style="font-size:12px">${G.psArch === "arch" ? "La seduta intera, serie per serie dall'inizio (1ª serie della seduta, 2ª…), qualunque sia l'esercizio: conta quando arriva lo stimolo. Parametri che valgono per ogni esercizio: RPE, % del riferimento, ripetizioni. Punti pieni = serie sopra la soglia che scegli." : "Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE)."}</span></div>` : ""}`
           : `<div class="faint" style="font-size:12px;margin-top:6px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)} con dati registrati.</div>`)(kindRefOf(G, w)) : ""}
         ${!namedEx(w).length ? (({RS}) => `<div class="psempty"><b>Questa seduta è ancora vuota.</b> ${RS && G.psRef === "kind" ? `Nel grafico vedi cosa è stato fatto ${esc(DAYS[dayIdx(effDate(RS))].toLowerCase())} ${esc(fmtD(effDate(RS)))} · ${esc(RS.title || "")}: puoi partire da lì${editable ? `, cambiando se vuoi gli esercizi (in cima quelli dello stesso pattern), e poi i numeri.
             <div class="pscopy">${(RS.exercises || []).map((y, k) => { const L = exLabels(RS.exercises), pat = pcOf(y.name), ch = (G.psSwap || {})[y.id] || y.name;
@@ -5235,9 +5282,22 @@ function drawProgSess(G, a){
                 ${Object.entries(rest.reduce((m, e) => ((m[e.pattern || "Senza pattern"] ??= []).push(e), m), {})).map(([pt, es]) => `<optgroup label="${esc(pt)}">${es.map(e => `<option ${sameName(e.name, ch) ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</optgroup>`).join("")}
               </select></label>`; }).join("")}</div>
             <button class="btn sm pri" data-act="ps-copyref" data-id="${RS.id}">Usa come punto di partenza</button>` : "."}` : `Scegli "Seduta più recente (stesso tipo)" per vedere da dove partire.`}</div>`)(kindRefOf(G, w)) : ""}
-        <div class="kfilt psparams"><span class="lbl">Parametro nel grafico</span>${PP.map(q => `<button class="${G.sm === q.k ? "on" : ""}" data-act="ps-met" data-v="${q.k}" aria-pressed="${G.sm === q.k}" title="Lo usano ${q.n} esercizi${q.n === 1 ? "o" : ""}">${esc(q.l)}${q.u && q.u !== "rip." ? ` (${esc(q.u)})` : ""} <span class="faint">· ${q.n} es.</span></button>`).join("") || `<span class="faint" style="font-size:12px">nessun parametro numerico</span>`}</div>
+        ${ARCH ? (T => `<div class="kfilt psparams"><span class="lbl">Parametro nel grafico</span>${AR_M.map(([k, l, t]) => `<button class="${arMode(G) === k ? "on" : ""}" data-act="ps-am" data-v="${k}" aria-pressed="${arMode(G) === k}" title="${esc(t)}">${l}</button>`).join("")}</div>
+        <div class="kfilt arthr"><span class="lbl">Soglia</span><button class="arthb" data-act="ar-th" data-d="-1" aria-label="Abbassa la soglia">−</button><b>${esc(T.l)}</b><button class="arthb" data-act="ar-th" data-d="1" aria-label="Alza la soglia">+</button>
+          <span class="faint" style="font-size:12px">${T.k === "rpe" && T.v === AR_HARD ? "= serie allenanti, come nell'Analisi (RPE ≥ 7 o RIR ≤ 3)" : `solo per guardare questo grafico: le serie allenanti restano quelle con RPE ≥ 7 (Analisi), qui ${T.k === "rpe" ? "cerchio colorato" : "cerchio colorato se sotto la %"}`}</span></div>`)(arTh(G, arMode(G))) : `<div class="kfilt psparams"><span class="lbl">Parametro nel grafico</span>${PP.map(q => `<button class="${G.sm === q.k ? "on" : ""}" data-act="ps-met" data-v="${q.k}" aria-pressed="${G.sm === q.k}" title="Lo usano ${q.n} esercizi${q.n === 1 ? "o" : ""}">${esc(q.l)}${q.u && q.u !== "rip." ? ` (${esc(q.u)})` : ""} <span class="faint">· ${q.n} es.</span></button>`).join("") || `<span class="faint" style="font-size:12px">nessun parametro numerico</span>`}</div>`}
         <div class="chartwrap" id="ps-chart"></div>
-        <div class="pslegend">
+        ${ARCH ? `<div class="pslegend">${arMode(G) === "hard" ? "" : `
+          <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--ink);stroke-width:2;opacity:.55"/><circle cx="11" cy="6" r="4.5" fill="var(--s1)"/></svg>questa seduta${done ? " (eseguito dove c'è)" : ""} · colore = esercizio </span>
+          <span><svg width="12" height="12" style="vertical-align:-1px"><circle cx="6" cy="6" r="4.6" fill="var(--s1)"/></svg> ${arIsStd(G, arMode(G)) ? "serie allenante" : "sopra soglia"}${arIsStd(G, arMode(G)) ? "" : ` · <svg width="12" height="12" style="vertical-align:-1px"><circle cx="6" cy="6" r="3.8" fill="var(--surface)" stroke="var(--s1)" stroke-width="2"/></svg> allenante (RPE ≥ 7) sotto soglia`} · <svg width="12" height="12" style="vertical-align:-1px"><circle cx="6" cy="6" r="3.2" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.4"/></svg> non allenante${editable ? " · trascina i punti, tocca per tipo / duplica / elimina" : ""}</span>
+          <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3"/><circle cx="11" cy="6" r="3.5" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>riferimento (eseguito)</span>
+          <span><svg width="22" height="12"><circle cx="11" cy="6" r="5" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>picchi (tutti)</span>
+          <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--warn);stroke-width:1.5;stroke-dasharray:2 3"/></svg>soglia</span>
+          <span><svg width="12" height="14"><line x1="6" x2="6" y1="2" y2="12" style="stroke:var(--s1);stroke-width:6;stroke-linecap:round;opacity:.35"/></svg>range programmato (es. RPE 7-8)</span>`}
+          ${editable ? `<span><svg width="14" height="12"><circle cx="7" cy="6" r="5" fill="var(--surface)" stroke="var(--muted)" stroke-width="1.2"/><path d="M4.6 6H9.4M7 3.6V8.4" stroke="var(--ink)" stroke-width="1.5"/></svg> ${arMode(G) === "hard" ? "tra due serie" : "a metà linea"}: aggiungi una serie lì · <b>−</b> sotto il numero: togli quella serie</span>` : ""}
+          ${arMode(G) === "hard" ? `<span><svg width="16" height="14"><rect x="1" y="1" width="14" height="12" rx="3" fill="var(--s1)"/><text x="8" y="10.5" text-anchor="middle" style="font-size:9px;font-weight:800;fill:#fff">3</text></svg> serie allenante: il numero dice quale (1ª, 2ª, 3ª…)</span>
+          <span><svg width="16" height="14"><rect x="1.5" y="1.5" width="13" height="11" rx="3" fill="var(--surface)" stroke="var(--faint)" stroke-dasharray="2 2"/></svg> sotto soglia</span>
+          <span>sotto il riquadro: RPE · fondo grigio: serie allenanti di fila · = totale${editable ? " · tocca un riquadro per tipo / duplica / elimina" : ""}</span>` : ""}
+        </div>` : `<div class="pslegend">
           <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--muted);stroke-width:2.2"/><circle cx="11" cy="6" r="4.5" fill="var(--muted)"/></svg>${done ? "programma" : editable ? "ora: trascina i punti" : "previsto"}</span>
           ${done ? `<span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--muted);stroke-width:2"/><circle cx="11" cy="6" r="3.5" fill="var(--muted)"/></svg>eseguito</span>` : ""}
           <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3"/><circle cx="11" cy="6" r="3.5" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>riferimento</span>
@@ -5245,8 +5305,8 @@ function drawProgSess(G, a){
           <span><b>–</b> l'esercizio non ha questo parametro</span>
           <span>sotto: tipo di serie, ora / rif. (<b style="color:var(--warn)">arancione</b> = cambiato)</span>
           <button class="pshelp" data-act="ps-help" aria-expanded="${!!G.psHelp}">${G.psHelp ? "Chiudi" : "ⓘ Come si legge"}</button>
-        </div>
-        ${G.psHelp ? `<div class="pshelpbox">
+        </div>`}
+        ${!ARCH && G.psHelp ? `<div class="pshelpbox">
           <div><b>Parametro</b> — scegli in alto cosa guardare (carico, ripetizioni, RPE, altezza…): il grafico mostra solo quello, con una sola scala (i numeri a sinistra). Accanto a ogni parametro c'è quanti esercizi della seduta lo usano.</div>
           <div><b>Serie</b> — le serie di ogni esercizio sono puntini in fila (il numero sopra è quello della serie); i puntini vuoti sono quelle del riferimento${editable ? `. Il "+" in fondo alla fila aggiunge una serie (copia dell'ultima); tocca un puntino per tipo di serie, duplica o elimina` : ""}.</div>
           <div><b>Seduta</b> — ogni serie è un punto, nell'ordine in cui si fanno; ogni esercizio ha la sua fascia, con la lettera e il nome sotto. Un esercizio che non ha il parametro scelto resta al suo posto con dei trattini.</div>
@@ -5266,7 +5326,7 @@ function drawProgSess(G, a){
               <div class="pgsetb"><button data-act="ps-add" data-x="${x.id}">+ serie</button><button data-act="ps-rm" data-x="${x.id}" ${ds.length <= 1 || psLocked(w, x, ds.length - 1) ? "disabled" : ""}>− serie</button></div><div class="pl">${cs.map(c => esc(COLS[c].l)).join(" · ")}</div></div>`
             : (rs => rs.length ? `<div class="exs">${rs.map(q => execSetHtml(q, x.cols || [])).join("")}</div>` : `<div class="pl">${esc(summarize(x) || "–")}</div>`)((w.results?.[x.id] || []).map((r, j) => ({r, s: x.sets[j] || {}, extra: j >= x.sets.length})).filter(q => q.r.done || !emptyRes(q.r)))}</div>`; }).join("")}</div>` : `<div class="faint">Scegli una seduta a sinistra.</div>`}
       </section></div></div></div>`;
-  if (w) drawPsChart(G, w, seq, order, editable, done);
+  if (w) ARCH ? drawArchChart(G, w, order, editable) : drawPsChart(G, w, seq, order, editable, done);
   restore();
 }
 function psDomains(G, seq, done){
@@ -5281,6 +5341,192 @@ function psDomains(G, seq, done){
     doms[k] = {lo: Math.floor(lo / stp) * stp, hi: Math.ceil(hi / stp) * stp, stp}; });
   return doms;
 }
+/* ===== ARCHITETTURA DELLA SEDUTA =====
+   La seduta come sequenza di serie dall'inizio (1ª serie della seduta, 2ª, 3ª…), qualunque sia l'esercizio:
+   conta QUANDO arriva lo stimolo (picchi, serie sopra soglia), l'esercizio è il mezzo.
+   Parametri che non dipendono dall'esercizio: RPE, % del riferimento, ripetizioni, serie allenanti accumulate */
+const AR_M = [["rpe", "RPE", "RPE (o 10 − RIR) di ogni serie"], ["pct", "% del riferimento", "Pesi: kg ÷ e1RM (o il %1RM scritto nel programma) · Sprint e salti: % del record delle 12 settimane prima"],
+  ["reps", "Ripetizioni", "Ripetizioni di ogni serie (cluster: la somma dei cluster); punti pieni = serie allenanti (RPE sopra soglia)"]];
+const arMode = G => AR_M.some(q => q[0] === G.am) ? G.am : "rpe";
+const arTh = (G, m) => { G.ath ??= {rpe: 7, pct: 85};   // RPE 7 = come le "serie allenanti" dell'Analisi (RPE ≥ 7 o RIR ≤ 3)
+  return m === "pct" ? {k: "pct", v: G.ath.pct, l: G.ath.pct + "%"} : {k: "rpe", v: G.ath.rpe, l: "RPE " + fmtN(G.ath.rpe, 1)}; };
+const arRng = v => { const q = String(v ?? "").trim().replace(/,/g, ".").match(/^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$/); return q ? [+q[1], +q[2]].sort((x, y) => x - y) : null; };   // "7-8", "8-10"
+const arClReps = (cl, d) => cl.reduce((t, q) => t + (numv(q?.reps ?? d) ?? 0), 0);
+const archPlan = s => { if (!isCl(s)) return s;   // serie cluster: kg medio pesato sulle reps, RPE più alto, reps sommate
+  const z = s.cl.map(q => [numv(q.kg ?? s.kg), numv(q.reps) ?? 1]).filter(q => q[0] != null), t = z.reduce((a, q) => a + q[1], 0);
+  const rp = s.cl.map(q => rpeNum(q.rpe)).filter(v => v != null);
+  return {...s, kg: t ? z.reduce((a, q) => a + q[0] * q[1], 0) / t : s.kg, rpe: rp.length ? Math.max(...rp) : s.rpe, reps: arClReps(s.cl, s.reps)}; };
+const arRepsOf = r => hasClRes(r) ? arClReps(r.cl, r.reps) : numv(r?.reps);
+function archPts(G, w, plan){
+  const out = [];
+  if (!plan) { sessionSets(w).sets.forEach(o => out.push({name: o.name, gk: o.grp, lab: o.lead, rpe: o.act?.v ?? null, pct: o.int?.pct ?? null, reps: arRepsOf(o.r), did: true, n: o.n})); return out; }
+  const D = psDraft(G, w), ex = namedEx(w), L = exLabels(ex), res = w.results || {};
+  ssGroups(ex).forEach(g => { const len = Math.max(0, ...g.map(i => (D.sets[ex[i].id] || []).length));
+    for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], st = (D.sets[x.id] || [])[j]; if (!st) return;
+      const r = (res[x.id] || [])[j], did = !!r && !emptyRes(r), name = exName(w, x), src = did ? r : archPlan(st);
+      let rpe = setRpe(src)?.v ?? null, rpeR = null, reps = did ? arRepsOf(r) : numv(src.reps), repsR = null;
+      if (!did) { const ra = arRng(st.rpe), rb = arRng(st.rir);   // range scritti nel programma: barretta da… a…, il punto a metà
+        if (ra) rpeR = ra; else if (rb && !String(st.rpe ?? "").trim()) rpeR = [10 - rb[1], 10 - rb[0]]; if (rpeR) rpe = (rpeR[0] + rpeR[1]) / 2;
+        const rr = !isCl(st) && arRng(st.reps); if (rr) { repsR = rr; reps = (rr[0] + rr[1]) / 2; } }
+      const pc = !did && oneNum(st.pct) != null ? oneNum(st.pct) : setInt(G.email, w, x, name, src, st)?.pct ?? null;
+      out.push({name, gk: g[0], lab: L[g[0]] || "", rpe, rpeR, reps, repsR, pct: pc, did, x, j, st, n: j + 1, lock: did || psLocked(w, x, j)}); }); });
+  return out; }
+const arVal = (p, m) => m === "rpe" ? p.rpe : m === "pct" ? p.pct : m === "reps" ? p.reps : null;
+const arHard = (P, th) => { let c = 0; return P.map(p => p.rpe != null && p.rpe >= th - 1e-9 ? ++c : c); };
+function archStats(G, P, m){ const T = arTh(G, m), pm = m === "hard" ? "rpe" : m;
+  const r = v => v == null ? null : pm === "pct" ? Math.round(v) : Math.round(v * 10) / 10, v = P.map(p => r(arVal(p, pm))), mx = Math.max(-Infinity, ...v.filter(z => z != null));
+  const peaks = isFinite(mx) ? v.map((z, k) => z === mx ? k : -1).filter(k => k >= 0) : [];   // TUTTE le serie al valore più alto
+  const moments = []; peaks.forEach(k => { const g = moments[moments.length - 1]; if (g && g[1] === k - 1) g[1] = k; else moments.push([k, k]); });   // serie di picco consecutive = un momento
+  const iv = P.map(p => T.k === "pct" ? p.pct : p.rpe), over = iv.map((z, k) => z != null && z >= T.v - 1e-9 ? k : -1).filter(k => k >= 0), rp = p => p.reps ?? 0;
+  return {n: P.length, pm, pv: peaks.length ? mx : null, peaks, moments, pnames: [...new Set(peaks.map(k => P[k].name))], over: over.length, first: over.length ? over[0] : -1,
+    overReps: over.reduce((t, k) => t + rp(P[k]), 0), hard: P.filter(p => p.rpe != null && p.rpe >= AR_HARD - 1e-9).length, reps: P.reduce((t, p) => t + rp(p), 0), miss: P.filter(p => arVal(p, pm) == null).length}; }
+const arCanSet = (p, m) => !p.lock && p.st && (m === "rpe" ? ["rpe", "rir"].some(c => (p.x.cols || []).includes(c)) && p.rpe != null
+  : m === "reps" ? (p.x.cols || []).includes("reps") && !isCl(p.st) && p.reps != null
+  : m === "pct" ? p.pct != null && ((p.x.cols || []).includes("pct") || (intKind(p.x, p.name) === "kg" && !isCl(p.st))) : false);
+const AR_HARD = 7;   // serie allenante (come nell'Analisi): RPE ≥ 7 o RIR ≤ 3
+const rpeStep = () => pickOpts("rpe").some(o => !Number.isInteger(+String(o.v).replace(",", "."))) ? 0.5 : 1;   // l'atleta sceglie l'RPE da un menu: di solito numeri interi
+const AR_STEP = {get rpe(){ return rpeStep(); }, pct: 1, reps: 1};
+/* stato di una serie rispetto alla soglia del grafico: "on" sopra soglia · "hard" allenante (RPE ≥ 7) ma sotto la soglia scelta · "" non allenante */
+const arState = (G, p, m) => { const T = m === "reps" ? arTh(G, "rpe") : arTh(G, m), v = T.k === "pct" ? p.pct : p.rpe;
+  return v != null && v >= T.v - 1e-9 ? "on" : p.rpe != null && p.rpe >= AR_HARD - 1e-9 ? "hard" : ""; };
+const arIsStd = (G, m) => m !== "pct" && arTh(G, "rpe").v === AR_HARD;   // soglia = definizione dell'Analisi: "sopra soglia" e "allenante" coincidono
+function arSet(G, w, p, m, v){ const st = G.sess.sets[p.x.id]?.[p.j]; if (!st) return;
+  const span = R => R ? R[1] - R[0] : 0, two = (c, R, lo, hi, f) => { const h = span(R) / 2; let a = Math.max(lo, v - h), b = a + 2 * h; if (b > hi) { b = hi; a = hi - 2 * h; } st[c] = R ? `${f(a)}-${f(b)}` : f(Math.min(hi, Math.max(lo, v))); };
+  const f1 = z => { const q = rpeStep(); return String(Math.round(z / q) * q); };
+  if (m === "rpe") { if ((p.x.cols || []).includes("rpe")) { two("rpe", p.rpeR, 1, 10, f1); if (isCl(st) && st.cl.some(q => String(q.rpe ?? "").trim())) st.cl.forEach(q => q.rpe = st.rpe); }
+    else { v = 10 - v; two("rir", p.rpeR, 0, 9, f1); } }
+  else if (m === "reps") two("reps", p.repsR, 1, 99, z => String(Math.round(z)));
+  else if (m === "pct") { if ((p.x.cols || []).includes("pct") && (oneNum(st.pct) != null || !(p.x.cols || []).includes("kg"))) st.pct = String(Math.round(Math.max(30, Math.min(110, v))));
+    else { const ref = intRef(G.email, intKey("kg", p.name, st, st), w.date || TODAY()); if (ref) st.kg = String(Math.max(2.5, Math.round(ref.v * v / 100 / 2.5) * 2.5)); } } }
+function drawArchChart(G, w, order, editable){
+  const el = $("#ps-chart"); if (!el) return; const {RS} = kindRefOf(G, w), m = arMode(G), fin = w.status === "done", T = arTh(G, m);
+  const A = archPts(G, w, !fin), B = RS ? archPts(G, RS, false) : [], N = Math.max(A.length, B.length);
+  const HA = arHard(A, T.v), HB = arHard(B, T.v), val = (P, k) => m === "hard" ? (P === A ? HA : HB)[k] : arVal(P[k], m);
+  const vs = [...A.map((_, k) => val(A, k)), ...B.map((_, k) => val(B, k)), ...A.flatMap(p => m === "rpe" ? p.rpeR || [] : m === "reps" ? p.repsR || [] : [])].filter(v => v != null);
+  if (!N || !vs.length) { el.innerHTML = `<div class="faint" style="padding:16px 0">${m === "pct" ? "Nessuna serie con la % del riferimento (servono kg con un e1RM, o sprint/salti con un record)." : m === "reps" ? "Nessuna serie con le ripetizioni." : "Nessuna serie con l'RPE (o RIR)."}</div>`; return; }
+  const mxv = Math.max(...vs), mnv = Math.min(...vs); let lo, hi, stp;
+  if (m === "rpe") { lo = Math.min(5, Math.floor(mnv)); hi = 10; stp = 1; }
+  else if (m === "pct") { lo = Math.min(60, Math.floor(mnv / 10) * 10); hi = Math.max(100, Math.ceil(mxv / 10) * 10); stp = 10; }
+  else { lo = 0; stp = mxv <= 6 ? 1 : mxv <= 12 ? 2 : mxv <= 30 ? 5 : 10; hi = Math.max(stp, Math.ceil(mxv / stp) * stp); }
+  const canEd = editable && !fin, off = canEd ? 18 : 0;
+  const HM = m === "hard";   // serie allenanti: due file di riquadri (ora / riferimento) invece del grafico a linee
+  const W = Math.max(560, el.clientWidth || 800), pl = 46, pr = HM ? (canEd ? 62 : 46) : canEd ? 30 : 16, pt = 26, ih = HM ? 150 : 220, H = pt + ih + 92 + off, iw = W - pl - pr, slot = iw / N;
+  const X = k => pl + slot * k + slot / 2, Y = v => pt + ih - (v - lo) / (hi - lo) * ih, f = v => m === "pct" ? String(Math.round(v)) : fmtN(v, Number.isInteger(v) ? 0 : 1);
+  G.arGeo = {pt, ih, lo, hi};
+  /* linea morbida "a onda" (cubica monotona: tra due punti non va mai oltre i loro valori, quindi niente picchi finti); in "Serie" resta a scalini */
+  const curve = P => { const pts = P.map((_, k) => { const v = val(P, k); return v == null ? null : [X(k), Y(v)]; }), tan = [];
+    pts.forEach((q, k) => { if (!q) return; const a0 = pts[k - 1], b0 = pts[k + 1], s0 = a0 ? (q[1] - a0[1]) / (q[0] - a0[0]) : null, s1 = b0 ? (b0[1] - q[1]) / (b0[0] - q[0]) : null;
+      tan[k] = s0 == null && s1 == null ? 0 : s0 == null ? s1 : s1 == null ? s0 : s0 * s1 <= 0 ? 0 : Math.sign(s0) * 2 * Math.min(Math.abs(s0), Math.abs(s1), Math.abs(s0 + s1) / 4); });
+    let d = ""; const mid = [];
+    pts.forEach((q, k) => { if (!q) return; const r = pts[k + 1]; if (!pts[k - 1]) d += `M${q[0].toFixed(1)} ${q[1].toFixed(1)}`; if (!r) return;
+      if (m === "hard") { d += `H${r[0].toFixed(1)}V${r[1].toFixed(1)}`; mid[k] = [(q[0] + r[0]) / 2, q[1]]; return; }
+      const h = r[0] - q[0], c1 = [q[0] + h / 3, q[1] + tan[k] * h / 3], c2 = [r[0] - h / 3, r[1] - tan[k + 1] * h / 3];
+      d += `C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${r[0].toFixed(1)} ${r[1].toFixed(1)}`;
+      mid[k] = [(q[0] + 3 * c1[0] + 3 * c2[0] + r[0]) / 8, (q[1] + 3 * c1[1] + 3 * c2[1] + r[1]) / 8]; });
+    return {d, mid, pts}; };
+  const line = (P, cls) => { const c = curve(P); return c.d ? `<path d="${c.d}" class="${cls}"/>` : ""; };
+  const SA = archStats(G, A, m), SB = archStats(G, B, m);
+  const grid = Array.from({length: Math.round((hi - lo) / stp) + 1}, (_, k) => lo + stp * k).map(v => `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" class="argrid"/><text x="${pl - 8}" y="${Y(v) + 4}" text-anchor="end" class="arax">${v}${m === "pct" ? "%" : ""}</text>`).join("");
+  const thl = m === "rpe" || m === "pct" ? `<rect x="${pl}" y="${pt}" width="${W - pr - pl}" height="${Math.max(0, Y(T.v) - pt)}" class="arzone"/><text x="${pl + 6}" y="${pt + 13}" class="arzl">${arIsStd(G, m) ? "serie allenanti" : "sopra soglia"}</text><line x1="${pl}" x2="${W - pr}" y1="${Y(T.v)}" y2="${Y(T.v)}" class="arth"/><text x="${W - pr - 2}" y="${Y(T.v) - 5}" text-anchor="end" class="arthl">soglia ${esc(m === "pct" ? T.l : fmtN(T.v, 1))}</text>` : "";
+  const every = N > 30 ? 3 : N > 18 ? 2 : 1, xl = Array.from({length: N}, (_, k) => (k + 1) % every && k ? "" : `<text x="${X(k)}" y="${pt + ih + 15}" text-anchor="middle" class="arax">${k + 1}</text>`).join("");
+  const runs = P => { const R = []; P.forEach((p, k) => { const r = R[R.length - 1]; if (r && r.gk === p.gk) { r.to = k; r.names.includes(p.name) || r.names.push(p.name); r.xs.includes(p.x?.id) || r.xs.push(p.x?.id); } else R.push({gk: p.gk, lab: p.lab, from: k, to: k, names: [p.name], xs: [p.x?.id]}); }); return R; };
+  const fit = (t, px) => { const n = Math.max(1, Math.floor(px / 6.3)); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + "…" : t; };
+  const band = (P, y, ref) => runs(P).map(r => { const x0 = pl + slot * r.from + 1.5, x1 = pl + slot * (r.to + 1) - 1.5, c = ref ? "var(--faint)" : exColor(order, r.names[0]);
+    const wd = x1 - x0;
+    const tools = "", tw = wd - 10;
+    return `<rect x="${x0}" y="${y}" width="${Math.max(2, wd)}" height="18" rx="4" class="arband${ref ? " rf" : ""}" style="--bc:${c}"><title>${esc((ref ? "Riferimento: " : "") + r.names.join(" + "))}</title></rect>
+      <text x="${x0 + 6}" y="${y + 13}" class="arbt${ref ? " rf" : ""}">${esc(fit((ref ? "" : r.lab ? r.lab + " · " : "") + r.names.join(" + "), tw))}</text>${tools}`; }).join("");
+  const tip = (p, ref) => `${ref ? "Riferimento · " : ""}${p.name} · serie ${p.n} dell'esercizio${p.rpe != null ? " · RPE " + fmtN(p.rpe, 1) : ""}${p.pct != null ? " · " + Math.round(p.pct) + "%" : ""}${p.reps != null ? " · " + fmtN(p.reps, 1) + " rip." : ""}`;
+  const dotsB = B.map((p, k) => val(B, k) == null ? "" : `<circle cx="${X(k)}" cy="${Y(val(B, k))}" r="3.6" class="ardr ${arState(G, p, m)}"><title>${esc(tip(p, true))}</title></circle>`).join("");
+  const bars = A.map((p, k) => { const R = m === "rpe" ? p.rpeR : m === "reps" ? p.repsR : null; return R ? `<line x1="${X(k)}" x2="${X(k)}" y1="${Y(R[0])}" y2="${Y(R[1])}" class="arrng" style="stroke:${exColor(order, p.name)}"><title>${esc(`programmato ${fmtN(R[0], 1)}–${fmtN(R[1], 1)}`)}</title></line>` : ""; }).join("");
+  const dotsA = A.map((p, k) => { const v = val(A, k), ed = canEd && !p.lock, dr = ed && arCanSet(p, m);
+    if (v == null) return `<g class="ardg${ed ? " ed" : ""}" data-k="${k}" ${ed ? `tabindex="0" role="button" aria-label="${esc(p.name)} serie ${p.n}"` : ""}><rect x="${X(k) - 9}" y="${pt + ih - 22}" width="18" height="22" fill="transparent"/><text x="${X(k)}" y="${pt + ih - 6}" text-anchor="middle" class="arax">–</text><title>${esc(tip(p))}</title></g>`;
+    const sx = arState(G, p, m), hd = sx !== "on", c = exColor(order, p.name);   // pieno = sopra soglia · cerchio colorato = allenante sotto soglia · cerchio grigio = non allenante
+    return `<g class="ardg${ed ? " ed" : ""}${dr ? " dr" : ""}" data-k="${k}" ${ed ? `tabindex="0" role="button" aria-label="${esc(p.name)} serie ${p.n}${dr ? ": trascina o usa le frecce per cambiare il valore" : ""}"` : ""}>
+      <circle cx="${X(k)}" cy="${Y(v)}" r="${Math.max(7, Math.min(13, slot / 2 - 10))}" fill="transparent"/><circle cx="${X(k)}" cy="${Y(v)}" r="${sx === "on" ? 4.6 : sx === "hard" ? 3.8 : 3.2}" style="${sx === "on" ? `fill:${c}` : sx === "hard" ? `fill:var(--surface);stroke:${c};stroke-width:2` : `fill:var(--surface);stroke:var(--faint);stroke-width:1.4`}" class="${p.did ? "" : "arpl"}"/><title>${esc(tip(p))}</title></g>
+      ${slot >= 18 && (m !== "hard" || (!hd && (k === 0 || HA[k] !== HA[k - 1]))) ? `<text x="${X(k)}" y="${Y(v) - 9}" text-anchor="middle" class="arv">${f(v)}</text>` : ""}`; }).join("");
+  const rings = (S0, P) => m === "hard" ? "" : S0.peaks.map(k => `<circle cx="${X(k)}" cy="${Y(val(P, k))}" r="9" class="arpk${P === B ? " rf" : ""}"/>`).join("");
+  /* SERIE ALLENANTI a riquadri: una colonna per serie; piena e numerata (1ª, 2ª… allenante) se sopra soglia, vuota se sotto; sotto il riquadro l'RPE.
+     Le serie allenanti di fila stanno su un fondo comune ("3 di fila"): si vedono i blocchi di lavoro duro e le pause tra un blocco e l'altro */
+  const rowA = pt + ih * 0.3, rowB = pt + ih * 0.76, tw = Math.max(10, Math.min(44, slot - 16)), th = 32, isH = p => p.rpe != null && p.rpe >= T.v - 1e-9;
+  const tiles = (P, cy, ref) => { if (!P.length) return ""; const Hc = arHard(P, T.v), R = []; let o = "";
+    P.forEach((p, k) => { if (!isH(p)) return; const r = R[R.length - 1]; if (r && r[1] === k - 1) r[1] = k; else R.push([k, k]); });
+    R.forEach(([a0, b0]) => { if (b0 === a0) return; const x0 = X(a0) - tw / 2 - 4, x1 = X(b0) + tw / 2 + 4;
+      o += `<rect x="${x0}" y="${cy - th / 2 - 4}" width="${x1 - x0}" height="${th + 8}" rx="10" class="arblk${ref ? " rf" : ""}"/>`;
+      if (!ref) o += `<text x="${(x0 + x1) / 2}" y="${cy - th / 2 - 9}" text-anchor="middle" class="arblkl">${b0 - a0 + 1} di fila</text>`; });
+    P.forEach((p, k) => { const h = isH(p), c = ref ? "var(--muted)" : exColor(order, p.name), ed = !ref && canEd && !p.lock;
+      const cell = `<rect x="${X(k) - tw / 2}" y="${cy - th / 2}" width="${tw}" height="${th}" rx="6" class="artile${h ? " on" : ""}${ref ? " rf" : ""}" style="--tc:${c}"/>
+        ${h ? `<text x="${X(k)}" y="${cy + 5}" text-anchor="middle" class="artn${ref ? " rf" : ""}">${Hc[k]}</text>` : ""}
+        <text x="${X(k)}" y="${cy + th / 2 + 13}" text-anchor="middle" class="arax">${p.rpe != null ? fmtN(p.rpe, 1) : "–"}</text><title>${esc(tip(p, ref) + (h ? ` · ${Hc[k]}ª serie allenante` : " · sotto soglia"))}</title>`;
+      o += ref ? `<g>${cell}</g>` : `<g class="ardg${ed ? " ed" : ""}" data-k="${k}" ${ed ? `tabindex="0" role="button" aria-label="${esc(p.name)} serie ${p.n}"` : ""}>${cell}</g>`; });
+    const last = P.length - 1; o += `<text x="${X(last) + tw / 2 + (canEd && !ref ? 26 : 10)}" y="${cy + 5}" class="artot${ref ? " rf" : ""}">= ${Hc[last]}</text>`;
+    return o; };
+  const hardSvg = !HM ? "" : `<text x="${pl - 8}" y="${rowA + 4}" text-anchor="end" class="arax">ora</text>${tiles(A, rowA, false)}
+    ${B.length ? `<text x="${pl - 8}" y="${rowB + 4}" text-anchor="end" class="arax">rif.</text>${tiles(B, rowB, true)}` : ""}`;
+  /* + a metà di ogni tratto: aggiunge una serie esattamente lì (copia di quella prima); tra due esercizi chiede a quale. − sotto il numero: toglie quella serie.
+     Mai prima di una serie già fatta dall'atleta (i risultati sono legati alla posizione) */
+  const exs = namedEx(w), grpIds = {}; ssGroups(exs).forEach(g => grpIds[g[0]] = g.map(i => exs[i].id));
+  const xOf = id => (w.exercises || []).find(q => q.id === id), setsOf = id => G.sess?.sets[id] || [];
+  const insOk = (id, i) => { const x = xOf(id); return !!x && !setsOf(id).some((_, q) => q >= i && psLocked(w, x, q)); };
+  const delOk = (id, j) => { const x = xOf(id), a = setsOf(id); return !!x && a.length > 1 && !a.some((_, q) => q >= j && psLocked(w, x, q)); };
+  const insOpts = k => { const L0 = A[k], R0 = A[k + 1], o = [];   // dove si può aggiungere tra la serie k e la k+1 (o dopo l'ultima)
+    if (R0 && R0.gk === L0.gk) { const ids = grpIds[L0.gk] || [L0.x.id]; if (ids.every(id => insOk(id, L0.j + 1))) o.push({xs: ids, at: L0.j + 1, l: ids.length > 1 ? `Un giro in più dopo il giro ${L0.n}` : `Dopo la serie ${L0.n} di ${L0.name}`}); return o; }
+    const li = grpIds[L0.gk] || [L0.x.id]; if (li.every(id => insOk(id, setsOf(id).length))) o.push({xs: li, at: "end", l: `In fondo a ${li.map(id => exName(w, xOf(id))).join(" + ")}`});
+    if (R0) { const ri = grpIds[R0.gk] || [R0.x.id]; if (ri.every(id => insOk(id, 0))) o.push({xs: ri, at: 0, l: `All'inizio di ${ri.map(id => exName(w, xOf(id))).join(" + ")}`}); }
+    return o; };
+  const CA = HM ? {pts: A.map((_, k) => [X(k), rowA]), mid: A.map((_, k) => [(X(k) + X(k + 1)) / 2, rowA])} : curve(A), small = slot >= 28;
+  const insBtn = (k, cx, cy) => { const o = insOpts(k); if (!o.length) return "";
+    const one = o.length === 1, at = one ? `data-act="ar-ins" data-xs="${o[0].xs.join(",")}" data-at="${o[0].at}"` : `data-act="ar-insask" data-k="${k}"`;
+    return `<g class="arins" ${at} role="button" tabindex="0" aria-label="${esc(one ? "Aggiungi una serie: " + o[0].l : "Aggiungi una serie qui")}"><title>${esc(one ? "Aggiungi una serie: " + o[0].l : "Aggiungi una serie qui (scegli a quale esercizio)")}</title><circle cx="${cx}" cy="${cy}" r="10" class="hit"/><circle cx="${cx}" cy="${cy}" r="5.5"/><path d="M${cx - 2.6} ${cy}H${cx + 2.6}M${cx} ${cy - 2.6}V${cy + 2.6}"/></g>`; };
+  const edits = !canEd ? "" : A.map((p, k) => { let o = "";
+      if (small && k < A.length - 1) { const mp = CA.mid[k] || [(X(k) + X(k + 1)) / 2, CA.pts[k]?.[1] ?? CA.pts[k + 1]?.[1] ?? pt + ih - 10]; o += insBtn(k, mp[0], mp[1]); }
+      if (k === A.length - 1) o += insBtn(k, HM ? X(k) + tw / 2 + 11 : X(k) + Math.min(slot / 2, 22), CA.pts[k]?.[1] ?? pt + ih - 10);
+      if (!p.lock && delOk(p.x.id, p.j)) o += `<g class="ardel" data-act="ar-del" data-x="${p.x.id}" data-j="${p.j}" role="button" tabindex="0" aria-label="Togli ${esc(p.name)} serie ${p.n}"><title>Togli questa serie (${esc(p.name)} · serie ${p.n})</title><circle cx="${X(k)}" cy="${pt + ih + 31}" r="9" class="hit"/><circle cx="${X(k)}" cy="${pt + ih + 31}" r="5.5"/><path d="M${X(k) - 2.6} ${pt + ih + 31}H${X(k) + 2.6}"/></g>`;
+      return o; }).join("");
+  const iq = G.arIns != null && A[G.arIns] ? insOpts(G.arIns) : [], iqXY = iq.length ? (CA.mid[G.arIns] || [X(G.arIns) + slot / 2, CA.pts[G.arIns]?.[1] ?? pt + ih / 2]) : null;
+  const insPop = iq.length ? `<div class="pspop arinsp" style="left:${Math.min(Math.max(0, iqXY[0] - 110), W - 230)}px;top:${iqXY[1] + 14}px"><b>Aggiungi una serie</b>
+    <div class="row col">${iq.map(o => `<button class="btn sm" data-act="ar-ins" data-xs="${o.xs.join(",")}" data-at="${o.at}">${esc(o.l)}</button>`).join("")}</div><div class="row"><span class="grow"></span><button class="btn sm ghost" data-act="ar-close">Chiudi</button></div></div>` : "";
+  const pk = G.arPop != null && A[G.arPop] && !A[G.arPop].lock ? G.arPop : null;
+  el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="archsvg" role="img" aria-label="Architettura della seduta serie per serie">
+    ${HM ? "" : grid + thl}${xl}<text x="${pl}" y="${pt + ih + 15}" text-anchor="end" dx="-8" class="arax">serie</text>
+    ${HM ? hardSvg : line(B, "arlr") + bars + line(A, "arla") + rings(SB, B) + rings(SA, A) + dotsB + dotsA}
+    ${edits}
+    <text x="${pl - 8}" y="${pt + ih + 36 + off}" text-anchor="end" class="arax">ora</text>${band(A, pt + ih + 23 + off, false)}
+    ${B.length ? `<text x="${pl - 8}" y="${pt + ih + 60 + off}" text-anchor="end" class="arax">rif.</text>${band(B, pt + ih + 47 + off, true)}` : ""}
+  </svg>${pk != null ? arPopHtml(A[pk], X(pk), HM ? rowA + th / 2 + 4 : Y(val(A, pk) ?? lo), W) : ""}${insPop}${archSumHtml(G, SA, SB, m, B.length > 0, fin)}`;
+  el.querySelectorAll(".ardg.ed").forEach(g => { const k = +g.dataset.k, p = A[k];
+    g.addEventListener("pointerdown", e => arDragStart(e, G, w, order, k, g.classList.contains("dr")));
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); G.arPop = k; drawProg(); return; }
+      if (!g.classList.contains("dr") || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return; e.preventDefault();
+      arSet(G, w, p, m, arVal(p, m) + (e.key === "ArrowUp" ? 1 : -1) * AR_STEP[m]); drawArchChart(G, w, order, editable); el.querySelector(`.ardg[data-k="${k}"]`)?.focus(); psRefreshSide(G, w); }); });
+}
+/* trascinamento in su / in giù: il valore della serie segue il dito (a scatti: 0,5 RPE · 1% · 1 rip.); un tocco senza movimento apre il menu della serie */
+function arDragStart(e, G, w, order, k, drag){
+  e.preventDefault(); const el = $("#ps-chart"), m = arMode(G), y0 = e.clientY, geo = G.arGeo; let moved = false; G.arPop = null;
+  const move = ev => { if (!drag || (!moved && Math.abs(ev.clientY - y0) < 4)) return; moved = true;
+    const sv = el.querySelector("svg"), r = sv.getBoundingClientRect(), py = (ev.clientY - r.top) * sv.viewBox.baseVal.height / r.height;
+    const st = AR_STEP[m], v = Math.round((geo.lo + (geo.pt + geo.ih - py) / geo.ih * (geo.hi - geo.lo)) / st) * st;
+    const p = archPts(G, w, true)[k]; if (!p || v === arVal(p, m)) return; arSet(G, w, p, m, Math.max(m === "rpe" ? 1 : m === "reps" ? 1 : 30, v)); drawArchChart(G, w, order, true); };
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); if (!moved) G.arPop = k; drawProg(); };
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+}
+function arPopHtml(p, x, y, W){ const a = `data-x="${p.x.id}" data-j="${p.j}"`;
+  return `<div class="pspop" style="left:${Math.min(Math.max(0, x - 110), W - 230)}px;top:${y + 16}px"><b>${esc(p.name)} · serie ${p.n}</b>
+    <div class="row">${TYPE_ORDER.map(t => `<button class="tchip ${(p.st.type || "") === t ? "on" : ""}" data-act="ar-type" ${a} data-t="${t}">${t ? typeBadge(t) + " " + SET_TYPES[t].s : "nessuno"}</button>`).join("")}</div>
+    <div class="row"><button class="btn sm" data-act="ar-dup" ${a}>Duplica serie</button><button class="btn sm ghost danger" data-act="ar-del" ${a}>Elimina serie</button><span class="grow"></span><button class="btn sm ghost" data-act="ar-close">Chiudi</button></div></div>`; }
+function archSumHtml(G, A, B, m, hasB, fin){ const T = arTh(G, m), th = T.l, std = arIsStd(G, m), pm = A.pm, f = v => v == null ? "–" : pm === "pct" ? Math.round(v) + "%" : pm === "rpe" ? "RPE " + fmtN(v, 1) : fmtN(v, 1) + " rip.";
+  const ser = L => L.map(([a, b]) => a === b ? `<b>${a + 1}</b>` : `<b>${a + 1}–${b + 1}</b>`), list = L => { const q = ser(L); return q.length > 1 ? q.slice(0, -1).join(", ") + " e " + q[q.length - 1] : q[0] || ""; };
+  const pos = (k, ref) => { if (!hasB || k < 0 || ref < 0) return ""; const d = k - ref; return d === 0 ? ` <span class="ard0">stesso punto</span>` : ` <span class="ard">${Math.abs(d)} serie ${d > 0 ? "più tardi" : "prima"}</span>`; };
+  const num = (a, b) => !hasB ? "" : a === b ? ` <span class="ard0">uguale</span>` : ` <span class="ard">${a > b ? "+" : "−"}${fmtN(Math.abs(a - b), 1)}</span>`;
+  const row = (lab, S0, O, me) => `<tr><th>${lab}</th>
+      <td>${S0.pv == null ? "–" : `${f(S0.pv)} <span class="faint">(${esc(S0.pnames.join(", "))})</span>`}</td>
+      <td>${!S0.moments.length ? "–" : `<b>${S0.moments.length}</b>${me ? num(S0.moments.length, O.moments.length) : ""} <span class="faint">·</span> serie ${list(S0.moments)}${me && hasB && S0.peaks.length && O.peaks.length ? ` <span class="faint">(il primo:</span>${pos(S0.peaks[0], O.peaks[0])}<span class="faint">)</span>` : ""}`}</td>
+      <td>${S0.first < 0 ? "nessuna" : `serie <b>${S0.first + 1}</b>${me ? pos(S0.first, O.first) : ""}`}</td>
+      <td><b>${S0.over}</b>${me ? num(S0.over, O.over) : ""}</td><td><b>${fmtN(S0.overReps, 1)}</b>${me ? num(S0.overReps, O.overReps) : ""}</td>
+      <td><b>${S0.n}</b> serie${me ? num(S0.n, O.n) : ""}${std ? "" : ` <span class="faint">·</span> <b>${S0.hard}</b> allenanti${me ? num(S0.hard, O.hard) : ""}`} <span class="faint">·</span> <b>${fmtN(S0.reps, 1)}</b> rip.${me ? num(S0.reps, O.reps) : ""}</td></tr>`;
+  const miss = A.miss ? `<div class="faint" style="font-size:12px;margin-top:4px">${A.miss} serie di questa seduta senza ${pm === "pct" ? "% (esercizio senza kg con e1RM, o senza record)" : pm === "reps" ? "ripetizioni" : "RPE/RIR"}: nel grafico restano al loro posto con un trattino.</div>` : "";
+  return `<div class="arsum"><table><thead><tr><th></th><th>Picco${pm !== m ? " (RPE)" : ""}</th><th>Momenti di picco</th>${std ? `<th>Prima serie allenante</th><th>Serie allenanti</th><th>Rip. nelle serie allenanti</th>` : `<th>Prima serie ≥ ${esc(th)}</th><th>Serie ≥ ${esc(th)}</th><th>Rip. nelle serie ≥ ${esc(th)}</th>`}<th>Totale</th></tr></thead>
+    <tbody>${row(fin ? "Questa seduta (eseguita)" : "Questa seduta", A, B, true)}${hasB ? row("Riferimento", B, A, false) : ""}</tbody></table>${miss}</div>`; }
 function drawPsChart(G, w, seq, order, editable, done, doms){
   const el = $("#ps-chart"); if (!el) return; const M = psLabel(G.sm);
   if (!seq.length) { el.innerHTML = `<div class="faint" style="padding:16px 0">Nessuna serie da mostrare.</div>`; return; }
@@ -5290,7 +5536,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     : !o.p ? null : which === "ref" ? (o.refOk ? psGet(o.p, o.x, o.ref) : null) : which === "exec" ? (done ? psGet(o.p, o.x, o.exec) : null) : psGet(o.p, o.x, o.st);
   const cur = seq.map(o => val(o, "cur")), ref = seq.map(o => val(o, "ref")), ex = seq.map(o => val(o, "exec"));
   /* ogni esercizio (blocco) ha la sua fascia: tra una fascia e l'altra un piccolo spazio */
-  const runs = []; seq.forEach((o, k) => { const r = runs[runs.length - 1]; if (r && r.grp === o.band) r.to = k; else runs.push({grp: o.band, from: k, to: k, names: [], ghost: o.ghost}); const rr = runs[runs.length - 1]; if (!rr.names.includes(o.name)) rr.names.push(o.name); });
+  const runs = []; seq.forEach((o, k) => { const r = runs[runs.length - 1]; if (r && r.grp === o.band) r.to = k; else runs.push({grp: o.band, from: k, to: k, names: [], ghost: o.ghost}); const rr = runs[runs.length - 1]; if (!rr.names.includes(o.name)) rr.names.push(o.name); if (o.refName && !o.ghost) (rr.refs ??= []).includes(o.refName) || rr.refs.push(o.refName); });
   const GAP = SETS ? 1.1 : 0.5, W = Math.max(560, el.clientWidth || 800), H = 340, pl = 46, pr = SETS ? 30 : 10, pt = 30, pb = 82, iw = W - pl - pr, ih = H - pt - pb;
   const slot = iw / (seq.length + GAP * (runs.length - 1)), runOf = k => runs.findIndex(r => k >= r.from && k <= r.to);
   const X = k => pl + slot * (k + GAP * runOf(k)) + slot / 2;
@@ -5316,7 +5562,8 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     if (cur) out.push(cur); if (out.length > 3) { out.length = 3; out[2] = out[2].slice(0, Math.max(1, mx - 1)) + "…"; } return out; };
   runs.forEach(r => { const x1 = X(r.from) - slot / 2 + 2, x2 = X(r.to) + slot / 2 - 2, mx = Math.max(6, Math.floor((x2 - x1) / 6.6));
     const lab = r.ghost ? "" : r.grp + " · ", t = r.ghost ? `rif. ${r.names.join(" + ")}${(w.exercises || []).length ? " · non riprese" : ""}` : r.names.join(" + ");
-    r.lines = psWrap(lab + t, mx); });
+    r.lines = psWrap(lab + t, mx);
+    if (!r.ghost && r.refs?.some(n => !r.names.some(m => sameName(m, n)))) r.lines.push(...psWrap("rif.: " + r.refs.join(" + "), mx).slice(0, 2)); });   // confronto con un esercizio diverso (stesso pattern…): con quale
   const HX = H + LH * (Math.max(1, ...runs.map(r => r.lines.length)) - 1);   // più righe = grafico un po' più alto sotto
   let svg = `<svg viewBox="0 0 ${W} ${HX}" role="img" aria-label="${esc(M.l)} di ogni serie">`;
   runs.forEach(r => { const x1 = X(r.from) - slot / 2 + 2, x2 = X(r.to) + slot / 2 - 2;
@@ -5329,7 +5576,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     <g class="axis">${ticks.map(t => `<text x="${pl - 8}" y="${Y(t) + 4}" text-anchor="end">${nf(t)}</text>`).join("")}<text x="0" y="11" style="font-size:10.5px;font-weight:700">${esc(M.u || M.l)}</text></g>`;
   // nomi delle fasce, sotto
   runs.forEach(r => { const cx = (X(r.from) + X(r.to)) / 2, pre = r.ghost ? "" : r.grp + " · ";
-    svg += `<text class="psbl ${r.ghost ? "gh" : ""}" text-anchor="middle"><title>${esc(r.names.join(" + "))}</title>${r.lines.map((ln, i) => `<tspan x="${cx}" y="${H - 10 + i * LH}">${i === 0 && pre && ln.startsWith(pre) ? `<tspan style="fill:${exColor(order, r.names[0])};font-weight:800">${esc(r.grp)}</tspan> · ${esc(ln.slice(pre.length))}` : esc(ln)}</tspan>`).join("")}</text>`; });
+    svg += `<text class="psbl ${r.ghost ? "gh" : ""}" text-anchor="middle"><title>${esc(r.names.join(" + "))}</title>${r.lines.map((ln, i) => `<tspan x="${cx}" y="${H - 10 + i * LH}">${i === 0 && pre && ln.startsWith(pre) ? `<tspan style="fill:${exColor(order, r.names[0])};font-weight:800">${esc(r.grp)}</tspan> · ${esc(ln.slice(pre.length))}` : ln.startsWith("rif.: ") || (i > 0 && r.lines.slice(0, i).some(z => z.startsWith("rif.: "))) ? `<tspan class="psrfl">${esc(ln)}</tspan>` : esc(ln)}</tspan>`).join("")}</text>`; });
   svg += path(ref, "psref") + (done && editable ? path(cur, "pscur") + path(ex, "psexec") : done ? path(cur, "psplan") + path(ex, "psexec") : path(cur, editable ? "pscur" : "psplan"));   // in corso: programma modificabile + quello già fatto
   seq.forEach((o, k) => { const c = exColor(order, o.name), has = !!o.p;
     if (ref[k] != null && !o.ghost) svg += `<circle class="psrefd" cx="${X(k)}" cy="${YY(ref[k], k)}" r="3.6"/>`;
@@ -6413,6 +6660,23 @@ const ACT = {
     inp.value = t.dataset.n; inp.dispatchEvent(new Event("input", {bubbles: true})); inp.dispatchEvent(new Event("change", {bubbles: true})); markDirty(); },
   "ps-met"(t){ S.prog.sm = t.dataset.v; S.prog.psPop = null; drawProg(); },
   "ps-ref"(t){ S.prog.psRef = t.dataset.v; drawProg(); },
+  "ps-arch"(t){ S.prog.psArch = t.dataset.v; S.prog.arPop = null; drawProg(); },
+  "ps-am"(t){ S.prog.am = t.dataset.v; S.prog.arPop = null; S.prog.arIns = null; drawProg(); },
+  "ar-th"(t){ const G = S.prog, T = arTh(G, arMode(G)), d = +t.dataset.d;
+    if (T.k === "pct") G.ath.pct = Math.max(50, Math.min(100, G.ath.pct + 5 * d)); else G.ath.rpe = Math.max(5, Math.min(10, G.ath.rpe + rpeStep() * d)); drawProg(); },
+  "ar-ins"(t){ const G = S.prog, at = t.dataset.at;
+    t.dataset.xs.split(",").forEach(id => { const a = G.sess.sets[id]; if (!a) return; if (at === "end") a.push(nextSet(a)); else { const i = +at; a.splice(i, 0, clone(a[Math.max(0, i - 1)] || a[0] || {})); } });
+    G.arIns = null; G.arPop = null; drawProg(); },
+  "ar-insask"(t){ S.prog.arIns = +t.dataset.k; S.prog.arPop = null; drawProg(); },
+  "ar-add"(t){ const G = S.prog; t.dataset.xs.split(",").forEach(id => { const a = G.sess.sets[id]; if (a) a.push(nextSet(a)); }); G.arPop = null; drawProg(); },
+  "ar-rm"(t){ const G = S.prog, w = progW(G, G.wid); t.dataset.xs.split(",").forEach(id => { const a = G.sess.sets[id], x = (w?.exercises || []).find(q => q.id === id);
+    if (a && a.length > 1 && !(x && psLocked(w, x, a.length - 1))) a.pop(); }); G.arPop = null; drawProg(); },
+  "ar-type"(t){ const st = S.prog.sess.sets[t.dataset.x]?.[+t.dataset.j]; if (st) { if (t.dataset.t) st.type = t.dataset.t; else delete st.type; } drawProg(); },
+  "ar-dup"(t){ const a = S.prog.sess.sets[t.dataset.x], j = +t.dataset.j; if (a?.[j]) a.splice(j + 1, 0, clone(a[j])); S.prog.arPop = null; drawProg(); },
+  "ar-del"(t){ const G = S.prog, w = progW(G, G.wid), x = (w?.exercises || []).find(q => q.id === t.dataset.x), a = G.sess.sets[t.dataset.x], j = +t.dataset.j;
+    if (!a || a.length <= 1) toast("L'esercizio deve avere almeno una serie"); else if (x && a.some((_, q) => q >= j && psLocked(w, x, q))) toast("Non si può: dopo questa ci sono serie già fatte dall'atleta"); else a.splice(j, 1);
+    G.arPop = null; G.arIns = null; drawProg(); },
+  "ar-close"(){ S.prog.arPop = null; S.prog.arIns = null; drawProg(); },
   "ps-help"(){ S.prog.psHelp = !S.prog.psHelp; drawProg(); },
   "ps-reset"(){ S.prog.sess = null; S.prog.psPop = null; drawProg(); },
   "ps-apply"(){ psApply(); },

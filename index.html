@@ -929,7 +929,8 @@ tr.ok .ck svg{stroke:#fff}
 .tleg i.tnb{background:var(--s1)}.tleg i.tpb{border:2px solid var(--ink);border-radius:50%;background:var(--surface)}
 .tenh4{font-size:13px;margin:14px 0 6px;font-weight:700}
 .tenl{display:flex;flex-direction:column;gap:8px}.tens{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
-.tenh{font-size:13px}.tenc{display:flex;flex-wrap:wrap;gap:6px 12px;margin:6px 0 4px;align-items:flex-end}
+.tenh{font-size:13px}.tenrow + .tenrow{border-top:1px dashed var(--line);margin-top:6px;padding-top:6px}
+.tsub{font-size:12.5px;font-weight:700;margin-top:4px}.tsub .faint{font-weight:500}.tenc{display:flex;flex-wrap:wrap;gap:6px 12px;margin:6px 0 4px;align-items:flex-end}
 .tgrp{display:flex;flex-direction:column;gap:2px}.tgrp > small{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}.tgrp > span{display:flex;flex-wrap:wrap;gap:5px}
 .tgrp.pre{padding-right:12px;border-right:1px dashed var(--line)}.tgrp.pre .tch{opacity:.7}
 .tch.u95{box-shadow:inset 0 -3px 0 var(--warn)}
@@ -3871,11 +3872,16 @@ function tenOfSession(email, w){
     const rr = (w.results || {})[x.id] || [], ord = resOrder(x, rr).filter(j => rr[j] && !emptyRes(rr[j]));
     const P = ord.map(j => { const r = rr[j], s = x.sets[j] || {}, es = x.cols.includes("esito") ? esitoOf(r.esito) : null;
       const raw = k === "spr" ? secOf(r.time) : numv(r.height), v = raw && raw > 0 && !(k === "jmp" && (es === "ko" || es === "rif")) ? raw : null;
-      return {j, r, s, raw, v, es}; }).filter(p => p.raw != null || p.es);
+      const dist = k === "spr" ? (numv(r.dist) ?? oneNum(s.dist)) : null;
+      return {j, r, s, raw, v, es, dist}; }).filter(p => p.raw != null || p.es);
     if (!P.length) return;
+    /* sprint: ogni distanza è un confronto a sé (30 m e 60 m non si confrontano: il tempo più alto sui 60 non è un calo) */
+    const groups = k === "spr" ? [...new Set(P.map(p => p.dist ?? ""))].map(dd => P.filter(p => (p.dist ?? "") === dd)) : [P];
+    const multi = groups.length > 1;
+    groups.forEach(P => {
     const vs = P.map(p => p.v).filter(v => v != null), best = !vs.length ? null : k === "spr" ? Math.min(...vs) : Math.max(...vs);
     const near = (v, b) => v != null && b != null && (k === "spr" ? v <= b + th.spr + 1e-9 : v >= b - th.jmp - 1e-9);
-    const ref = intRef(email, intKey(k, name, P[0].r, P[0].s), d), pb = ref?.v ?? null;
+    const ref = intRef(email, intKey(k, name, P[0].r, P[0].s), d), pb = ref?.v ?? null, dist = P[0].dist;
     const peak = best == null ? -1 : P.findIndex(p => p.v === best);
     /* salto all'asticella (Esito compilato): la misura è l'intensità scelta dal coach, la risposta è l'esito.
        Non riuscito SOPRA l'asticella più alta superata = tentativo al limite (non è calo, non conta tra le prove "vicine");
@@ -3889,7 +3895,8 @@ function tenOfSession(email, w){
     const post = peak < 0 ? [] : P.slice(peak).filter(p => p.v != null);   // dal picco in poi (picco compreso)
     const sdec = post.length >= 2 ? (k === "spr" ? post.reduce((t, p) => t + p.v, 0) / (post.length * best) * 100 - 100 : 100 - post.reduce((t, p) => t + p.v, 0) / (post.length * best) * 100) : null;
     const lastV = post.length >= 2 ? post[post.length - 1] : null, dropLast = lastV ? 100 - lastV.pDay : null;
-    out.push({w, d, x, name, k, P, bar, nLim: P.filter(p => p.lim).length, limH: [...new Set(P.filter(p => p.lim).map(p => p.raw))], best, pb, peak, after, calo: after >= 3, sdec, dropLast, n95: P.filter(p => !p.pre && p.u95).length, esN: P.filter(p => p.es).length, esOk: P.filter(p => p.es === "ok").length}); });
+    const sub = k === "spr" && dist != null && (multi || !/\d\s*m\b/i.test(name)) ? `${fmtN(dist)} m` : "";
+    out.push({w, d, x, base: name, sub, name: name + (sub ? " · " + sub : ""), k, P, bar, nLim: P.filter(p => p.lim).length, limH: [...new Set(P.filter(p => p.lim).map(p => p.raw))], best, pb, peak, after, calo: after >= 3, sdec, dropLast, n95: P.filter(p => !p.pre && p.u95).length, esN: P.filter(p => p.es).length, esOk: P.filter(p => p.es === "ok").length}); }); });
   return out; }
 function tenAgg(items){ const P = items.flatMap(it => it.P).filter(p => !p.lim), withPB = P.filter(p => p.nearPB != null), sd = items.filter(it => it.sdec != null), pk = items.filter(it => it.peak >= 0 && it.P.length >= 2);
   return {n: P.length, nearDay: P.filter(p => p.nearDay).length, nPB: withPB.length, nearPB: withPB.filter(p => p.nearPB).length, blocks: items.length, eligible: items.filter(it => it.P.length >= 2).length,
@@ -3901,14 +3908,20 @@ const tenOfWeek = (email, o) => (o.sess || []).filter(q => q.w.status === "done"
 const tenStamp = (email, o) => { if (!o.tenI) { o.tenI = tenOfWeek(email, o); o.tenA = tenAgg(o.tenI); o.ten = o.tenA.n ? o.tenA.nearDay / o.tenA.n * 100 : 0; } return o; };
 /* una seduta (esercizio): prove in ordine, attivazione | picco e dopo */
 const tenFv = (k, v) => k === "spr" ? v.toFixed(2).replace(".", ",") : fmtN(v, 0);
-function tenItemHtml(it){
+function tenBodyHtml(it){
     const chip = (p, i) => `<span class="tch ${p.nearDay ? "on" : ""} ${i === it.peak ? "pk" : ""} ${p.v == null ? (p.lim ? "lim" : "ko") : ""} ${p.u95 && !p.pre ? "u95" : ""}" title="Prova ${i + 1}: ${p.raw != null ? tenFv(it.k, p.raw) + (it.k === "spr" ? " s" : " cm") : ""}${p.es ? " · " + (p.es === "ok" ? "valida" : p.es === "rif" ? "rifiuto" : "non riuscita") : ""}${p.lim ? " · tentativo al limite (sopra la misura più alta superata): non è calo" : p.v == null && it.bar && !p.pre ? " · non riuscita a una misura già superata: segnale di calo" : ""}${p.pDay != null ? ` · ${Math.round(p.pDay)}% del migliore del giorno` : ""}${p.pPB != null ? ` · ${Math.round(p.pPB)}% del personale` : ""}">${p.v == null ? (p.raw != null ? tenFv(it.k, p.raw) + " " : "") + (p.es === "rif" ? "R" : "X") : tenFv(it.k, p.raw)}</span>`;
     const pre = it.P.filter(p => p.pre), postP = it.P.filter(p => !p.pre);
     const chips = (pre.length ? `<span class="tgrp pre"><small>attivazione</small><span>${pre.map(p => chip(p, it.P.indexOf(p))).join("")}</span></span>` : "")
       + `<span class="tgrp"><small>${it.peak >= 0 ? "picco e dopo" : "prove"}</small><span>${postP.map(p => chip(p, it.P.indexOf(p))).join("")}</span></span>`;
-    return `<div class="tens"><div class="tenh"><b>${esc(DAYS[dayIdx(it.d)])} ${fmtD(it.d)}</b> · ${esc(it.name)}<span class="faint">${it.best != null ? ` · migliore ${tenFv(it.k, it.best)}${it.k === "spr" ? " s" : " cm"}` : ""}${it.pb != null ? ` · personale ${tenFv(it.k, it.pb)}${it.k === "spr" ? " s" : " cm"}` : ""}</span></div>
+    const meta = `${it.best != null ? ` · migliore ${tenFv(it.k, it.best)}${it.k === "spr" ? " s" : " cm"}` : ""}${it.pb != null ? ` · personale ${tenFv(it.k, it.pb)}${it.k === "spr" ? " s" : " cm"}` : ""}`;
+    return `<div class="tenrow">${it.sub ? `<div class="tsub">${esc(it.sub)}<span class="faint">${meta}</span></div>` : ""}
       <div class="tenc">${chips}</div>
       <div class="tenf">${it.peak >= 0 ? `picco alla <b>${it.peak + 1}ª</b>${it.peak ? ` <span class="faint">(${it.peak} di attivazione)</span>` : ""}` : "nessuna prova riuscita"} · <b>${it.P.filter(p => p.nearDay).length}/${it.P.filter(p => !p.lim).length}</b> vicine${it.calo ? ` · <b class="tcw">calo</b> (${it.after} prove dopo il picco fuori soglia)` : it.peak >= 0 && it.P.length - it.peak - 1 >= 3 ? " · nessun calo" : ""}${it.sdec ? ` · decremento dal picco <b>${fmtN(it.sdec, 1)}%</b>` : ""}${it.dropLast != null && it.dropLast > 0 ? ` · ultima −${fmtN(it.dropLast, 1)}%` : ""}${it.n95 ? ` · <b class="tcw">${it.n95}</b> sotto il 95%` : ""}${it.nLim ? ` · <b>${it.nLim}</b> al limite <span class="faint">(${it.limH.map(h => tenFv(it.k, h)).join(", ")} cm: non è calo)</span>` : ""}${it.esN ? ` · riuscite ${it.esOk}/${it.esN}` : ""}</div></div>`; }
+/* una seduta = un riquadro per esercizio; più distanze (sprint) = più righe nello stesso riquadro */
+function tenBoxHtml(items){ const it = items[0];
+  const meta = items.length === 1 && !it.sub ? `<span class="faint">${(() => { const it = items[0]; return `${it.best != null ? ` · migliore ${tenFv(it.k, it.best)}${it.k === "spr" ? " s" : " cm"}` : ""}${it.pb != null ? ` · personale ${tenFv(it.k, it.pb)}${it.k === "spr" ? " s" : " cm"}` : ""}`; })()}</span>` : "";
+  return `<div class="tens"><div class="tenh"><b>${esc(DAYS[dayIdx(it.d)])} ${fmtD(it.d)}</b> · ${esc(it.base || it.name)}${meta}</div>${items.map(tenBodyHtml).join("")}</div>`; }
+const tenBoxesHtml = L => { const g = []; L.forEach(it => { const last = g[g.length - 1]; if (last && last[0].w === it.w && last[0].x === it.x) last.push(it); else g.push([it]); }); return g.map(tenBoxHtml).join(""); };
 function weekCmpHtml(ser, key, a){
   const day = !!ser[0]?.day, [ka, kb] = cmpKeys(day), A = cmpObj(ser, anQ[ka], day, a), B = cmpObj(ser, anQ[kb], day, a), f = kFilt0(key);
   if (!A) return `<div class="wcmp-hint">Tocca ${day ? "un giorno" : "una colonna"} per sceglierl${day ? "o" : "a"} (<b>A</b>), poi ${day ? "un altro" : "un'altra"} (<b>B</b>) per confrontarl${day ? "i" : "e"}${day ? " (anche di settimane diverse: cambia settimana con le frecce)" : ""}.</div>`;
@@ -3991,7 +4004,7 @@ function weekCmpHtml(ser, key, a){
     ...(nA.ten.lim || nB?.ten.lim ? [["Tentativi al limite", n => n.ten.lim ? `<b>${n.ten.lim}</b> <span class="faint">asticella sopra la più alta superata: non è calo</span>` : `<span class="faint">–</span>`, () => "", 1]] : []),
     ["Sotto il 95%", n => n.ten.nPost ? `<b>${n.ten.n95}</b> <span class="faint">su ${n.ten.nPost} prove dal picco in poi</span>` : `<span class="faint">–</span>`, (x, y) => dAbsInv(x.ten.n95, y.ten.n95), 1],
     ["Prove riuscite", n => n.ten.esN ? `<b>${n.ten.esOk}/${n.ten.esN}</b> <span class="faint">${tpc(n.ten.esOk, n.ten.esN)}% · dall'esito</span>` : `<span class="faint">–</span>`, (x, y) => dPP(tpc(x.ten.esOk, x.ten.esN), tpc(y.ten.esOk, y.ten.esN)), 1],
-    ["Sedute", n => n.tenI.length ? `<div class="tenl">${n.tenI.slice().sort((p, q) => p.d.localeCompare(q.d)).map(tenItemHtml).join("")}</div>` : `<span class="faint">nessuno sprint o salto misurato</span>`, () => "", 1]];
+    ["Sedute", n => n.tenI.length ? `<div class="tenl">${tenBoxesHtml(n.tenI.slice().sort((p, q) => p.d.localeCompare(q.d)))}</div>` : `<span class="faint">nessuno sprint o salto misurato</span>`, () => "", 1]];
   const rows = M === "ten" ? [...secSed, ...secTen, ["§Intensità"], ...rowsHard, rowRpe, ...rowsInt, rowSrpe]
     : M === "srpe" ? [...secSed, ...secSrpe, ...secVol, ...secLat, ...secTys, ...secMeth, ["§Intensità"], ...rowsHard, ...rowsInt]   // l'RPE seduta è già nella sezione sRPE
     : M === "int" ? [...secSed, ...secIntFull, rowSrpe, ...secVol, ...secLat, ...secTys, ...secMeth]

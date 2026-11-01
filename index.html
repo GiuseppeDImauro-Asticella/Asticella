@@ -716,6 +716,10 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .archsvg .arblkl{fill:var(--muted);font-size:10.5px;font-weight:600}
 .archsvg .artot{fill:var(--ink);font-size:14px;font-weight:800}.archsvg .artot.rf{fill:var(--muted)}
 .archsvg .ardg.ed .artile{cursor:pointer}
+.artip{max-width:min(440px,96%)}.artip .arcmp{display:flex;flex-wrap:wrap;gap:4px 14px;margin:2px 0 6px;font-size:12px}
+.artip .arcmp > span{display:inline-flex;align-items:baseline;gap:4px}.artip .arcmp small{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.artip .arcmp b{font-size:14px}.artip .arcmp .on b{color:var(--accent)}.artip .arcmp .dv{color:var(--ink);font-weight:700}
+.archsvg .ardb{cursor:default}
 .arinsp .row.col{flex-direction:column;align-items:stretch}
 .archsvg .arbtn{cursor:pointer}.archsvg .arbtn circle{fill:var(--surface);stroke:var(--muted);stroke-width:1.2}.archsvg .arbtn path{stroke:var(--ink);stroke-width:1.8;stroke-linecap:round}
 .archsvg .arbtn:hover circle{fill:var(--surface2)}.archsvg .arbtn.dis{cursor:default;opacity:.35}
@@ -5539,7 +5543,7 @@ const archPlan = s => { if (!isCl(s)) return s;   // serie cluster: kg medio pes
 const arRepsOf = r => hasClRes(r) ? arClReps(r.cl, r.reps) : numv(r?.reps);
 function archPts(G, w, plan){
   const out = [];
-  if (!plan) { sessionSets(w).sets.forEach(o => out.push({name: o.name, gk: o.grp, lab: o.lead, rpe: o.act?.v ?? null, pct: o.int?.pct ?? null, reps: arRepsOf(o.r), did: true, n: o.n})); return out; }
+  if (!plan) { sessionSets(w).sets.forEach(o => out.push({name: o.name, gk: o.grp, lab: o.lead, rpe: o.act?.v ?? null, pct: o.int?.pct ?? null, reps: arRepsOf(o.r), did: true, n: o.n, extra: o.extra, r: o.r, s: o.s, cols: o.cols, type: o.type})); return out; }
   const D = psDraft(G, w), ex = namedEx(w), L = exLabels(ex), res = w.results || {};
   ssGroups(ex).forEach(g => { const len = Math.max(0, ...g.map(i => (D.sets[ex[i].id] || []).length));
     for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], st = (D.sets[x.id] || [])[j]; if (!st) return;
@@ -5549,7 +5553,7 @@ function archPts(G, w, plan){
         if (ra) rpeR = ra; else if (rb && !String(st.rpe ?? "").trim()) rpeR = [10 - rb[1], 10 - rb[0]]; if (rpeR) rpe = (rpeR[0] + rpeR[1]) / 2;
         const rr = !isCl(st) && arRng(st.reps); if (rr) { repsR = rr; reps = (rr[0] + rr[1]) / 2; } }
       const pc = !did && oneNum(st.pct) != null ? oneNum(st.pct) : setInt(G.email, w, x, name, src, st)?.pct ?? null;
-      out.push({name, gk: g[0], lab: L[g[0]] || "", rpe, rpeR, reps, repsR, pct: pc, did, x, j, st, n: j + 1, lock: did || psLocked(w, x, j)}); }); });
+      out.push({name, gk: g[0], lab: L[g[0]] || "", rpe, rpeR, reps, repsR, pct: pc, did, x, j, st, n: j + 1, lock: did || psLocked(w, x, j), r: did ? r : null, s: st, cols: x.cols, type: st.type || ""}); }); });
   return out; }
 const arVal = (p, m) => m === "rpe" ? p.rpe : m === "pct" ? p.pct : m === "reps" ? p.reps : null;
 const arHard = (P, th) => { let c = 0; return P.map(p => p.rpe != null && p.rpe >= th - 1e-9 ? ++c : c); };
@@ -5617,13 +5621,13 @@ function drawArchChart(G, w, order, editable){
     return `<rect x="${x0}" y="${y}" width="${Math.max(2, wd)}" height="18" rx="4" class="arband${ref ? " rf" : ""}" style="--bc:${c}"><title>${esc((ref ? "Riferimento: " : "") + r.names.join(" + "))}</title></rect>
       <text x="${x0 + 6}" y="${y + 13}" class="arbt${ref ? " rf" : ""}">${esc(fit((ref ? "" : r.lab ? r.lab + " · " : "") + r.names.join(" + "), tw))}</text>${tools}`; }).join("");
   const tip = (p, ref) => `${ref ? "Riferimento · " : ""}${p.name} · serie ${p.n} dell'esercizio${p.rpe != null ? " · RPE " + fmtN(p.rpe, 1) : ""}${p.pct != null ? " · " + Math.round(p.pct) + "%" : ""}${p.reps != null ? " · " + fmtN(p.reps, 1) + " rip." : ""}`;
-  const dotsB = B.map((p, k) => val(B, k) == null ? "" : `<circle cx="${X(k)}" cy="${Y(val(B, k))}" r="3.6" class="ardr ${arState(G, p, m)}"><title>${esc(tip(p, true))}</title></circle>`).join("");
+  const dotsB = B.map((p, k) => val(B, k) == null ? "" : `<circle cx="${X(k)}" cy="${Y(val(B, k))}" r="3.6" class="ardr ${arState(G, p, m)}"/><circle cx="${X(k)}" cy="${Y(val(B, k))}" r="10" fill="transparent" class="ardb" data-k="${k}"/>`).join("");
   const bars = A.map((p, k) => { const R = m === "rpe" ? p.rpeR : m === "reps" ? p.repsR : null; return R ? `<line x1="${X(k)}" x2="${X(k)}" y1="${Y(R[0])}" y2="${Y(R[1])}" class="arrng" style="stroke:${exColor(order, p.name)}"><title>${esc(`programmato ${fmtN(R[0], 1)}–${fmtN(R[1], 1)}`)}</title></line>` : ""; }).join("");
   const dotsA = A.map((p, k) => { const v = val(A, k), ed = canEd && !p.lock, dr = ed && arCanSet(p, m);
     if (v == null) return `<g class="ardg${ed ? " ed" : ""}" data-k="${k}" ${ed ? `tabindex="0" role="button" aria-label="${esc(p.name)} serie ${p.n}"` : ""}><rect x="${X(k) - 9}" y="${pt + ih - 22}" width="18" height="22" fill="transparent"/><text x="${X(k)}" y="${pt + ih - 6}" text-anchor="middle" class="arax">–</text><title>${esc(tip(p))}</title></g>`;
     const sx = arState(G, p, m), hd = sx !== "on", c = exColor(order, p.name);   // pieno = sopra soglia · cerchio colorato = allenante sotto soglia · cerchio grigio = non allenante
     return `<g class="ardg${ed ? " ed" : ""}${dr ? " dr" : ""}" data-k="${k}" ${ed ? `tabindex="0" role="button" aria-label="${esc(p.name)} serie ${p.n}${dr ? ": trascina o usa le frecce per cambiare il valore" : ""}"` : ""}>
-      <circle cx="${X(k)}" cy="${Y(v)}" r="${Math.max(7, Math.min(13, slot / 2 - 10))}" fill="transparent"/><circle cx="${X(k)}" cy="${Y(v)}" r="${sx === "on" ? 4.6 : sx === "hard" ? 3.8 : 3.2}" style="${sx === "on" ? `fill:${c}` : sx === "hard" ? `fill:var(--surface);stroke:${c};stroke-width:2` : `fill:var(--surface);stroke:var(--faint);stroke-width:1.4`}" class="${p.did ? "" : "arpl"}"/><title>${esc(tip(p))}</title></g>
+      <circle cx="${X(k)}" cy="${Y(v)}" r="${Math.max(7, Math.min(13, slot / 2 - 10))}" fill="transparent"/><circle cx="${X(k)}" cy="${Y(v)}" r="${sx === "on" ? 4.6 : sx === "hard" ? 3.8 : 3.2}" style="${sx === "on" ? `fill:${c}` : sx === "hard" ? `fill:var(--surface);stroke:${c};stroke-width:2` : `fill:var(--surface);stroke:var(--faint);stroke-width:1.4`}" class="${p.did ? "" : "arpl"}"/></g>
       ${slot >= 18 && (m !== "hard" || (!hd && (k === 0 || HA[k] !== HA[k - 1]))) ? `<text x="${X(k)}" y="${Y(v) - 9}" text-anchor="middle" class="arv">${f(v)}</text>` : ""}`; }).join("");
   const rings = (S0, P) => m === "hard" ? "" : S0.peaks.map(k => `<circle cx="${X(k)}" cy="${Y(val(P, k))}" r="9" class="arpk${P === B ? " rf" : ""}"/>`).join("");
   /* SERIE ALLENANTI a riquadri: una colonna per serie; piena e numerata (1ª, 2ª… allenante) se sopra soglia, vuota se sotto; sotto il riquadro l'RPE.
@@ -5673,7 +5677,19 @@ function drawArchChart(G, w, order, editable){
     ${edits}
     <text x="${pl - 8}" y="${pt + ih + 36 + off}" text-anchor="end" class="arax">ora</text>${band(A, pt + ih + 23 + off, false)}
     ${B.length ? `<text x="${pl - 8}" y="${pt + ih + 60 + off}" text-anchor="end" class="arax">rif.</text>${band(B, pt + ih + 47 + off, true)}` : ""}
-  </svg>${pk != null ? arPopHtml(A[pk], X(pk), HM ? rowA + th / 2 + 4 : Y(val(A, pk) ?? lo), W) : ""}${insPop}${archSumHtml(G, SA, SB, m, B.length > 0, fin)}`;
+  </svg><div class="ctip artip" hidden></div>${pk != null ? arPopHtml(A[pk], X(pk), HM ? rowA + th / 2 + 4 : Y(val(A, pk) ?? lo), W) : ""}${insPop}${archSumHtml(G, SA, SB, m, B.length > 0, fin)}`;
+  /* passando sul punto (o primo tocco): la serie di adesso contro la serie nella stessa posizione del riferimento */
+  const tipEl = el.querySelector(".artip");
+  const showTip = (k, anchor, touch) => { if (G.arDrag) return; tipEl.innerHTML = arTipHtml(G, A[k], B[k], k, m, RS, fin, touch && canEd && A[k] && !A[k].lock); tipEl.hidden = false;
+    const b = anchor.getBoundingClientRect(), pr = el.getBoundingClientRect();
+    let x = b.left - pr.left + b.width / 2 - tipEl.offsetWidth / 2; x = Math.max(0, Math.min(x, pr.width - tipEl.offsetWidth));
+    tipEl.style.left = x + "px"; tipEl.style.top = Math.max(0, b.top - pr.top - tipEl.offsetHeight - 6) + "px"; };
+  G.arShowTip = showTip;
+  el.querySelectorAll(".ardg, .ardb").forEach(g => { const k = +g.dataset.k;
+    g.addEventListener("pointerenter", pe => { if (pe.pointerType === "mouse") showTip(k, g, false); });
+    g.addEventListener("pointerleave", pe => { if (pe.pointerType === "mouse") tipEl.hidden = true; });
+    if (!g.classList.contains("ed")) g.addEventListener("pointerdown", pe => { if (pe.pointerType !== "mouse") showTip(k, g, false); }); });
+  el.addEventListener("pointerdown", e => { if (!e.target.closest(".ardg, .ardb")) { tipEl.hidden = true; G.arTapK = null; } });
   el.querySelectorAll(".ardg.ed").forEach(g => { const k = +g.dataset.k, p = A[k];
     g.addEventListener("pointerdown", e => arDragStart(e, G, w, order, k, g.classList.contains("dr")));
     g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); G.arPop = k; drawProg(); return; }
@@ -5683,12 +5699,39 @@ function drawArchChart(G, w, order, editable){
 /* trascinamento in su / in giù: il valore della serie segue il dito (a scatti: 0,5 RPE · 1% · 1 rip.); un tocco senza movimento apre il menu della serie */
 function arDragStart(e, G, w, order, k, drag){
   e.preventDefault(); const el = $("#ps-chart"), m = arMode(G), y0 = e.clientY, geo = G.arGeo; let moved = false; G.arPop = null;
-  const move = ev => { if (!drag || (!moved && Math.abs(ev.clientY - y0) < 4)) return; moved = true;
+  const move = ev => { if (!drag || (!moved && Math.abs(ev.clientY - y0) < 4)) return; moved = true; G.arDrag = true; el.querySelector(".artip")?.setAttribute("hidden", "");
     const sv = el.querySelector("svg"), r = sv.getBoundingClientRect(), py = (ev.clientY - r.top) * sv.viewBox.baseVal.height / r.height;
     const st = AR_STEP[m], v = Math.round((geo.lo + (geo.pt + geo.ih - py) / geo.ih * (geo.hi - geo.lo)) / st) * st;
     const p = archPts(G, w, true)[k]; if (!p || v === arVal(p, m)) return; arSet(G, w, p, m, Math.max(m === "rpe" ? 1 : m === "reps" ? 1 : 30, v)); drawArchChart(G, w, order, true); };
-  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); if (!moved) G.arPop = k; drawProg(); };
+  if (drag) G.arDrag = false;
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); G.arDrag = false;
+    if (!moved) { if (e.pointerType !== "mouse" && G.arTapK !== k) { G.arTapK = k; const g = el.querySelector(`.ardg[data-k="${k}"]`); if (g) G.arShowTip?.(k, g, true); return; }   // tablet: il primo tocco mostra il confronto
+      G.arTapK = null; G.arPop = k; }
+    drawProg(); };
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+}
+/* riquadro del punto: serie di adesso (programma / eseguito) contro la serie nella stessa posizione del riferimento */
+function arTipHtml(G, a, b, k, m, RS, fin, touch){
+  const skip = ["side", "rest", "tut", "pi"], colsOf = cs => (cs || []).filter(c => !skip.includes(c) && COLS[c] && !COLS[c].txt || c === "esito");
+  const rows = [];
+  if (a) { rows.push({l: a.did ? "Eseguito" : fin ? "Programma" : "Ora", sub: `${a.name} · serie ${a.n}`, r: a.did ? a.r : a.s, cols: a.cols, t: a.type, main: true});
+    if (a.did && a.s && !fin) rows.push({l: "Programma", r: a.s, cols: a.cols, t: a.type, dim: true}); }
+  if (b) rows.push({l: `Rif. ${RS ? fmtD(effDate(RS)) : ""}`, sub: `${b.name} · serie ${b.n}${b.extra ? " extra" : ""}`, r: b.r, cols: b.cols, t: b.type, other: a && !sameName(a.name, b.name)});
+  const cols = []; rows.forEach(rw => colsOf(rw.cols).forEach(c => { if (!cols.includes(c) && rows.some(q => q.r && String(q.r[c] ?? "").trim() !== "")) cols.push(c); }));
+  const cell = (rw, c) => { const v = rw.r?.[c], clv = Array.isArray(rw.r?.cl) && rw.r.cl.some(q => String(q?.[c] ?? "").trim()); if (!clv && (v == null || String(v).trim() === "")) return `<td class="n">–</td>`;
+    const cl = Array.isArray(rw.r.cl) && rw.r.cl.length > 1 ? rw.r.cl.map(q => String(q?.[c] ?? "").trim()).filter(Boolean) : [], vv = cl.length > 1 ? cl.join("+") : v;   // cluster: valore di ogni cluster
+    return `<td class="n">${esc(String(vv))}</td>`; };
+  /* confronto sui parametri che valgono per ogni esercizio */
+  const f = (v, q) => v == null ? "–" : q === "pct" ? Math.round(v) + "%" : fmtN(v, Number.isInteger(v) ? 0 : 1);
+  const dd = (x, y, q) => x == null || y == null ? "" : (d => Math.abs(d) < 1e-9 ? `<span class="faint">=</span>` : `<span class="dv">${d > 0 ? "+" : "−"}${q === "pct" ? Math.round(Math.abs(d)) + " punti" : f(Math.abs(d), q)}</span>`)(x - y);   // più o meno non è meglio o peggio: dipende dallo stimolo
+  const cmp = [["rpe", "RPE"], ["pct", "% rif."], ["reps", "Rip."]].filter(([q]) => (a && a[q] != null) || (b && b[q] != null))
+    .map(([q, l]) => `<span class="${q === m ? "on" : ""}"><small>${l}</small><b>${f(a?.[q], q)}</b>${b ? ` <span class="faint">rif. ${f(b[q], q)}</span> ${dd(a?.[q], b?.[q], q)}` : ""}</span>`).join("");
+  const tb = t => t ? typeBadge(t) : "";
+  return `<div class="tt-h"><b>Serie ${k + 1} della seduta</b>${!b ? `<span class="faint">nel riferimento non c'era</span>` : !a ? `<span class="faint">solo nel riferimento</span>` : ""}</div>
+    ${cmp ? `<div class="arcmp">${cmp}</div>` : ""}
+    <table class="tt"><thead><tr><th></th>${cols.map(c => `<th>${esc(COLS[c].l)}${COLS[c].u && COLS[c].u !== "%" && COLS[c].u.toLowerCase() !== COLS[c].l.toLowerCase() ? ` <small>${esc(COLS[c].u)}</small>` : ""}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${rows.map(rw => `<tr class="${rw.main ? "main" : ""} ${rw.dim ? "dim" : ""}"><td class="l">${esc(rw.l)}${rw.sub ? `<small>${esc(rw.sub)}</small>` : ""}</td>${cols.map(c => cell(rw, c)).join("")}<td>${tb(rw.t)}</td></tr>`).join("")}
+    </tbody></table>${touch ? `<div class="tl tap">Tocca di nuovo per tipo di serie, duplica, elimina · trascina per cambiare il valore</div>` : ""}`;
 }
 function arPopHtml(p, x, y, W){ const a = `data-x="${p.x.id}" data-j="${p.j}"`;
   return `<div class="pspop" style="left:${Math.min(Math.max(0, x - 110), W - 230)}px;top:${y + 16}px"><b>${esc(p.name)} · serie ${p.n}</b>

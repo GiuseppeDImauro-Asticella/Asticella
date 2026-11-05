@@ -303,7 +303,7 @@ table.list{width:100%;border-collapse:collapse}
 .tpl-foot{display:flex;gap:6px;padding:8px 12px 12px;border-top:1px solid var(--line);margin-top:6px}
 .colpick{display:flex;flex-wrap:wrap;gap:6px}
 .plist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;max-height:340px;overflow-y:auto}
-.libtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:-4px 0 14px;overflow-x:auto}
+.libtabs{display:flex;flex-wrap:wrap;gap:0 4px;border-bottom:1px solid var(--line);margin:-4px 0 14px}
 .libtabs button{border:0;background:none;padding:8px 10px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;cursor:pointer}
 .libtabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
 .prow .lnk{white-space:nowrap}
@@ -720,6 +720,29 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .artip .arcmp > span{display:inline-flex;align-items:baseline;gap:4px}.artip .arcmp small{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
 .artip .arcmp b{font-size:14px}.artip .arcmp .on b{color:var(--accent)}.artip .arcmp .dv{color:var(--ink);font-weight:700}
 .archsvg .ardb{cursor:default}
+.nt tr.movr td{background:var(--surface2);border-top:1px solid var(--line)}.nt tr.kidr td:first-child{padding-left:18px}
+.fzl{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.fzo{font-size:10.5px;font-weight:700;color:var(--warn);background:color-mix(in srgb, var(--warn) 12%, transparent);border-radius:99px;padding:1px 6px;margin-left:4px}
+.mvdlg{max-width:620px}.mvg{display:flex;flex-direction:column;gap:4px;margin-top:6px}.mvg small{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.mvx{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:8px 10px;cursor:pointer;font-size:14px}
+.mvx .faint{font-size:12px}.mvx:hover{border-color:var(--accent)}.mvx.best{border-color:color-mix(in srgb, var(--accent) 50%, var(--line))}
+.fzhd,.fz{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 112px;gap:6px;align-items:center}
+.fzhd{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 8px}
+.fz{border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--surface)}.fz.prop{border-style:dashed}
+.fzh{font-size:12.5px;line-height:1.3}.fzh .fzn{color:var(--muted)}.fzp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);margin-left:2px}
+.fzsel{height:30px;padding:2px 6px;font-size:12.5px;width:100%;min-width:0}.fz.prop .fzsel{color:var(--muted)}
+.fz2{display:flex;flex-wrap:wrap;align-items:center;gap:3px;min-width:0}.fz2 .altc{font-size:11px}
+.fzt{display:flex;align-items:center;justify-content:flex-end;gap:4px}.fzcut{width:44px;flex:none;padding:2px 4px}
+.fzb{width:30px;height:30px;border:1px solid var(--line);border-radius:7px;background:var(--surface);cursor:pointer;font-weight:700;color:var(--accent)}
+@media (max-width:760px){.fzhd{display:none}.fz{grid-template-columns:1fr 1fr}.fz .fzh{grid-column:1/-1}.fz .fz2{grid-column:1/-1}.fz .fzt{grid-column:1/-1;justify-content:flex-end}}
+.firma{margin-top:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:10px 12px}
+.firma > summary{cursor:pointer;font-size:14px;list-style-position:inside}.firma .fdesc{font-size:12px;color:var(--muted);margin:4px 0 6px}
+.frow{border-left:4px solid var(--fc);padding:6px 0 6px 10px;margin-top:8px}
+.frow .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}.frow .fpat{font-weight:800;font-size:14px}.frow .fmez{font-size:12px;color:var(--muted)}
+.frow .fb{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:6px 16px;align-items:center;margin-top:2px}
+.frow .ftxt{font-size:13px;line-height:1.5}.frow .fpos small{display:block;font-size:10.5px;color:var(--muted);text-align:right}
+.fsp{width:100%;height:34px;display:block}.fsp .fax{stroke:var(--line)}.fsp .ftk{stroke:var(--line)}.fsp .fnd{fill:var(--faint)}
+@media (max-width:640px){.frow .fb{grid-template-columns:minmax(0,1fr)}}
 .arinsp .row.col{flex-direction:column;align-items:stretch}
 .archsvg .arbtn{cursor:pointer}.archsvg .arbtn circle{fill:var(--surface);stroke:var(--muted);stroke-width:1.2}.archsvg .arbtn path{stroke:var(--ink);stroke-width:1.8;stroke-linecap:round}
 .archsvg .arbtn:hover circle{fill:var(--surface2)}.archsvg .arbtn.dis{cursor:default;opacity:.35}
@@ -821,6 +844,10 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .wcard li.ctag,.tpl li.ctag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--circ)}
 .wcard li .swn{font-style:italic} .wcard li .swn s{color:var(--faint)}
 .aplan .sc.swl{color:var(--warn,#b7791f);font-style:italic}
+.stree{display:flex;flex-direction:column;gap:10px;margin:8px 0}.scap{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.scaph{background:var(--surface2)}.sexpr{padding-left:22px}.sexpr:last-child{border-bottom:0}
+.pcline{display:flex;flex-wrap:wrap;align-items:center;gap:3px 5px;margin-top:3px;font-size:11.5px;font-weight:500}.pcline .pcadd{font-size:11.5px;font-weight:600}
+.pcc{background:var(--surface2);border-radius:99px;padding:1px 8px;font-weight:600}.pcchk{display:inline-flex;align-items:center;gap:4px;font-size:13px;margin-right:10px}
 .altrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
 .altrow .lbl{margin:0}
 .altc{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:2px 4px 2px 10px;font-size:12px;font-weight:600}
@@ -2212,7 +2239,7 @@ async function roleOf(email){
 async function loadCoachData(){
   let st;
   [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);
-  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null; S.lastBackup = st.lastBackupAt || null; S.tenTh = st.tenTh || null;
+  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null; S.stim = st.stim || null; S.lastBackup = st.lastBackupAt || null; S.tenTh = st.tenTh || null;
   S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name));
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = activeAthletes()[0]?.email || null;
@@ -3429,12 +3456,12 @@ function exFormIntoView(){ const f = $("#ex-form"); if (!f) return; const r = f.
 function viewExercises(m){
   const q = S.exQuery.toLowerCase();
   const list = S.exercises.filter(x => !q || (x.name+" "+x.category+" "+x.pattern+" "+latLbl(x.lat)).toLowerCase().includes(q));
-  const cats = [...new Set(list.map(x => x.category || "Altro"))].sort();
+  const cats = [...new Set(list.map(x => x.pattern || "Senza pattern"))].sort((a, b) => (a === "Senza pattern") - (b === "Senza pattern") || a.localeCompare(b, "it"));
   const e = S.exEdit;
-  m.innerHTML = `<div class="pagehead"><div><h1>Esercizi</h1><div class="sub">La tua libreria: nome, categoria e parametri già pronti quando lo inserisci in un allenamento.</div></div><div class="toolbar">${S.exercises.length ? "" : `<button class="btn" data-act="ex-base">Aggiungi esercizi di base</button>`}<button class="btn pri" data-act="ex-new">+ Nuovo esercizio</button></div></div>
+  m.innerHTML = `<div class="pagehead"><div><h1>Esercizi</h1><div class="sub">I tuoi mezzi, raggruppati per movimento: stimolo di partenza e parametri già pronti quando li inserisci in un allenamento.</div></div><div class="toolbar">${S.exercises.length ? "" : `<button class="btn" data-act="ex-base">Aggiungi esercizi di base</button>`}<button class="btn pri" data-act="ex-new">+ Nuovo esercizio</button></div></div>
   <div class="two"><div class="panel"><div style="padding:12px;border-bottom:1px solid var(--line)"><input class="in" id="ex-q" placeholder="Cerca esercizio…" value="${esc(S.exQuery)}" data-input="ex-q"></div>
-    <div class="scroll-x"><table class="list"><tbody>${cats.map(c => `<tr><th colspan="3" style="background:var(--surface2)">${esc(c)}</th></tr>` + list.filter(x => (x.category||"Altro")===c).map(x => `<tr>
-      <td><b>${esc(x.name)}</b><div class="faint" style="font-size:12px">${esc([x.pattern, latLbl(x.lat)].filter(Boolean).join(" · "))}</div></td>
+    <div class="scroll-x"><table class="list"><tbody>${cats.map(c => `<tr><th colspan="3" style="background:var(--surface2)">${esc(c)}</th></tr>` + list.filter(x => (x.pattern || "Senza pattern") === c).map(x => `<tr>
+      <td><b>${esc(x.name)}</b><div class="faint" style="font-size:12px">${esc([exprLbl(stim0Of(x)) || "", (x.patIn || []).length ? "contiene " + x.patIn.join(", ") : "", latLbl(x.lat)].filter(Boolean).join(" · "))}</div></td>
       <td class="muted" style="font-size:12px">${(x.cols||[]).map(k => COLS[k]?.l).filter(Boolean).join(" · ")}</td>
       <td style="text-align:right"><button class="btn sm ghost" data-act="ex-edit" data-id="${x.id}">Modifica</button></td></tr>`).join("")).join("") || `<tr><td class="muted">Nessun esercizio trovato.</td></tr>`}</tbody></table></div></div>
   <div class="panel">${e ? `<form class="form" id="ex-form">
@@ -3453,8 +3480,12 @@ const LAT_OPTS = {bi: "Bilaterale", uni: "Unilaterale"};
 const latLbl = v => LAT_OPTS[v] || "";
 function exFieldsHtml(e){
   return `    <div class="field"><label class="lbl" for="x-name">Nome</label><input class="in" id="x-name" value="${esc(e.name||"")}" required></div>
-    <div class="row"><div class="field grow"><label class="lbl" for="x-cat">Categoria</label>${optSelect("cat", e.category)}</div>
-      <div class="field grow"><label class="lbl" for="x-pat">Pattern motorio</label>${optSelect("pat", e.pattern)}</div></div>
+    <div class="row"><div class="field grow"><label class="lbl" for="x-stim0">Stimolo di partenza</label><select class="in" id="x-stim0"><option value="">— scegli —</option>${stimData().caps.map(c => c.expr.length ? `<optgroup label="${esc(c.name)}">${c.expr.map(q => `<option value="${q.id}" ${q.id === stim0Of(e) ? "selected" : ""}>${esc(c.name)} · ${esc(q.name)}</option>`).join("")}</optgroup>` : "").join("")}</select>
+        <span class="faint" style="font-size:12px">${e.stim0 || !e.category ? "Quello che propone quando lo metti in un programma; nelle fasi decidi tu." : `Ricavato dalla vecchia categoria «${esc(e.category)}»: controllalo e salva.`}</span></div>
+      <div class="field grow"><label class="lbl" for="x-pat">Movimento (pattern principale)</label>${optSelect("pat", e.pattern)}</div></div>
+    <div class="field"><span class="lbl">Pattern contenuti <span class="faint" style="text-transform:none;letter-spacing:0;font-weight:500">· facoltativi: i movimenti che l'esercizio attraversa (es. marcia → volo → corsa: principale Sprint, contenuto Marcia)</span></span><div class="altrow">
+      ${(e.patIn||[]).map((n,k) => `<span class="altc">${esc(n)}<button type="button" data-act="xpin-rm" data-k="${k}" aria-label="Togli ${esc(n)}">×</button></span>`).join("")}
+      <select class="in altin" id="x-pin" data-change="xpin-add" aria-label="Aggiungi un pattern contenuto"><option value="">+ pattern</option>${optList("pat").filter(v => optKey(v) !== optKey(e.pattern) && !(e.patIn || []).some(q => optKey(q) === optKey(v))).map(v => `<option>${esc(v)}</option>`).join("")}</select></div></div>
     <div class="field"><span class="lbl">Esecuzione</span><span class="seg latseg" role="group" aria-label="Esecuzione">${Object.entries(LAT_OPTS).map(([k, l]) => `<button type="button" class="${e.lat === k ? "on" : ""}" data-act="ex-lat" data-v="${k}" aria-pressed="${e.lat === k}" title="${k === "bi" ? "Con tutti e due gli arti insieme (es. squat, stacco, CMJ)" : "Un arto alla volta (es. squat bulgaro, step-up, balzi monopodalici)"}">${l}</button>`).join("")}</span>
       <span class="faint" style="font-size:12px">${e.lat ? "Tocca di nuovo per togliere." : "Non classificato. Scegli se si fa con tutti e due gli arti insieme o con uno alla volta; lascialo vuoto per corsa, sprint e andature (sempre alternate)."}</span></div>
     <div class="field"><span class="lbl">Parametri predefiniti</span><div class="colpick">${pickable().map(k => `<button type="button" class="${(e.cols||[]).includes(k)?"on":""}" data-act="ex-col" data-c="${k}">${esc(COLS[k].l)}</button>`).join("")}</div></div>
@@ -3467,7 +3498,8 @@ function exFieldsHtml(e){
     <div class="field"><label class="lbl" for="x-notes">Indicazioni tecniche</label><textarea class="in" id="x-notes">${esc(e.notes||"")}</textarea></div>`;
 }
 async function saveExForm(e){
-  const x = {id: e.id || uid(), name: $("#x-name").value.trim(), category: readOpt("cat"), pattern: readOpt("pat"), lat: LAT_OPTS[e.lat] ? e.lat : "", cols: e.cols||[], alts: (e.alts||[]).filter(n => !sameName(n, $("#x-name").value)), video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
+  const s0 = $("#x-stim0")?.value || "", pat0 = readOpt("pat");
+  const x = {id: e.id || uid(), name: $("#x-name").value.trim(), stim0: s0, category: s0 ? exprToCat(s0, pat0) : (e.category || ""), pattern: pat0, lat: LAT_OPTS[e.lat] ? e.lat : "", cols: e.cols||[], alts: (e.alts||[]).filter(n => !sameName(n, $("#x-name").value)), patIn: (e.patIn || []).filter(q => optKey(q) !== optKey(readOpt("pat"))), video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
   if (!x.name) return null;
   const dup = S.exercises.find(y => y.id !== x.id && sameName(y.name, x.name));
   if (dup) { toast(`«${dup.name}» è già nella libreria`); return null; }
@@ -3573,12 +3605,15 @@ const fmtN = (v, dec=0) => v == null ? "–" : Number(v).toLocaleString("it-IT",
 const compact = v => v >= 10000 ? (v/1000).toLocaleString("it-IT", {maximumFractionDigits: 1}) + "k" : fmtN(v);
 function wStats(w){
   let sets = 0, vol = 0, reps = 0, hard = 0, known = 0; const ex = {}, types = {}, typesH = {}, vb = {}, ints = [], em = wEmail(w), meth = {}, methH = {}, es = {ok: 0, ko: 0, rif: 0};
+  const SM = stimMapOf(w), grp = {stim: {}, stimE: {}, mov: {}, role: {}, over: []};   // per stimolo (capacità), espressione, movimento, ruolo
   (w.exercises||[]).forEach(x => { const rr = (w.results||{})[x.id] || [], ik = intKind(x, exName(w, x)), mo = methodOf(w, x)?.k;
     rr.forEach((r, j) => { if (emptyRes(r)) return; sets++;
-      { const hd0 = isHard(r), rp0 = numv(r.reps) || 0, nm = exName(w, x);   // metodi (dettaglio "Metodo"): serie cluster, superserie, circuiti
+      const sm = stimOfSet(SM, x, j);
+      { const hd0 = hardOf(r, sm), rp0 = numv(r.reps) || 0, nm = exName(w, x);   // metodi (dettaglio "Metodo"): serie cluster, superserie, circuiti
         [hasClRes(r) ? "cl" : null, mo].filter(Boolean).forEach(k => [meth, ...(hd0 ? [methH] : [])].forEach(M => { const t = (M[k] ??= {sets: 0, reps: 0, ex: []}); t.sets++; t.reps += rp0; if (!t.ex.includes(nm)) t.ex.push(nm); })); }
       const ty = SET_TYPES[x.sets[j]?.type] ? x.sets[j].type : ""; types[ty] = (types[ty] || 0) + 1;
-      const hd = isHard(r); if (hd != null) { known++; if (hd) { hard++; typesH[ty] = (typesH[ty] || 0) + 1; } } const k = numv(r.kg), rp = numv(r.reps);
+      if (sm && ROLE_NOHARD.includes(sm.role) && isHard(r)) (grp.over ??= []).push({n: exName(w, x), j, role: sm.role});   // preparatoria / defaticante più dura del previsto
+      const hd = hardOf(r, sm); if (hd != null) { known++; if (hd) { hard++; typesH[ty] = (typesH[ty] || 0) + 1; } } const k = numv(r.kg), rp = numv(r.reps);
       const e = (ex[exName(w, x)] ??= {sets:0, reps:0, vol:0, kgMax:null, hMax:null, tMin:null, vb: {}, is: {}, in: {}, h: {sets:0, reps:0, vol:0, vb: {}, is: {}, in: {}}});
       if (hd) { e.h.sets++; if (rp != null) e.h.reps += rp; if (k != null && rp != null) e.h.vol += k*rp; }   // solo serie allenanti (vista "Serie allenanti")
       { const eo = esitoOf(r.esito); if (eo) es[eo]++; }   // esito della prova (salti…): risposta dalla prestazione
@@ -3590,12 +3625,15 @@ function wStats(w){
       if (k != null) e.kgMax = Math.max(e.kgMax ?? 0, hasClRes(r) ? Math.max(k, ...r.cl.map(q => numv(q?.kg) ?? 0)) : k);   // cluster: il carico più alto dei cluster
       vb.serie = (vb.serie || 0) + 1; e.vb.serie = (e.vb.serie || 0) + 1; if (hd) e.h.vb.serie = (e.h.vb.serie || 0) + 1;   // voce "Serie" del volume
       { const sv = setVolume(x, exName(w, x), r, x.sets[j]);   // volume per tipo di stimolo
-        if (sv && sv.v) { vb[sv.b] = (vb[sv.b] || 0) + sv.v; e.vb[sv.b] = (e.vb[sv.b] || 0) + sv.v; if (hd) e.h.vb[sv.b] = (e.h.vb[sv.b] || 0) + sv.v; } }
+        if (sv && sv.v) { vb[sv.b] = (vb[sv.b] || 0) + sv.v; e.vb[sv.b] = (e.vb[sv.b] || 0) + sv.v; if (hd) e.h.vb[sv.b] = (e.h.vb[sv.b] || 0) + sv.v; }
+        [["stim", capName(sm?.e)], ["stimE", sm?.e ? exprLbl(sm.e) || "Senza stimolo" : "Senza stimolo"], ["mov", movName(exName(w, x))], ["role", roleName(sm?.role)]].forEach(([g, key]) => {
+          const t = (grp[g][key] ??= {sets: 0, hard: 0, vb: {}, vbH: {}}); t.sets++; if (hd) t.hard++; t.vb.serie = (t.vb.serie || 0) + 1; if (hd) t.vbH.serie = (t.vbH.serie || 0) + 1;
+          if (sv && sv.v) { t.vb[sv.b] = (t.vb[sv.b] || 0) + sv.v; if (hd) t.vbH[sv.b] = (t.vbH[sv.b] || 0) + sv.v; } }); }
       if (ik) { const q = setInt(em, w, x, exName(w, x), r, x.sets[j]);   // intensità relativa (% e1RM / record); Ramping escluse per i pesi
         if (q?.pct != null && !(q.k === "kg" && ty === "R")) { ints.push({k: q.k, pct: q.pct, cat: catOfName(exName(w, x)), n: exName(w, x), h: !!hd, ref: q.ref, d: effDate(w)});
           [e, ...(hd ? [e.h] : [])].forEach(t => { t.is[q.k] = (t.is[q.k] || 0) + q.pct; t.in[q.k] = (t.in[q.k] || 0) + 1; }); } } }); });
   const srpe = w.status === "done" && w.sessionRpe && w.durationMin ? w.sessionRpe * w.durationMin : 0;
-  return {sets, vol, vb, reps, srpe, ex, types, typesH, hard, known, ints, meth, methH, es, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
+  return {sets, vol, vb, reps, srpe, ex, types, typesH, hard, known, ints, meth, methH, es, grp, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
 }
 function weeklySeries(email, from, to){
   const w0 = monday(from), n = Math.floor(daysBetween(w0, monday(to)) / 7) + 1, today = TODAY();
@@ -3632,6 +3670,9 @@ function accumLoad(o, list){
     Object.entries(st.ex).forEach(([n, e]) => addPat(b.pat, n, e));
     b.volume += vSel; b.sets += st.sets; b.srpe += st.srpe; b.n++; if (w.status === "done") b.done++;
     o.es ??= {ok: 0, ko: 0, rif: 0}; Object.keys(o.es).forEach(q => o.es[q] += st.es[q]);
+    b.over = (b.over || 0) + st.grp.over.length; o.over = (o.over || 0) + st.grp.over.length; (o.overL ??= []).push(...st.grp.over.map(q => ({...q, d: effDate(w)})));
+    Object.entries(st.grp).filter(([g]) => g !== "over").forEach(([g, M]) => Object.entries(M).forEach(([key, q]) => { const t = ((b[g] ??= {})[key] ??= {sets: 0, hard: 0, vb: {}, vbH: {}}); t.sets += q.sets; t.hard += q.hard;
+      Object.entries(q.vb).forEach(([v, n]) => t.vb[v] = (t.vb[v] || 0) + n); Object.entries(q.vbH).forEach(([v, n]) => t.vbH[v] = (t.vbH[v] || 0) + n); }));
     if (inK(anQ.kv, k)) o.volume += vSel; if (inK(anQ.ks, k)) { o.sets += st.sets; o.hard = (o.hard || 0) + st.hard; } o.srpe += st.srpe; if (w.status === "done") o.done++;
     const IS = (o.intS ??= {kg: [], spr: [], jmp: []}), IC = (o.intC ??= {kg: {}, spr: {}, jmp: {}});   // intensità relativa di ogni serie, anche per categoria
     const ISH = (o.intSH ??= {kg: [], spr: [], jmp: []}), ICH = (o.intCH ??= {kg: {}, spr: {}, jmp: {}});   // … e solo delle serie allenanti (vista "Serie allenanti")
@@ -3661,6 +3702,7 @@ function dailySeries(email, ws){
 function niceMax(v){ if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
 async function viewAnalysis(m){
   if (!METRICS[anQ.metric]) anQ.metric = "volume";
+  if (!["stim", "mov", "role", "lat"].includes(anQ.split)) { anQ.split = "stim"; anQ.kv = "all"; anQ.ks = "all"; }   // "tipo di seduta" e "categoria" sostituiti da stimolo e movimento
   const ath = activeAthletes();
   if (!ath.length) { m.innerHTML = `<div class="pagehead"><h1>Analisi</h1></div><div class="empty">Aggiungi prima un atleta dalla sezione <b>Atleti</b>.</div>`; return; }
   if (!anQ.who || !athByEmail(anQ.who)) anQ.who = S.calAthlete && athByEmail(S.calAthlete) ? S.calAthlete : ath[0].email;
@@ -3695,9 +3737,9 @@ async function viewAnalysis(m){
   if (!anQ.dws || anQ.dws < minWs || anQ.dws > maxWs) anQ.dws = monday(to < TODAY() ? to : TODAY()) < minWs ? minWs : monday(to < TODAY() ? to : TODAY());
   const byDay = anQ.gran === "day", dser = byDay ? dailySeries(a.email, anQ.dws) : null;
   /* "Dividi per categoria" + una categoria scelta: la metrica (volume, serie, serie allenanti) conta solo gli esercizi di quella categoria */
-  const SPL = (anQ.split === "cat" || anQ.split === "lat") && ["volume", "sets", "hard"].includes(anQ.metric), GK = anQ.split === "lat" ? "lat" : "cat";
+  const SPL = SPL_K.includes(anQ.split) && ["volume", "sets", "hard"].includes(anQ.metric), GK = SPL_K.includes(anQ.split) ? anQ.split : "cat";
   const catsD = SPL ? new Set(ser.flatMap(o => Object.entries(weekNums(o, anQ.metric)[GK]).filter(([, c]) => anQ.metric === "volume" ? c.vb[anQ.vk] : anQ.metric === "sets" ? c.sets : c.hard).map(([n]) => n))) : new Set();
-  const catsP = !SPL ? [] : GK === "lat" ? LAT_ORDER.filter(c => c !== "Non classificato" || catsD.has(c)) : catOrder([...new Set([...optList("cat"), ...catsD])]);   // tutte le categorie, anche senza dati (tratteggiate): si vede cosa non è stato allenato
+  const catsP = !SPL ? [] : grpOrder(GK, [...new Set([...grpAll(GK), ...catsD])]).filter(c => !/^(Non classificato|Senza (stimolo|ruolo|pattern|categoria))$/.test(c) || catsD.has(c));   // tutte le categorie, anche senza dati (tratteggiate): si vede cosa non è stato allenato
   if (SPL && anQ.cf && anQ.cf !== "all" && !catsP.includes(anQ.cf)) anQ.cf = "all";
   const CF = SPL && anQ.cf && anQ.cf !== "all" ? anQ.cf : "";
   if (CF) [ser, ...(dser ? [dser] : [])].forEach(L => L.forEach(o => { const c = weekNums(o, anQ.metric)[GK][CF]; o[anQ.metric] = !c ? 0 : anQ.metric === "volume" ? (c.vb[anQ.vk] || 0) : anQ.metric === "sets" ? c.sets : c.hard; }));
@@ -3713,7 +3755,10 @@ async function viewAnalysis(m){
     if (e.hMax != null) t.hMax = Math.max(t.hMax ?? 0, e.hMax);
     if (e.tMin != null) t.tMin = Math.min(t.tMin ?? Infinity, e.tMin); }); });
   const best = e => e.kgMax != null ? `${fmtN(e.kgMax, 1)} kg` : e.hMax != null ? `${fmtN(e.hMax)} cm` : e.tMin != null ? `${fmtN(e.tMin, 2)} s` : "–";
-  const exRows = Object.entries(exAgg).sort((x,y) => y[1].vol - x[1].vol || y[1].sets - x[1].sets);
+  let exRows = Object.entries(exAgg).sort((x,y) => y[1].vol - x[1].vol || y[1].sets - x[1].sets);
+  if (anQ.exBy !== "ex") { const G = {}; exRows.forEach(([n, e]) => { const m = movName(n), g = (G[m] ??= {sets: 0, reps: 0, vol: 0, sessions: 0, kids: []}); g.sets += e.sets; g.reps += e.reps; g.vol += e.vol; g.kids.push([n, e]); });
+    Object.values(G).forEach(g => g.sessions = null);
+    exRows = Object.entries(G).sort((x, y) => y[1].sets - x[1].sets).flatMap(([m, g]) => [[m, {...g, mov: true}], ...g.kids.map(([n, e]) => [n, {...e, kid: true}])]); }
   // sedute del periodo per "Andamento della seduta" (dalla più recente)
   const sessList = sessListFor(a);
   const sess = sessList.find(w => w.id === anQ.sess) || sessList.find(w => w.status === "done") || sessList[0] || null;
@@ -3764,18 +3809,18 @@ async function viewAnalysis(m){
       const head = (n, t, q) => `<div class="kgh"><span><b>${t}</b><span>${q}</span></span></div>`;
       return `<div class="kgroups">
         <div class="kgrp g-exp">${head(0, "Esposizione", "carico esterno · cosa è stato fatto")}<div class="kpis">${kpi("volume", "carico esterno")}${intCard}</div></div>
-        <div class="kgrp g-acu">${head(0, "Risposta acuta", "carico interno · come è stato vissuto")}<div class="kpis">${kpi("hard", "carico interno", "RPE ≥ 7 o RIR ≤ 3")}${kpi("srpe", "carico interno")}${trendCard}</div></div>
+        <div class="kgrp g-acu">${head(0, "Risposta acuta", "carico interno · come è stato vissuto")}<div class="kpis">${kpi("hard", "carico interno", (ov => `RPE ≥ 7 o RIR ≤ 3${ov ? ` · <b class="tcw" title="Serie preparatorie o defaticanti con RPE ≥ 7: lo stimolo è stato più alto di quello programmato">${ov} più dure del previsto</b>` : ""}`)(ser.reduce((t, o) => t + (o.over || 0), 0)))}${kpi("srpe", "carico interno")}${trendCard}</div></div>
         <div class="kgrp g-tmp">${head(0, "Risposta nel tempo", "adattamento · cosa è cambiato")}<div class="kpis">${recCard}</div></div>
       </div>`; })()}
     <section class="panel chartcard"><h3>${M.l} per ${byDay ? "giorno" : "settimana"}${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
-      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto). Clicca un giorno per sceglierlo e un altro per confrontarli, anche di settimane diverse." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per sceglierla e un'altra per confrontarle (sotto il grafico); da lì vedi anche i giorni."}${CF ? ` Solo gli esercizi della categoria <b>${esc(CF)}</b>.` : SPL ? (GK === "lat" ? " Ogni colonna è divisa tra esercizi bilaterali e unilaterali (Esecuzione nella scheda dell'esercizio)." : " Ogni colonna è divisa per categoria dell'esercizio (quella della libreria).") : anQ.metric === "srpe" || (anQ.metric !== "int" && anQ.metric !== "ten" && !kFilt(anQ.metric)) ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
+      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto). Clicca un giorno per sceglierlo e un altro per confrontarli, anche di settimane diverse." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per sceglierla e un'altra per confrontarle (sotto il grafico); da lì vedi anche i giorni."}${CF ? ` Solo le serie con ${SPL_L[GK].toLowerCase()} <b>${esc(CF)}</b>.` : SPL && GK === "stim" ? " Ogni colonna è divisa per stimolo (capacità), quello scelto o proposto sulle serie del programma." : SPL && GK === "mov" ? " Ogni colonna è divisa per movimento (pattern principale dell'esercizio)." : SPL && GK === "role" ? " Ogni colonna è divisa per ruolo delle serie nella seduta." : SPL ? (GK === "lat" ? " Ogni colonna è divisa tra esercizi bilaterali e unilaterali (Esecuzione nella scheda dell'esercizio)." : " Ogni colonna è divisa per categoria dell'esercizio (quella della libreria).") : anQ.metric === "srpe" || (anQ.metric !== "int" && anQ.metric !== "ten" && !kFilt(anQ.metric)) ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
       <div class="kfilt" role="group" aria-label="Vista"><span class="lbl">Vista</span>${[["week","Settimane"],["day","Giorni"]].map(([k,l]) => `<button class="${anQ.gran === k ? "on" : ""}" data-act="an-gran" data-v="${k}" aria-pressed="${anQ.gran === k}">${l}</button>`).join("")}
         ${byDay ? `<span class="wkn"><button class="btn sm ghost icon" data-act="an-dws" data-d="-1" aria-label="Settimana precedente" ${anQ.dws <= minWs ? "disabled" : ""}>‹</button><b>Sett. ${weekNo(anQ.dws)} · ${esc(fmtRange(anQ.dws))}</b><button class="btn sm ghost icon" data-act="an-dws" data-d="1" aria-label="Settimana successiva" ${anQ.dws >= maxWs ? "disabled" : ""}>›</button></span>` : ""}</div>
       ${anQ.metric === "volume" ? `<div class="kfilt" role="group" aria-label="Tipo di volume"><span class="lbl">Volume</span>${VOL_KEYS.map(q => `<button class="${anQ.vk === q ? "on" : ""} ${volHas[q] ? "" : "nodata"}" data-act="an-vk" data-v="${q}" aria-pressed="${anQ.vk === q}" ${volHas[q] ? "" : `title="Nessun dato nel periodo: questo stimolo non è stato allenato"`}>${VOLK[q].l}${VOLK[q].u ? ` (${VOLK[q].u})` : ""}</button>`).join("")}</div>` : ""}
       ${anQ.metric === "int" ? `<div class="kfilt" role="group" aria-label="Tipo di intensità"><span class="lbl">Intensità</span>${INT_KEYS.map(q => { const has = ser.some(o => o.intR?.[q]);
         return `<button class="${anQ.ik === q ? "on" : ""} ${has ? "" : "nodata"}" data-act="an-ik" data-v="${q}" aria-pressed="${anQ.ik === q}" ${has ? "" : `title="Nessun dato nel periodo"`}>${INTK[q].l} (${INTK[q].m})</button>`; }).join("")}</div>` : ""}
-      ${["volume", "sets", "hard"].includes(anQ.metric) ? `<div class="kfilt" role="group" aria-label="Dividi le colonne per"><span class="lbl">Dividi per</span>${[["kind", "Tipo di seduta"], ["cat", "Categoria"], ["lat", "Esecuzione"]].map(([k, l]) => `<button class="${(anQ.split || "kind") === k ? "on" : ""}" data-act="an-split" data-v="${k}" aria-pressed="${(anQ.split || "kind") === k}">${l}</button>`).join("")}</div>` : ""}
-      ${SPL ? `<div class="kfilt" role="group" aria-label="${GK === "lat" ? "Esecuzione" : "Categoria"}"><span class="lbl">${GK === "lat" ? "Esecuzione" : "Categoria"}</span>${["all", ...catsP].map(c => `<button class="${(anQ.cf || "all") === c ? "on" : ""} ${c === "all" || catsD.has(c) ? "" : "nodata"}" data-act="an-cf" data-v="${esc(c)}" aria-pressed="${(anQ.cf || "all") === c}" ${c === "all" || catsD.has(c) ? "" : `title="Nessun dato nel periodo${GK === "lat" ? "" : ": questa categoria non è stata allenata"}"`}>${c === "all" ? "Tutte" : esc(c)}</button>`).join("")}</div>`
+      ${["volume", "sets", "hard"].includes(anQ.metric) ? `<div class="kfilt" role="group" aria-label="Dividi le colonne per"><span class="lbl">Dividi per</span>${[["stim", "Stimolo"], ["mov", "Movimento"], ["role", "Ruolo"], ["lat", "Esecuzione"]].map(([k, l]) => `<button class="${anQ.split === k ? "on" : ""}" data-act="an-split" data-v="${k}" aria-pressed="${anQ.split === k}">${l}</button>`).join("")}</div>` : ""}
+      ${SPL ? `<div class="kfilt" role="group" aria-label="${SPL_L[GK]}"><span class="lbl">${SPL_L[GK]}</span>${["all", ...catsP].map(c => `<button class="${(anQ.cf || "all") === c ? "on" : ""} ${c === "all" || catsD.has(c) ? "" : "nodata"}" data-act="an-cf" data-v="${esc(c)}" aria-pressed="${(anQ.cf || "all") === c}" ${c === "all" || catsD.has(c) ? "" : `title="Nessun dato nel periodo${GK === "lat" ? "" : ": non è stata allenata"}"`}>${c === "all" ? "Tutte" : esc(c)}</button>`).join("")}</div>`
       : anQ.metric === "ten" ? (th => { const thb = (k, d, lab) => `<button class="arthb" data-act="ten-th" data-k="${k}" data-d="${d}" aria-label="${lab}">${d > 0 ? "+" : "−"}</button>`;
           return `<div class="kfilt tenth"><span class="lbl">Soglia</span><span>tempi ${thb("spr", -1, "Soglia tempi più stretta")}<b>± ${fmtN(th.spr, 2)} s</b>${thb("spr", 1, "Soglia tempi più larga")}</span>
             <span>salti ${thb("jmp", -1, "Soglia salti più stretta")}<b>${fmtN(th.jmp, 0)} cm</b>${thb("jmp", 1, "Soglia salti più larga")}</span>
@@ -3789,9 +3834,10 @@ async function viewAnalysis(m){
         <div class="cdesc" style="margin-top:4px">Monotonia (Foster): carico medio del giorno ÷ quanto varia da un giorno all'altro. Più è alta, più i giorni sono simili tra loro; sopra 2 la settimana è poco variata e, con un carico alto, aumenta il rischio di sovraccarico.</div>` : ""}</section>
     ${sessionPanelHtml(a, sessList, sess, true)}
     <div class="antables">
-      <section class="panel"><h3>Per esercizio</h3><div class="cdesc">${esc(a.name)} · ${fmtD(from)} – ${fmtD(to)}</div>
-        <div class="scroll-x"><table class="nt"><thead><tr><th>Esercizio</th><th>Sedute</th><th>Serie</th><th>Reps</th><th>Volume kg</th><th title="Kg massimi, altezza massima o tempo migliore">Migliore</th></tr></thead><tbody>
-        ${exRows.map(([n, e], j) => `<tr class="${j >= EX_SHOW && !anQ.exAll ? "exmore" : ""}"><td>${esc(n)}</td><td class="num">${e.sessions}</td><td class="num">${e.sets}</td><td class="num">${e.reps ? fmtN(e.reps) : "–"}</td><td class="num">${e.vol ? fmtN(e.vol) : "–"}</td><td class="num">${best(e)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nessun dato registrato nel periodo.</td></tr>`}
+      <section class="panel"><h3>Per ${anQ.exBy === "ex" ? "esercizio" : "movimento"}</h3><div class="cdesc">${esc(a.name)} · ${fmtD(from)} – ${fmtD(to)}${anQ.exBy === "ex" ? "" : " · sotto ogni movimento i mezzi usati"}</div>
+        <div class="kfilt" role="group" aria-label="Raggruppa" style="margin:8px 0 4px">${[["mov", "Movimento"], ["ex", "Esercizio"]].map(([k, l]) => `<button class="${(anQ.exBy || "mov") === k ? "on" : ""}" data-act="an-exby" data-v="${k}" aria-pressed="${(anQ.exBy || "mov") === k}">${l}</button>`).join("")}</div>
+        <div class="scroll-x"><table class="nt"><thead><tr><th>${anQ.exBy === "ex" ? "Esercizio" : "Movimento · mezzi"}</th><th>Sedute</th><th>Serie</th><th>Reps</th><th>Volume kg</th><th title="Kg massimi, altezza massima o tempo migliore">Migliore</th></tr></thead><tbody>
+        ${exRows.map(([n, e], j) => `<tr class="${j >= EX_SHOW && !anQ.exAll ? "exmore" : ""} ${e.mov ? "movr" : e.kid ? "kidr" : ""}"><td>${e.kid ? `<span class="faint">↳</span> ${esc(n)}` : e.mov ? `<b>${esc(n)}</b> <span class="faint">· ${e.kids.length} mezz${e.kids.length === 1 ? "o" : "i"}</span>` : esc(n)}</td><td class="num">${e.sessions ?? ""}</td><td class="num">${e.sets}</td><td class="num">${e.reps ? fmtN(e.reps) : "–"}</td><td class="num">${e.vol ? fmtN(e.vol) : "–"}</td><td class="num">${e.mov ? "" : best(e)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nessun dato registrato nel periodo.</td></tr>`}
         </tbody></table></div>${exRows.length > EX_SHOW ? `<button type="button" class="exmorebtn" data-act="an-exall" aria-expanded="${!!anQ.exAll}">${anQ.exAll ? `<span class="cxa o">▸</span>Mostra meno` : `<span class="cxa">▸</span>Mostra altri ${exRows.length - EX_SHOW}`}</button>` : ""}</section>
       <section class="panel"><h3>Confronto atleti</h3><div class="cdesc">${fmtD(from)} – ${fmtD(to)} · clicca un nome per vederne l'analisi</div>
         <div class="scroll-x"><table class="nt"><thead><tr><th>Atleta</th><th>Sedute fatte</th>${anQ.vk === "serie" ? "" : `<th>Serie</th>`}<th>${esc(VOLK[anQ.vk].l)}${VOLK[anQ.vk].u ? " " + VOLK[anQ.vk].u : ""}${kFilt("volume") ? ` <span class="faint">(${KINDS[kFilt("volume")].l})</span>` : ""}</th><th>sRPE medio sett.</th></tr></thead><tbody>
@@ -3829,7 +3875,7 @@ function weekNums(o, key){ const f = kFilt0(key), ks = f ? [f] : Object.keys(o.b
     Object.entries(q.vb || {}).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); Object.entries(q.is || {}).forEach(([v, x]) => { t.is[v] = (t.is[v] || 0) + x; t.in[v] = (t.in[v] || 0) + q.in[v]; }); }));
   /* vista "Serie allenanti": volume, serie, categorie e intensità contano solo le serie allenanti (RPE ≥ 7 o RIR ≤ 3) */
   const grpOf = f => { const m = {}; ks.forEach(k => Object.entries(o.byK[k]?.[f] || {}).forEach(([c, q]) => { const t = (m[c] ??= {sets: 0, hard: 0, vb: {}}); t.sets += H ? q.hard : q.sets; t.hard += q.hard; Object.entries((H ? q.vbH : q.vb) || {}).forEach(([v, x]) => t.vb[v] = (t.vb[v] || 0) + x); })); return m; };
-  const cat = grpOf("cat"), lat = grpOf("lat");
+  const cat = grpOf("cat"), lat = grpOf("lat"), stim = grpOf("stim"), stimE = grpOf("stimE"), mov = grpOf("mov"), role = grpOf("role");
   const intC = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries((H ? o.intCH : o.intC)?.[k] || {}).map(([c, L]) => [c, {avg: L.reduce((t, v) => t + v, 0) / L.length, max: Math.max(...L), n: L.length}]))]));
   const types = {}, rpes = [], vb = {}; let hard = 0, known = 0;
   ks.forEach(k => { const b = o.byK[k]; if (!b) return; Object.entries((H ? b.vbH : b.vb) || {}).forEach(([q, v]) => vb[q] = (vb[q] || 0) + v); Object.entries((H ? b.typesH : b.types) || {}).forEach(([t, n]) => types[t] = (types[t] || 0) + n); hard += b.hard || 0; known += b.known || 0; rpes.push(...(b.rpes || [])); });
@@ -3839,7 +3885,7 @@ function weekNums(o, key){ const f = kFilt0(key), ks = f ? [f] : Object.keys(o.b
   const sess = (o.sess || []).filter(q => ks.includes(q.k)), srpeK = Object.fromEntries(ks.map(k => [k, o.byK[k]?.srpe || 0]));
   const zones = Object.fromEntries(INT_KEYS.map(k => [k, INT_ZONES.map(([lo, hi]) => (o.intS?.[k] || []).filter(v => v >= lo && v < hi).length)]));
   const intE = Object.fromEntries(INT_KEYS.map(k => [k, Object.fromEntries(Object.entries(o.intE?.[k] || {}).map(([n, L]) => [n, {...rng(L), ref: o.intEr?.[k]?.[n]?.ref || null}]))]));
-  return {meth, sess, srpeK, zones, intE, pat, cat, lat, intC, types, vb, hard, known, rpe, H, int: (H ? o.intRH : o.intR) || {}, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: H ? hard : sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
+  return {meth, sess, srpeK, zones, intE, pat, cat, lat, stim, stimE, mov, role, over: sum("over"), overL: (o.overL || []), intC, types, vb, hard, known, rpe, H, int: (H ? o.intRH : o.intR) || {}, done: sum("done"), planned: sum("n"), volume: sum("volume"), sets: H ? hard : sum("sets"), srpe: sum("srpe"), kinds: KIND_KEYS.filter(k => ks.includes(k) && o.byK[k]?.n).map(k => ({k, done: o.byK[k].done, n: o.byK[k].n}))}; }
 const cmpKeys = day => day ? ["dA", "dB"] : ["cmpA", "cmpB"];
 const EX_SHOW = 8;   // "Per esercizio": righe visibili prima di "Mostra altri"
 /* fasce di intensità del dettaglio "Intensità" (% e1RM per i pesi, % record per sprint e salti) */
@@ -3849,6 +3895,11 @@ function planRpeOf(a, w){ if (!a || !w) return null; const d = effDate(w), mc = 
   const {pair} = mcPair(items, wOn(a.email, d)), j = pair.findIndex(x => x === w); return j >= 0 && items[j]?.rpe != null ? +items[j].rpe : null; }
 const dPts = (a, b) => !a || !b ? "" : (d => d === 0 ? `<span class="faint">=</span>` : `<span class="${d > 0 ? "up" : "dn"}">${d > 0 ? "+" : "−"}${Math.abs(d)} punti</span>`)(Math.round(b.avg) - Math.round(a.avg));
 /* categorie presenti per una voce (sottorighe "↳ categoria" di tabella e confronto: solo se sono almeno 2) */
+const SPL_K = ["stim", "mov", "role", "cat", "lat"], SPL_L = {stim: "Stimolo", mov: "Movimento", role: "Ruolo", cat: "Categoria", lat: "Esecuzione"};
+function grpOrder(g, L){ const all = grpAll(g); return [...all.filter(c => L.includes(c)), ...L.filter(c => !all.includes(c)).sort((a, b) => a.localeCompare(b, "it"))]; }
+function grpAll(g){ if (g === "lat") return LAT_ORDER; if (g === "cat") return catOrder(optList("cat"));
+  if (g === "stim") return [...stimData().caps.map(c => c.name), "Senza stimolo"]; if (g === "role") return [...stimData().roles.map(r => r.name), "Senza ruolo"];
+  if (g === "mov") return [...optList("pat"), "Senza pattern"]; return []; }
 const catsFor = (ns, f) => { const l = catOrder([...new Set(ns.filter(Boolean).flatMap(n => Object.keys(n.cat).filter(c => f(n.cat[c]))))]); return l.length > 1 ? l : []; };
 const intCats = (ns, k) => { const l = catOrder([...new Set(ns.filter(Boolean).flatMap(n => Object.keys(n.intC?.[k] || {})))]); return l.length > 1 ? l : []; };
 const intRowLbl = k => `${INTK[k].l} · ${INTK[k].m}`;
@@ -3873,7 +3924,7 @@ const tenTh = () => ({...TEN_TH0, ...(S.tenTh || {})});
 function tenOfSession(email, w){
   const out = [], th = tenTh(), d = effDate(w);
   (w.exercises || []).forEach(x => { const name = exName(w, x), k = intKind(x, name); if (k !== "spr" && k !== "jmp") return;
-    const rr = (w.results || {})[x.id] || [], ord = resOrder(x, rr).filter(j => rr[j] && !emptyRes(rr[j]));
+    const rr = (w.results || {})[x.id] || [], SMt = stimMapOf(w), ord = resOrder(x, rr).filter(j => rr[j] && !emptyRes(rr[j]) && !ROLE_NOHARD.includes(stimOfSet(SMt, x, j)?.role));   // serie preparatorie / defaticanti: non sono prove di prestazione
     const P = ord.map(j => { const r = rr[j], s = x.sets[j] || {}, es = x.cols.includes("esito") ? esitoOf(r.esito) : null;
       const raw = k === "spr" ? secOf(r.time) : numv(r.height), v = raw && raw > 0 && !(k === "jmp" && (es === "ko" || es === "rif")) ? raw : null;
       const dist = k === "spr" ? (numv(r.dist) ?? oneNum(s.dist)) : null;
@@ -3944,6 +3995,7 @@ function weekCmpHtml(ser, key, a){
   const exL = L => L.length > 3 ? L.slice(0, 3).join(", ") + ` +${L.length - 3}` : L.join(", ");
   const secMeth = METH.length ? [[`§${anQ.metric === "hard" ? "Serie allenanti per metodo" : "Metodo"}`], ...METH.map(([q, l]) => [l, n => n.meth?.[q] ? `<b>${n.meth[q].sets}</b> serie <span class="faint">· ${fmtN(n.meth[q].reps)} reps · ${esc(exL(n.meth[q].ex))}</span>` : `<span class="faint">–</span>`, (x, y) => dAbs(x.meth?.[q]?.sets || 0, y.meth?.[q]?.sets || 0), 1])] : [];
   const rowsHard = [["Serie allenanti", n => `<b>${n.hard}</b> <span class="faint">su ${n.known} con RPE/RIR</span>`, (x, y) => dAbs(x.hard, y.hard), 1],
+    ...([nA, nB].some(n => n?.over) ? [["Più dure del previsto", n => n.over ? `<b class="tcw">${n.over}</b> <span class="faint">preparatorie / defaticanti con RPE ≥ 7: ${esc([...new Set(n.overL.map(q => q.n))].slice(0, 3).join(", "))}</span>` : `<span class="faint">–</span>`, (x, y) => dAbsInv(x.over || 0, y.over || 0), 1]] : []),
     ...catsFor([nA, nB], c => c.hard).map(c => [`↳ ${esc(c)}`, n => n.cat[c]?.hard ? fmtN(n.cat[c].hard) : `<span class="faint">–</span>`, (x, y) => dAbs(x.cat[c]?.hard || 0, y.cat[c]?.hard || 0), 1, 1])];
   const rowRpe = ["RPE seduta", n => n.rpe ? `<b>${fmt1(n.rpe.avg)}</b>${n.rpe.n > 1 ? ` <span class="faint">${n.rpe.min === n.rpe.max ? "tutte " + fmt1(n.rpe.min) : `da ${fmt1(n.rpe.min)} a ${fmt1(n.rpe.max)}`}</span>` : ""}` : `<span class="faint">–</span>`, (x, y) => dRpe(x.rpe, y.rpe), 1];
   const intRowsFor = k => [[intRowLbl(k) + (nA.H ? ` <span class="faint">(allenanti)</span>` : ""), n => n.int[k] ? `<b>${fmtN(n.int[k].avg)}%</b> <span class="faint">max ${fmtN(n.int[k].max)}% · ${n.int[k].n} serie</span>` : `<span class="faint">–</span>`, (x, y) => dPts(x.int[k], y.int[k]), 1],
@@ -4009,11 +4061,21 @@ function weekCmpHtml(ser, key, a){
     ["Sotto il 95%", n => n.ten.nPost ? `<b>${n.ten.n95}</b> <span class="faint">su ${n.ten.nPost} prove dal picco in poi</span>` : `<span class="faint">–</span>`, (x, y) => dAbsInv(x.ten.n95, y.ten.n95), 1],
     ["Prove riuscite", n => n.ten.esN ? `<b>${n.ten.esOk}/${n.ten.esN}</b> <span class="faint">${tpc(n.ten.esOk, n.ten.esN)}% · dall'esito</span>` : `<span class="faint">–</span>`, (x, y) => dPP(tpc(x.ten.esOk, x.ten.esN), tpc(y.ten.esOk, y.ten.esN)), 1],
     ["Sedute", n => n.tenI.length ? `<div class="tenl">${tenBoxesHtml(n.tenI.slice().sort((p, q) => p.d.localeCompare(q.d)))}</div>` : `<span class="faint">nessuno sprint o salto misurato</span>`, () => "", 1]];
-  const rows = M === "ten" ? [...secSed, ...secTen, ["§Intensità"], ...rowsHard, rowRpe, ...rowsInt, rowSrpe]
+  /* --- stimoli, movimenti e ruoli: serie (allenanti) per capacità → espressione, per movimento, per ruolo --- */
+  const HS = M === "hard", sv = q => q ? (HS ? q.hard : q.sets) : 0, cell = (q, tot) => q && sv(q) ? `<b>${sv(q)}</b>${HS ? "" : ` <span class="faint">· ${q.hard} allenant${q.hard === 1 ? "e" : "i"}</span>`}${tot ? ` <span class="faint">· ${fmtN(sv(q) / tot * 100)}%</span>` : ""}` : `<span class="faint">–</span>`;
+  const keysOf = g => grpOrder(g, [...new Set([nA, nB].filter(Boolean).flatMap(n => Object.keys(n[g] || {}).filter(c => sv(n[g][c]))))]);
+  const totS = n => Object.values(n.stim || {}).reduce((t, q) => t + sv(q), 0);
+  const secStim = [[`§Stimoli${HS ? ` <span class="honly">solo serie allenanti</span>` : ""}`], ...keysOf("stim").flatMap(c => [
+      [esc(c), n => cell(n.stim?.[c], totS(n)), (x, y) => dAbs(sv(x.stim?.[c]), sv(y.stim?.[c])), 1],
+      ...Object.keys({...(nA.stimE || {}), ...(nB?.stimE || {})}).filter(e => e.startsWith(c + " · ") && [nA, nB].some(n => n && sv(n.stimE?.[e]))).map(e =>
+        [`↳ ${esc(e.slice(c.length + 3))}`, n => cell(n.stimE?.[e]), (x, y) => dAbs(sv(x.stimE?.[e]), sv(y.stimE?.[e])), 1, 1])]),
+    [`§Ruoli`], ...keysOf("role").map(c => [esc(c), n => cell(n.role?.[c]), (x, y) => dAbs(sv(x.role?.[c]), sv(y.role?.[c])), 1])];
+  const rows0 = M === "ten" ? [...secSed, ...secTen, ["§Intensità"], ...rowsHard, rowRpe, ...rowsInt, rowSrpe]
     : M === "srpe" ? [...secSed, ...secSrpe, ...secVol, ...secLat, ...secTys, ...secMeth, ["§Intensità"], ...rowsHard, ...rowsInt]   // l'RPE seduta è già nella sezione sRPE
     : M === "int" ? [...secSed, ...secIntFull, rowSrpe, ...secVol, ...secLat, ...secTys, ...secMeth]
     : M === "hard" ? [...secSed, ...secHard, ...secVol, ...secLat, ...secTys, ...secMeth, ["§Intensità"], rowRpe, ...rowsInt, rowSrpe]
     : [...secSed, ...secVol, ...secLat, ...secTys, ...secMeth, ...secInt, rowSrpe];
+  const rows = M === "ten" ? rows0 : [...rows0.slice(0, secSed.length), ...secStim, ...rows0.slice(secSed.length)];
   return `<div class="wcmp ${B ? "two" : ""}">
     <div class="h"></div><div class="h"><span class="abtag a">A</span>${esc(lab(A))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${A.ws}">vedi i giorni ›</button>`}</div>
     ${B ? `<div class="h"><span class="abtag b">B</span>${esc(lab(B))} ${day ? "" : `<button class="lnk" data-act="an-days" data-ws="${B.ws}">vedi i giorni ›</button>`}</div><div class="h k">B rispetto ad A</div>` : `<div class="h faint" style="font-weight:500">Tocca ${day ? "un altro giorno" : "un'altra colonna"} per confrontarl${day ? "o" : "a"} con questa</div>`}
@@ -4093,11 +4155,11 @@ function weekTableHtml(ser, key, g){
 }
 function drawBarChart(el, ser, key, a){
   if (!PATM[anQ.patM]) anQ.patM = "vol";
-  const GKc = anQ.split === "lat" ? "lat" : "cat", INT = key === "int", CAT = !INT && (anQ.split === "cat" || anQ.split === "lat") && ["volume", "sets", "hard"].includes(key), CFb = CAT && anQ.cf && anQ.cf !== "all" ? anQ.cf : "", TEN = key === "ten", stacked = !INT && !TEN && !CFb && (CAT || key === "srpe" || !kFilt0(key));
+  const GKc = SPL_K.includes(anQ.split) ? anQ.split : "cat", INT = key === "int", CAT = !INT && SPL_K.includes(anQ.split) && ["volume", "sets", "hard"].includes(key), CFb = CAT && anQ.cf && anQ.cf !== "all" ? anQ.cf : "", TEN = key === "ten", stacked = !INT && !TEN && !CFb && (CAT || key === "srpe" || !kFilt0(key));
   /* "Dividi per categoria": pezzi della colonna = categorie degli esercizi (dalla libreria), stessi colori in tutte le colonne */
   const NW = CAT ? ser.map(o => weekNums(o, key)) : null, cv = (n, c) => !n[GKc][c] ? 0 : key === "volume" ? (n[GKc][c].vb[anQ.vk] || 0) : key === "sets" ? n[GKc][c].sets : n[GKc][c].hard;
-  const CATS = !CAT ? [] : (L => GKc === "lat" ? LAT_ORDER.filter(c => L.includes(c)) : catOrder(L))([...new Set(NW.flatMap(n => Object.keys(n[GKc]).filter(c => cv(n, c))))]);
-  const catCol = c => { if (GKc === "lat") return c === "Bilaterale" ? "var(--s1)" : c === "Unilaterale" ? "var(--s2)" : "var(--faint)"; const i = CATS.indexOf(c); return i >= 0 && i < 8 ? `var(--s${i + 1})` : "var(--faint)"; };   // colonne divise per tipo di seduta: sRPE sempre, volume e serie quando il filtro è "Tutte"
+  const CATS = !CAT ? [] : grpOrder(GKc, [...new Set(NW.flatMap(n => Object.keys(n[GKc]).filter(c => cv(n, c))))]);
+  const catCol = c => { if (GKc === "lat") return c === "Bilaterale" ? "var(--s1)" : c === "Unilaterale" ? "var(--s2)" : "var(--faint)"; if (/^Senza /.test(c)) return "var(--faint)"; const i = GKc === "stim" || GKc === "role" ? grpAll(GKc).indexOf(c) : CATS.indexOf(c); return i >= 0 && i < 8 ? `var(--s${i + 1})` : "var(--faint)"; };   // colonne divise per tipo di seduta: sRPE sempre, volume e serie quando il filtro è "Tutte"
   const W = Math.max(320, el.clientWidth || 700), H = 240, padL = 44, padR = 8, padT = 18, padB = 46;
   const iw = W - padL - padR, ih = H - padT - padB;
   let max = niceMax(Math.max(...ser.map(o => o[key]), 0));
@@ -4530,9 +4592,9 @@ function drawSessionChart(el, w, sh = null){
 
 /* riquadro a destra della pagina Esercizi: Parametri · Categorie · Pattern motori */
 function libPanel(){
-  const t = S.libTab || "params";
-  return `<div class="libtabs" role="tablist">${[["params", "Parametri"], ["cat", "Categorie"], ["pat", "Pattern motori"]].map(([k, l]) => `<button role="tab" class="${t === k ? "on" : ""}" aria-selected="${t === k}" data-act="lib-tab" data-v="${k}">${l}</button>`).join("")}</div>
-    ${t === "params" ? paramsPanel() : optPanel(t)}`;
+  const t = S.libTab === "cat" ? "params" : S.libTab || "params";
+  return `<div class="libtabs" role="tablist">${[["params", "Parametri"], ["pat", "Movimenti"], ["caps", "Capacità"], ["roles", "Ruoli"]].map(([k, l]) => `<button role="tab" class="${t === k ? "on" : ""}" aria-selected="${t === k}" data-act="lib-tab" data-v="${k}">${l}</button>`).join("")}</div>
+    ${t === "params" ? paramsPanel() : t === "caps" ? capsPanel() : t === "roles" ? rolesPanel() : optPanel(t)}`;
 }
 /* ---------- parametri: elenco e creazione ---------- */
 function paramsPanel(){
@@ -4641,12 +4703,99 @@ const OPT_TXT = {cat: {one: "categoria", the: "la categoria", Tit: "Categorie", 
                  pat: {one: "pattern motorio", the: "il pattern", Tit: "Pattern motori", none: "senza pattern", New: "Nuovo pattern motorio"}};
 const optKey = v => String(v || "").trim().toLowerCase();
 const optUsers = (k, v) => S.exercises.filter(x => optKey(x[OPT_FIELD[k]]) === optKey(v));
+/* ===== STRUTTURA DEGLI STIMOLI (il coach la riempie e la corregge) =====
+   Capacità (2 livelli: capacità → espressione) = cosa si sviluppa · Ruoli = perché quella serie sta lì nella seduta ·
+   Movimenti (pattern) con le capacità sottostanti (contesto, non stimolo). Id interni stabili: rinominare o spostare non rompe lo storico.
+   Salvata in settings/app.stim. Per ora solo struttura: la scelta sulle serie arriverà nel passo successivo. */
+const STIM_DEF = () => { const C = (id, name, desc, ex) => ({id: "c_" + id, name, desc, expr: ex.map(([eid, n, d]) => ({id: "e_" + id + "_" + eid, name: n, desc: d || ""}))});
+  return {v: 1, caps: [
+    C("forza", "Forza", "", [["max", "Massima", "carichi alti, poche ripetizioni, recuperi lunghi"], ["espl", "Esplosiva / potenza", "forza-velocità: carichi medi a massima velocità, lontano dal cedimento"], ["rap", "Rapida / balistica", "velocità-forza: carichi leggeri o lanci, sviluppo rapido della forza"], ["reat", "Reattiva", "ciclo stiramento-accorciamento, contatti brevi"], ["res", "Resistente", "molte ripetizioni, recuperi brevi"]]),
+    C("strutt", "Struttura", "", [["iper", "Ipertrofia", "volume vicino al cedimento, tempo sotto tensione"], ["anat", "Adattamento anatomico", "tendini, articolazioni, prevenzione"]]),
+    C("vel", "Velocità", "", [["acc", "Accelerazione", ""], ["max", "Velocità massima", ""], ["res", "Resistenza alla velocità", ""], ["rap", "Rapidità / agilità", "cambi di direzione"]]),
+    C("res", "Resistenza", "", [["aerc", "Aerobica · capacità", ""], ["aerp", "Aerobica · potenza", ""], ["anc", "Anaerobica · capacità", ""], ["anp", "Anaerobica · potenza", ""], ["rsa", "Sprint ripetuti", ""]]),
+    C("coord", "Coordinative", "Da scegliere come stimolo solo quando sono l'intento; altrimenti stanno sotto i movimenti (capacità sottostanti)", [["reaz", "Reazione", ""], ["equil", "Equilibrio", ""], ["ritmo", "Ritmo", ""], ["orient", "Orientamento spaziale", ""], ["diff", "Differenziazione", ""], ["comb", "Combinazione", ""], ["trasf", "Trasformazione", ""]]),
+    C("tec", "Tecnica", "", [["appr", "Apprendimento", ""], ["cons", "Consolidamento", ""], ["perf", "Perfezionamento", ""], ["transf", "Transfer", ""]]),
+    C("mob", "Mobilità", "", [["art", "Mobilità articolare", ""]])],
+  roles: [{id: "r_prep", name: "Preparatorio / tecnico", desc: "set-up, mezzi che predispongono il gesto (es. marcia → volo → corsa prima dello sprint)", type: ""},
+    {id: "r_ramp", name: "Attivazione (ramping)", desc: "serie che salgono verso il lavoro", type: "R"},
+    {id: "r_work", name: "Allenante (work)", desc: "le serie target", type: "W"},
+    {id: "r_back", name: "Back-off", desc: "dopo il picco, carico ridotto", type: "B"},
+    {id: "r_down", name: "Defaticante (down / cool-down)", desc: "ritorno, scarico", type: "D"}],
+  patCaps: {}}; };
+const stimData = () => S.stim || STIM_DEF();
+/* categoria → stimolo di partenza (per gli esercizi che non l'hanno ancora) e stimolo → categoria interna (le regole del volume e delle alternative la usano ancora) */
+function catToExpr(cat, l = {}){ const c = ck(cat), cols = l.cols || [];
+  const e = /potenz|olimp/.test(c) ? "e_forza_espl" : /pliometr|balz|rimbalz/.test(c) ? "e_forza_reat" : /velocit|sprint/.test(c) ? "e_vel_max" : /tecnica/.test(c) ? "e_tec_cons"
+    : /mobil|stretch/.test(c) ? "e_mob_art" : /prevenz|corrett|core/.test(c) ? "e_strutt_anat" : /condizion|resist/.test(c) ? "e_res_aerc" : /riscald|attivaz/.test(c) ? "e_tec_cons"
+    : /ipertrof/.test(c) ? "e_strutt_iper" : /forza/.test(c) ? "e_forza_max" : null;
+  return e && exprById(e) ? e : null; }
+const EXPR_CAT = {e_forza_max: "Forza", e_forza_res: "Forza", e_strutt_iper: "Forza", e_forza_espl: "Potenza", e_forza_rap: "Potenza", e_forza_reat: "Pliometria", e_strutt_anat: "Prevenzione", e_mob_art: "Mobilità"};
+function exprToCat(id, pattern){ const q = exprById(id); if (!q) return "";
+  if (EXPR_CAT[id]) return EXPR_CAT[id]; const c = q.cap.id;
+  return c === "c_vel" ? "Velocità" : c === "c_res" ? "Condizionamento" : c === "c_tec" ? (/salto in alto/i.test(pattern || "") ? "Tecnica salto" : "Tecnica") : c === "c_coord" ? "Coordinazione" : q.cap.name; }
+const stim0Of = l => l && (exprById(l.stim0) ? l.stim0 : catToExpr(l.category, l));
+async function stimSave(d){ STIMV++; S.stim = d; await DB.saveSettings({stim: d}); }
+const exprById = id => { for (const c of stimData().caps) { const e = c.expr.find(q => q.id === id); if (e) return {cap: c, expr: e}; } return null; };
+function capsPanel(){ const D = stimData();
+  return `<div class="form"><div class="note"><b>Capacità = cosa vuoi sviluppare.</b> Ogni capacità ha le sue espressioni, più specifiche. Nel programma sceglierai l'espressione (e il ruolo) per ogni gruppo di serie: in arrivo. Puoi aggiungere, rinominare, spostare ed eliminare: lo storico segue le voci anche se cambi il nome.${S.stim ? "" : " <i>Questa è la bozza di partenza: si salva quando la modifichi.</i>"}</div>
+    <div class="stree">${D.caps.map(c => `<div class="scap"><div class="prow scaph"><span class="grow"><b>${esc(c.name)}</b>${c.desc ? `<div class="faint" style="font-size:12px">${esc(c.desc)}</div>` : ""}</span>
+        <button class="lnk" data-act="stim-ed" data-k="cap" data-id="${c.id}">Modifica</button><button class="lnk" data-act="stim-new" data-k="expr" data-id="${c.id}">+ espressione</button></div>
+      ${c.expr.map(e => `<div class="prow sexpr"><span class="grow">${esc(e.name)}${e.desc ? ` <span class="faint" style="font-size:12px">· ${esc(e.desc)}</span>` : ""}</span><button class="lnk" data-act="stim-ed" data-k="expr" data-id="${e.id}">Modifica</button></div>`).join("") || `<div class="prow sexpr faint">nessuna espressione</div>`}</div>`).join("")}</div>
+    <button class="btn" data-act="stim-new" data-k="cap">+ Nuova capacità</button></div>`; }
+function rolesPanel(){ const D = stimData();
+  return `<div class="form"><div class="note"><b>Ruolo = perché quella serie sta lì nella seduta.</b> Si collega ai tipi di serie che usi già (Ramp, Work, Back-off, Down): sceglierai il ruolo insieme all'espressione sui gruppi di serie.</div>
+    <div class="plist">${D.roles.map(r => `<div class="prow"><span class="grow"><b>${esc(r.name)}</b>${r.type ? ` ${typeBadge(r.type)}` : ""}${r.desc ? `<div class="faint" style="font-size:12px">${esc(r.desc)}</div>` : ""}</span><button class="lnk" data-act="stim-ed" data-k="role" data-id="${r.id}">Modifica</button></div>`).join("")}</div>
+    <button class="btn" data-act="stim-new" data-k="role">+ Nuovo ruolo</button></div>`; }
+/* finestra: nuova / modifica capacità, espressione, ruolo */
+function stimDialog(k, id, isNew){
+  const D = clone(stimData()), cap = k === "cap" && !isNew ? D.caps.find(c => c.id === id) : null, ex = k === "expr" && !isNew ? exprById(id) : null, role = k === "role" && !isNew ? D.roles.find(r => r.id === id) : null;
+  const cur = cap || (ex && ex.expr) || role || {name: "", desc: ""}, parent = k === "expr" ? (isNew ? id : ex.cap.id) : null;
+  const T = {cap: "capacità", expr: "espressione", role: "ruolo"}[k];
+  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="st-form"><header><h2>${isNew ? (k === "expr" ? "Nuova" : k === "cap" ? "Nuova" : "Nuovo") : "Modifica"} ${T}</h2></header><div class="body">
+    <div class="field"><label class="lbl" for="st-n">Nome</label><input class="in" id="st-n" value="${esc(cur.name)}" required autocomplete="off"></div>
+    <div class="field"><label class="lbl" for="st-d">Descrizione <span class="faint">(facoltativa)</span></label><textarea class="in" id="st-d" rows="2">${esc(cur.desc || "")}</textarea></div>
+    ${k === "expr" ? `<div class="field"><label class="lbl" for="st-p">Capacità</label><select class="in" id="st-p">${D.caps.map(c => `<option value="${c.id}" ${c.id === parent ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>` : ""}
+    ${k === "role" ? `<div class="field"><label class="lbl" for="st-t">Tipo di serie collegato</label><select class="in" id="st-t"><option value="">— nessuno —</option>${Object.entries(SET_TYPES).map(([t, o]) => `<option value="${t}" ${(cur.type || "") === t ? "selected" : ""}>${esc(o.l)}</option>`).join("")}</select></div>` : ""}
+    ${k === "cap" && !isNew && cap.expr.length ? `<div class="faint" style="font-size:12px">Eliminandola si eliminano anche le sue ${cap.expr.length} espressioni (spostale prima, se vuoi tenerle).</div>` : ""}
+    </div><footer>${isNew ? "" : `<button type="button" class="btn ghost danger" id="st-del">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="st-no">Annulla</button><button class="btn pri">${isNew ? "Aggiungi" : "Salva"}</button></footer></form></div>`;
+  const close = () => $("#confirm").innerHTML = "";
+  $("#st-no").onclick = close;
+  const del = $("#st-del"); if (del) del.onclick = async () => { close(); if (!(await confirmBox(`Eliminare ${k === "role" ? "il ruolo" : k === "cap" ? "la capacità" : "l'espressione"} «${cur.name}»?`, "Elimina"))) return;
+    if (k === "cap") D.caps = D.caps.filter(c => c.id !== id); else if (k === "role") D.roles = D.roles.filter(r => r.id !== id);
+    else D.caps.forEach(c => c.expr = c.expr.filter(e => e.id !== id));
+    if (k !== "role") Object.keys(D.patCaps).forEach(pk => D.patCaps[pk] = D.patCaps[pk].filter(eid => D.caps.some(c => c.expr.some(e => e.id === eid))));
+    await stimSave(D); toast(`«${cur.name}» eliminato`); renderView(); };
+  $("#st-form").onsubmit = async ev => { ev.preventDefault();
+    const name = $("#st-n").value.trim().replace(/\s+/g, " "), desc = $("#st-d").value.trim(); if (!name) return;
+    if (k === "cap") { if (D.caps.some(c => c.id !== id && optKey(c.name) === optKey(name))) return toast(`«${name}» esiste già`);
+      if (isNew) D.caps.push({id: "c_" + uid(), name, desc, expr: []}); else Object.assign(D.caps.find(c => c.id === id), {name, desc}); }
+    else if (k === "role") { const type = $("#st-t").value; if (isNew) D.roles.push({id: "r_" + uid(), name, desc, type}); else Object.assign(D.roles.find(r => r.id === id), {name, desc, type}); }
+    else { const to = D.caps.find(c => c.id === $("#st-p").value); if (to.expr.some(e => e.id !== id && optKey(e.name) === optKey(name))) return toast(`«${name}» c'è già in ${to.name}`);
+      if (isNew) to.expr.push({id: "e_" + uid(), name, desc});
+      else { let e; D.caps.forEach(c => { const i = c.expr.findIndex(q => q.id === id); if (i >= 0) e = c.expr.splice(i, 1)[0]; }); Object.assign(e, {name, desc}); to.expr.push(e); } }   // spostata: stesso id, segue lo storico
+    close(); await stimSave(D); toast(isNew ? `«${name}» aggiunto` : "Salvato"); renderView(); };
+  setTimeout(() => { const i = $("#st-n"); i?.focus(); i?.select(); }, 30);
+}
+/* capacità sottostanti di un movimento (contesto: cosa richiede, non cosa si allena) */
+function patCapsDialog(v){
+  const D = clone(stimData()), key = optKey(v), sel = new Set(D.patCaps[key] || []);
+  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="pc-form"><header><h2>${esc(v)} · capacità sottostanti</h2></header><div class="body">
+    <div class="faint" style="font-size:13px">Cosa richiede questo movimento (es. la partenza dello sprint si basa anche sulla reazione). È contesto: non conta come stimolo allenato.</div>
+    ${D.caps.map(c => c.expr.length ? `<div class="field"><span class="lbl">${esc(c.name)}</span><div class="colpick">${c.expr.map(e => `<label class="pcchk"><input type="checkbox" value="${e.id}" ${sel.has(e.id) ? "checked" : ""}> ${esc(e.name)}</label>`).join("")}</div></div>` : "").join("")}
+    </div><footer><span class="grow"></span><button type="button" class="btn" id="pc-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
+  const close = () => $("#confirm").innerHTML = "";
+  $("#pc-no").onclick = close;
+  $("#pc-form").onsubmit = async ev => { ev.preventDefault(); const L = [...document.querySelectorAll("#pc-form input:checked")].map(i => i.value);
+    if (L.length) D.patCaps[key] = L; else delete D.patCaps[key]; close(); await stimSave(D); toast("Salvato"); renderView(); };
+}
 /* riquadro "Categorie" / "Pattern motori" della pagina Esercizi */
 function optPanel(k){
-  const T = OPT_TXT[k], list = optList(k);
-  return `<div class="form"><div class="note">Se rinomini una voce, si aggiornano tutti gli esercizi che la usano${k === "pat" ? " (anche Analisi e Progressione)" : ""}.</div>
+  const T = OPT_TXT[k], list = optList(k), PC = k === "pat" ? stimData().patCaps : null;
+  const pcLine = v => { if (!PC) return ""; const L = (PC[optKey(v)] || []).map(exprById).filter(Boolean);
+    return `<div class="pcline">${L.length ? `<span class="faint">capacità sottostanti:</span> ${L.map(q => `<span class="pcc">${esc(q.expr.name)}</span>`).join("")}` : ""}<button class="lnk pcadd" data-act="patcaps" data-v="${esc(v)}" title="Capacità sottostanti: cosa richiede questo movimento">${L.length ? "✎" : "+ capacità sottostanti"}</button></div>`; };
+  return `<div class="form"><div class="note">${k === "pat" ? "<b>Movimento = il movimento che vuoi ottenere</b> (pattern principale dell'esercizio: la destinazione del transfer). Le capacità sottostanti dicono cosa richiede, senza contare come stimolo. " : ""}Se rinomini una voce, si aggiornano tutti gli esercizi che la usano${k === "pat" ? " (anche Analisi e Progressione)" : ""}.</div>
     <div class="plist">${list.map(v => { const n = optUsers(k, v).length;
-      return `<div class="prow"><span class="grow"><b>${esc(v)}</b></span>${n ? `<button class="lnk" data-act="opt-show" data-v="${esc(v)}" title="Mostra questi esercizi nell'elenco">${n} esercizi${n === 1 ? "o" : ""}</button>` : `<span class="faint" style="font-size:12px">non usato</span>`}<button class="btn sm ghost" data-act="opt-edit" data-k="${k}" data-v="${esc(v)}">Modifica</button></div>`; }).join("") || `<div class="prow faint">Nessuna voce.</div>`}</div>
+      return `<div class="prow"><span class="grow"><b>${esc(v)}</b>${pcLine(v)}</span>${n ? `<button class="lnk" data-act="opt-show" data-v="${esc(v)}" title="Mostra questi esercizi nell'elenco">${n} esercizi${n === 1 ? "o" : ""}</button>` : `<span class="faint" style="font-size:12px">non usato</span>`}<button class="btn sm ghost" data-act="opt-edit" data-k="${k}" data-v="${esc(v)}">Modifica</button></div>`; }).join("") || `<div class="prow faint">Nessuna voce.</div>`}</div>
     <button class="btn" data-act="opt-new" data-k="${k}">+ ${T.New}</button></div>`;
 }
 async function saveOpts(k, list){
@@ -4683,6 +4832,8 @@ function optDialog(k, v){
     if (clash && !(await confirmBox(`«${clash}» esiste già. Unisco «${v}» a «${clash}»? ${users.length ? `I ${users.length} esercizi di «${v}» passano a «${clash}».` : ""}`, "Unisci", false))) return;
     const target = clash || nv;
     for (const x of users) { x[OPT_FIELD[k]] = target; await DB.saveExercise(x); }
+    if (k === "pat") { for (const x of S.exercises.filter(y => (y.patIn || []).some(q => optKey(q) === optKey(v)))) { x.patIn = [...new Set(x.patIn.map(q => optKey(q) === optKey(v) ? target : q))]; await DB.saveExercise(x); }   // pattern contenuti
+      const D = clone(stimData()); if (D.patCaps[optKey(v)]) { D.patCaps[optKey(target)] = [...new Set([...(D.patCaps[optKey(target)] || []), ...D.patCaps[optKey(v)]])]; delete D.patCaps[optKey(v)]; await stimSave(D); } }
     await saveOpts(k, optList(k).map(o => optKey(o) === optKey(v) ? target : o));
     toast(clash ? `Unito a «${target}»` : `Rinominato in «${target}»`); renderView(); };
   setTimeout(() => { const i = $("#op-n"); i?.focus(); i?.select(); }, 30);
@@ -4794,6 +4945,164 @@ function openEditor(email, w, isNew=false, tpl=false){
   if (email && !tpl) { const E = S.editor, from = addDays(monday(w.date || TODAY()), -7 * 16);
     ensureWeeks(email, from, 17).then(() => { if (S.editor === E && !$("#confirm").innerHTML) drawEditor(); }).catch(e => console.error(e)); }
 }
+/* ===== FIRMA DELLO STIMOLO (per movimento) =====
+   Lo stimolo programmato è già scritto nel programma: per ogni MOVIMENTO (pattern motorio, non l'esercizio: back squat e front squat = squat)
+   l'app legge la "firma": forma delle serie (work setting), dose, intensità, posizione nella seduta, recuperi, modalità. Il significato lo darà il coach. */
+function firmaSeq(email, w){
+  const ex = namedEx(w), out = []; let pos = 0;
+  ssGroups(ex).forEach(g => { const len = Math.max(0, ...g.map(i => (ex[i].sets || []).length));
+    for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], st = (x.sets || [])[j]; if (!st) return; pos++;
+      const name = exName(w, x), pat = pcOf(name), src = archPlan(st);
+      let rpe = setRpe(src)?.v ?? null; const ra = arRng(st.rpe), rb = arRng(st.rir); if (ra) rpe = (ra[0] + ra[1]) / 2; else if (rb && !String(st.rpe ?? "").trim()) rpe = 10 - (rb[0] + rb[1]) / 2;
+      const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
+      const pct = oneNum(st.pct) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
+      out.push({pos, name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+  return out; }
+const FIRMA_EPS = {pct: 1.5, rpe: 0.25};
+function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
+  const eps = m === "kg" ? Math.max(...L) * 0.015 : FIRMA_EPS[m] || 0;
+  const seg = []; L.forEach(z => { const s0 = seg[seg.length - 1]; if (s0 && Math.abs(z - s0.v) <= eps) s0.n++; else seg.push({v: z, n: 1}); });
+  if (seg.length === 1) return "lineare";
+  const d = seg.slice(1).map((s0, i) => s0.v > seg[i].v ? 1 : -1), ch = d.slice(1).filter((z, i) => z !== d[i]).length, mx = Math.max(...seg.map(z => z.v)), mxSeg = seg.filter(z => z.v === mx);
+  if (ch === 0) return d[0] > 0 ? (seg[seg.length - 1].n >= 2 ? "crescente tronco" : "crescente") : (seg[0].n >= 2 ? "decrescente tronco" : "decrescente");
+  if (ch === 1) return d[0] > 0 ? (mxSeg.some(z => z.n >= 2) ? "piramidale tronco" : "piramidale") : "simmetrico";
+  return "onda"; }
+const FIRMA_SHAPE_D = {"lineare": "stessa intensità in tutte le serie (consolidamento)", "crescente": "intensità che sale serie dopo serie", "crescente tronco": "sale e poi si ferma sul carico più alto (perfezionamento)",
+  "decrescente": "parte dal carico più alto e scende", "decrescente tronco": "più serie al carico più alto, poi scende", "piramidale": "sale fino a un picco e scende", "piramidale tronco": "sale, tiene il picco per più serie, scende (perfezionamento)",
+  "simmetrico": "alto, poi più basso, poi di nuovo alto", "onda": "l'intensità sale e scende più volte (transfer)", "serie singola": ""};
+function firmaOf(email, w){
+  const seq = firmaSeq(email, w), N = seq.length, by = new Map();
+  seq.forEach(o => { if (!by.has(o.key)) by.set(o.key, []); by.get(o.key).push(o); });
+  return {N, seq, mv: [...by.values()].map(L => {
+    const n = L.length, names = [...new Set(L.map(o => o.name))], pat = L[0].pat || "";
+    /* intensità con cui leggere la forma: %1RM scritto nel programma, se no RPE/RIR (carico interno, come prescrive Giuseppe), se no % dell'e1RM, se no kg */
+    const has = q => L.filter(o => o[q] != null).length, pres = L.filter(o => oneNum(o.st.pct) != null).length, ord = pres >= n * .5 ? ["pct", "rpe", "kg"] : ["rpe", "pct", "kg"];
+    const m = ord.find(q => has(q) === n) || ord.find(q => has(q) >= n * .5) || null;
+    const v = L.map(o => m ? o[m] : null), vv = v.filter(z => z != null), mx = vv.length ? Math.max(...vv) : null, eps = m === "kg" ? (mx || 0) * .015 : FIRMA_EPS[m] || 0;
+    const shape = m ? firmaShape(v, m) : "", ip = mx != null ? v.findIndex(z => z != null && z >= mx - eps) : -1;
+    const typed = L.some(o => o.type), work = L.filter(o => o.type === "W");
+    const ramp = typed ? L.filter(o => o.type === "R").length : ip > 0 ? ip : 0, back = typed ? L.filter(o => o.type === "B" || o.type === "D").length : 0;
+    const peakW = typed && ip >= 0 && L[ip].type === "W" ? work.indexOf(L[ip]) + 1 : null;
+    const hard = has("rpe") ? L.filter(o => o.rpe != null && o.rpe >= 7 - 1e-9).length : null;
+    const rt = L.map(o => o.repsTxt).filter(Boolean), reps = !rt.length ? "" : rt.every(z => z === rt[0]) ? "× " + rt[0] : rt.length <= 6 ? rt.join("-") : `${Math.min(...L.map(o => o.reps ?? 99))}–${Math.max(...L.map(o => o.reps ?? 0))} rip.`;
+    const totR = L.reduce((t, o) => t + (o.reps || 0), 0);
+    const fm = z => m === "pct" ? Math.round(z) + "%" : m === "rpe" ? fmtN(z, Number.isInteger(z) ? 0 : 1) : fmtN(z, 1) + " kg";
+    const iTxt = !vv.length ? "" : (lo => lo === mx ? (m === "rpe" ? "RPE " : "") + fm(mx) : `${m === "rpe" ? "RPE " : ""}${fm(lo)}–${fm(mx)}`)(Math.min(...vv)) + (m === "pct" && L.some(o => oneNum(o.st.pct) == null) ? " e1RM" : "");
+    const uniq = q => [...new Set(L.map(o => o[q]).filter(Boolean))];
+    return {key: L[0].key, pat, names, L, n, m, v, shape, ip, ramp, back, peakW, hard, reps, totR, iTxt, rest: uniq("rest"), tut: uniq("tut"), cl: L.filter(o => o.cl).length, first: L[0].pos, last: L[n - 1].pos}; })}; }
+/* ===== FASI DELLO STIMOLO (passo 2) =====
+   Le serie di un movimento si dividono in FASI (gruppi di serie con lo stesso scopo). A ogni fase: espressione principale (capacità → espressione),
+   eventuali secondarie e ruolo. Si salvano sulle serie (st.stim, st.stim2, st.role); se il coach non sceglie vale la PROPOSTA dell'app
+   (dalla categoria dell'esercizio e dalla firma: tipo di serie, tempo sotto tensione, posizione rispetto al picco, intensità, distanza). */
+const tutSec = v => { const n = String(v ?? "").match(/\d+/g); return n && n.length >= 3 ? n.reduce((t, z) => t + +z, 0) : null; };   // 3-1-1-0 → 5 s a ripetizione
+const TUT_LONG = 6;
+const stimOk = id => !!(id && exprById(id)), roleOk = id => !!(id && stimData().roles.some(r => r.id === id));
+const roleByType = t => stimData().roles.find(r => r.type && r.type === t)?.id || null;
+/* proposta per una serie (dentro il suo movimento: k = posizione, ip = picco) */
+function stimPropose(o, k, ip){
+  const long = o.tutS != null && o.tutS >= TUT_LONG, c = ck(o.cat), hiInt = (o.rpe != null && o.rpe >= 8) || (o.pct != null && o.pct >= 85);
+  let role = o.type ? roleByType(o.type) : null;
+  if (!role) role = long && (ip < 0 || k < ip) ? "r_prep" : /riscald|attivaz/.test(c) ? "r_prep" : ip >= 0 && k < ip ? "r_ramp" : "r_work";
+  let e = null, e2 = [];
+  if (long) { e = "e_tec_appr"; if (hiInt || (o.reps != null && o.reps >= 6)) e2.push("e_strutt_iper"); }
+  else if (exprById(o.s0)) { e = o.s0; if (exprById(e).cap.id === "c_vel" && ["e_vel_acc", "e_vel_max"].includes(e) && o.dist != null) e = o.dist <= 30 ? "e_vel_acc" : "e_vel_max"; }
+  else if (/potenz|olimp/.test(c)) e = "e_forza_espl";
+  else if (/pliometr|balz|rimbalz/.test(c)) e = "e_forza_reat";
+  else if (/velocit|sprint/.test(c)) e = o.dist != null && o.dist <= 30 ? "e_vel_acc" : "e_vel_max";
+  else if (/tecnica/.test(c)) e = "e_tec_cons";
+  else if (/mobil|stretch/.test(c)) e = "e_mob_art";
+  else if (/prevenz|corrett|core/.test(c)) e = "e_strutt_anat";
+  else if (/condizion|resist/.test(c)) e = "e_res_aerc";
+  else if (/forza/.test(c)) e = o.reps != null && o.reps >= 8 && !hiInt ? "e_strutt_iper" : "e_forza_max";
+  return {e: stimOk(e) ? e : null, e2: e2.filter(stimOk), role: roleOk(role) ? role : null}; }
+/* fasi di un movimento: nuova fase quando cambia l'esercizio, quando cambia la scelta del coach, quando c'è un taglio voluto (st.fb)
+   o, finché il coach non ha scelto, quando cambia il tipo di serie o il tempo sotto tensione */
+function stimFasi(f){
+  const L = f.L, F = [];
+  L.forEach((o, k) => { const st = o.st, asg = !!(st.stim || st.role), p = stimPropose(o, k, f.ip), z = F[F.length - 1], a = z?.L[z.L.length - 1];
+    const sig = asg ? `A|${st.stim || ""}|${(st.stim2 || []).join(",")}|${st.role || ""}` : `P|${p.e}|${p.e2.join(",")}|${p.role}|${o.type}|${o.tutS != null && o.tutS >= TUT_LONG}`;
+    if (z && a.x.id === o.x.id && z.sig === sig && !st.fb) { z.L.push(o); z.ks.push(k); }
+    else F.push({sig, L: [o], ks: [k], asg, p}); });
+  return F.map(z => { const s0 = z.L[0].st;
+    const e = z.asg ? (stimOk(s0.stim) ? s0.stim : null) : z.p.e, e2 = z.asg ? (s0.stim2 || []).filter(stimOk) : z.p.e2, role = z.asg ? (roleOk(s0.role) ? s0.role : null) : z.p.role;
+    return {...z, e, e2, role, cut: !!s0.fb, from: z.ks[0] + 1, to: z.ks[z.ks.length - 1] + 1}; }); }
+const exprLbl = id => { const q = exprById(id); return q ? `${q.cap.name} · ${q.expr.name}` : ""; };
+function fasiHtml(f, w){
+  const D = stimData(), F = stimFasi(f), refs = z => z.L.map(o => `${o.x.id}:${o.j}`).join(",");
+  const exprSel = (z, cur, act, ph) => `<select class="in fzsel" data-change="${act}" data-sets="${refs(z)}" aria-label="${ph}"><option value="">${ph}</option>${D.caps.map(c => c.expr.length ? `<optgroup label="${esc(c.name)}">${c.expr.map(e => `<option value="${e.id}" ${e.id === cur ? "selected" : ""}>${esc(c.name)} · ${esc(e.name)}</option>`).join("")}</optgroup>` : "").join("")}</select>`;
+  return `<div class="fzl"><div class="fzhd"><span>Fase</span><span>Stimolo</span><span>Ruolo</span><span>Secondarie</span><span></span></div>${F.map((z, i) => { const o0 = z.L[0], tt = [...new Set(z.L.map(o => o.type).filter(Boolean))], tl = z.L.some(o => o.tutS != null && o.tutS >= TUT_LONG);
+    const cand = z.L.length > 1 ? z.L.slice(1).map((o, q) => `<option value="${o.x.id}:${o.j}">dopo la ${z.from + q}ª serie</option>`).join("") : "";
+    const join = i > 0 && F[i - 1].L[0].x.id === o0.x.id;
+    const ovr = ROLE_NOHARD.includes(z.role) ? z.L.filter(o => isHard((w?.results || {})[o.x.id]?.[o.j])).length : 0;
+    return `<div class="fz ${z.asg ? "asg" : "prop"}">
+      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app (dalla categoria dell'esercizio e dalla firma). Cambiala o confermala.">proposta</span>`}</div>
+      ${exprSel(z, z.e, "fz-e", "— stimolo —")}
+      <select class="in fzsel" data-change="fz-r" data-sets="${refs(z)}" aria-label="Ruolo"><option value="">— ruolo —</option>${D.roles.map(r => `<option value="${r.id}" ${r.id === z.role ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>
+      <span class="fz2">${z.e2.map(id => `<span class="altc">${esc(exprLbl(id))}<button type="button" data-act="fz-e2rm" data-sets="${refs(z)}" data-id="${id}" aria-label="Togli">×</button></span>`).join("")}${exprSel(z, "", "fz-e2", "+ secondaria")}</span>
+      <span class="fzt">${!z.asg ? `<button type="button" class="fzb" data-act="fz-ok" data-sets="${refs(z)}" title="Conferma la proposta">✓</button>` : ""}${cand ? `<select class="in fzsel fzcut" data-change="fz-cut" aria-label="Dividi la fase" title="Dividi la fase"><option value="">✂</option>${cand}</select>` : ""}${join ? `<button type="button" class="fzb" data-act="fz-join" data-sets="${refs(z)}" data-prev="${refs(F[i - 1])}" title="Unisci alla fase sopra (prende il suo stimolo e ruolo)">↥</button>` : ""}</span>
+      </div>`; }).join("")}</div>`; }
+/* stimolo, secondarie e ruolo di ogni serie di un allenamento (scelti dal coach o proposti), per Analisi e Tenuta.
+   Chiave "xid:j"; le serie extra prendono quelli dell'ultima serie programmata dell'esercizio */
+let STIMV = 0; const STIMC = new WeakMap();
+function stimMapOf(w){ const c = STIMC.get(w); if (c && c.v === STIMV) return c.m;
+  const m = {}; try { firmaOf(wEmail(w), w).mv.forEach(f => stimFasi(f).forEach(z => z.L.forEach(o => m[o.x.id + ":" + o.j] = {e: z.e, e2: z.e2, role: z.role}))); } catch(err) { console.warn(err); }
+  STIMC.set(w, {v: STIMV, m}); return m; }
+const stimOfSet = (M, x, j) => M[x.id + ":" + Math.min(j, Math.max(0, (x.sets || []).length - 1))] || null;
+const ROLE_NOHARD = ["r_prep", "r_down"];   // serie preparatorie e defaticanti: non contano come allenanti (allenante è relativo allo stimolo)
+const hardOf = (r, sm) => { const h = isHard(r); return h && sm && ROLE_NOHARD.includes(sm.role) ? false : h; };
+const capName = id => exprById(id)?.cap.name || "Senza stimolo", roleName = id => stimData().roles.find(r => r.id === id)?.name || "Senza ruolo", movName = n => libByName(n)?.pattern?.trim() || "Senza pattern";
+/* scrive sulle serie della fase (bozza dell'editor) */
+function fzSets(str){ const w = S.editor?.w; if (!w) return []; return String(str || "").split(",").filter(Boolean).map(r => { const [xid, j] = r.split(":"); return w.exercises.find(x => x.id === xid)?.sets?.[+j]; }).filter(Boolean); }
+function fzFix(L){   // la prima volta che il coach tocca una fase, la proposta diventa scelta (su tutte le serie della fase)
+  const E = S.editor, F = firmaOf(E.email, E.w).mv.flatMap(stimFasi), z = F.find(q => q.L.some(o => L.includes(o.st)));
+  if (z && !z.asg) L.forEach(st => { st.stim = z.e || ""; st.stim2 = [...z.e2]; st.role = z.role || ""; }); }
+function firmaHtml(email, w){
+  const F = firmaOf(email, w); if (!F.mv.length) return "";
+  const W = 300, H = 34, sx = k => 6 + (W - 12) * (F.N > 1 ? (k - 1) / (F.N - 1) : .5);
+  const rows = F.mv.map((f, i) => { const c = `var(--s${i % 8 + 1})`;
+    const vv = f.v.filter(z => z != null), lo = vv.length ? Math.min(...vv) : 0, hi = vv.length ? Math.max(...vv) : 1, yy = z => H - 6 - (hi > lo ? (z - lo) / (hi - lo) : .5) * (H - 14);
+    const spark = `<svg viewBox="0 0 ${W} ${H}" class="fsp" aria-hidden="true"><line x1="6" x2="${W - 6}" y1="${H - 3}" y2="${H - 3}" class="fax"/>${Array.from({length: F.N}, (_, k) => `<line x1="${sx(k + 1)}" x2="${sx(k + 1)}" y1="${H - 5}" y2="${H - 1}" class="ftk"/>`).join("")}
+      ${f.L.map((o, k) => f.v[k] == null ? `<circle cx="${sx(o.pos)}" cy="${H - 8}" r="2.5" class="fnd"/>` : `<circle cx="${sx(o.pos)}" cy="${yy(f.v[k])}" r="${k === f.ip ? 4.5 : 3.2}" style="fill:${c}" ${k === f.ip ? `stroke="var(--ink)" stroke-width="1.5"` : ""}/>`).join("")}</svg>`;
+    const parts = [
+      f.shape ? `<b title="${esc(FIRMA_SHAPE_D[f.shape] || "")}">${esc(f.shape)}</b>` : "",
+      `${f.n} serie${f.ramp || f.back || f.hard != null ? ` <span class="faint">(${[f.ramp ? `${f.ramp} di rampa` : "", f.hard != null ? `${f.hard} allenant${f.hard === 1 ? "e" : "i"}` : "", f.back ? `${f.back} back-off` : ""].filter(Boolean).join(" · ")})</span>` : ""}`,
+      f.reps ? esc(f.reps) : "",
+      f.iTxt ? esc(f.iTxt) : "",
+      f.ip >= 0 && f.n > 1 ? `picco alla ${f.ip + 1}ª${f.peakW ? ` <span class="faint">(${f.peakW === 1 ? "first set" : f.peakW === 2 ? "second set" : f.peakW + "ª di lavoro"})</span>` : ""}` : "",
+      f.rest.length ? "rec. " + esc(f.rest.join(" / ")) : "",
+      f.tut.length ? "tempo " + esc(f.tut.join(" / ")) : "",
+      f.cl ? `${f.cl} cluster` : ""].filter(Boolean);
+    return `<div class="frow" style="--fc:${c}"><div class="fh"><span class="fpat">${esc(f.pat || f.names[0])}</span>${!f.pat ? `<span class="faint" title="Esercizio senza pattern nella libreria: aggiungilo nella scheda dell'esercizio per raggrupparlo con gli altri dello stesso movimento"> · senza pattern</span>` : ""}<span class="fmez">mezzi: ${esc(f.names.join(", "))}</span></div>
+      <div class="fb"><div class="ftxt">${parts.join(" · ")}</div><div class="fpos">${spark}<small>serie ${f.first === f.last ? f.first : `${f.first}–${f.last}`} di ${F.N} della seduta</small></div></div>${fasiHtml(f, w)}</div>`; }).join("");
+  return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Firma degli stimoli</b> <span class="faint">· per movimento, letta dal programma</span></summary>
+    <div class="fdesc">Per ogni movimento: forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del movimento, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app.</div>${rows}</details>`; }
+let firmaT = null;
+const firmaRefresh = () => { clearTimeout(firmaT); firmaT = setTimeout(() => { const E = S.editor, box = $("#ed-firma"); if (!E || !box) return; box.innerHTML = firmaHtml(E.email, E.w); }, 350); };
+/* ===== PROGRAMMARE DALLO STIMOLO (passo 4) =====
+   Il coach sceglie il movimento e lo stimolo (e il ruolo); l'app propone i mezzi: esercizi con quel movimento (pattern principale o contenuto),
+   prima quelli con lo stesso stimolo di partenza, poi della stessa capacità, poi gli altri. L'esercizio entra con lo stimolo già scritto sulle serie. */
+function movDialog(){
+  const M = S.mvDlg ??= {mov: "", e: "", role: "r_work", n: 3}, D = stimData();
+  const pats = optList("pat"), cap = exprById(M.e)?.cap.id;
+  const mezzi = !M.mov ? [] : S.exercises.filter(x => optKey(x.pattern) === optKey(M.mov) || (x.patIn || []).some(q => optKey(q) === optKey(M.mov)))
+    .map(x => { const s0 = stim0Of(x), q = exprById(s0); return {x, s0, rank: !M.e ? 1 : s0 === M.e ? 0 : q && q.cap.id === cap ? 1 : 2, via: optKey(x.pattern) === optKey(M.mov) ? "" : "contiene " + M.mov}; })
+    .sort((a, b) => a.rank - b.rank || a.x.name.localeCompare(b.x.name, "it"));
+  const grpL = ["Stesso stimolo", "Stessa capacità", M.e ? "Altri mezzi del movimento" : "Mezzi del movimento"];
+  const last = name => { const em = S.editor?.email; const L = Object.values(S.cache[em] || {}).filter(w => (w.exercises || []).some(x => sameName(x.name, name)) && w.date < (S.editor?.w.date || TODAY())).sort((a, b) => b.date.localeCompare(a.date)); return L[0] ? fmtD(L[0].date) : ""; };
+  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><div class="modal sm mvdlg" role="dialog" aria-label="Movimento e stimolo"><header><h2>Movimento e stimolo</h2><button class="btn ghost icon" data-act="mv-close" aria-label="Chiudi">✕</button></header><div class="body">
+    <div class="faint" style="font-size:13px">Parti da cosa vuoi ottenere: scegli il movimento e lo stimolo, poi il mezzo.</div>
+    <div class="row"><div class="field grow"><label class="lbl" for="mv-mov">Movimento</label><select class="in" id="mv-mov" data-change="mv-set" data-k="mov"><option value="">— scegli —</option>${pats.map(v => `<option ${optKey(v) === optKey(M.mov) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+      <div class="field grow"><label class="lbl" for="mv-e">Stimolo</label><select class="in" id="mv-e" data-change="mv-set" data-k="e"><option value="">— scegli —</option>${D.caps.map(c => c.expr.length ? `<optgroup label="${esc(c.name)}">${c.expr.map(q => `<option value="${q.id}" ${q.id === M.e ? "selected" : ""}>${esc(c.name)} · ${esc(q.name)}</option>`).join("")}</optgroup>` : "").join("")}</select></div></div>
+    <div class="row"><div class="field grow"><label class="lbl" for="mv-r">Ruolo</label><select class="in" id="mv-r" data-change="mv-set" data-k="role">${D.roles.map(r => `<option value="${r.id}" ${r.id === M.role ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
+      <div class="field" style="width:110px"><label class="lbl" for="mv-n">Serie</label><input class="in" id="mv-n" type="number" min="1" max="20" value="${M.n}" data-change="mv-set" data-k="n"></div></div>
+    <div class="field"><span class="lbl">Mezzi</span>${!M.mov ? `<div class="faint" style="font-size:13px">Scegli prima il movimento.</div>` : !mezzi.length ? `<div class="faint" style="font-size:13px">Nessun esercizio della libreria ha questo movimento. Aggiungine uno da Esercizi (o usa "+ Esercizio").</div>`
+      : [0, 1, 2].map(rk => { const L = mezzi.filter(q => q.rank === rk); return L.length ? `<div class="mvg"><small>${grpL[rk]}</small>${L.map(q => `<button type="button" class="mvx ${rk === 0 ? "best" : ""}" data-act="mv-pick" data-name="${esc(q.x.name)}"><b>${esc(q.x.name)}</b><span class="faint">${esc([exprLbl(q.s0), q.via, last(q.x.name) ? "ultima volta " + last(q.x.name) : ""].filter(Boolean).join(" · "))}</span></button>`).join("")}</div>` : ""; }).join("")}</div>
+    </div><footer><span class="faint" style="font-size:12px">L'esercizio entra con ${M.n} serie, stimolo e ruolo già scritti (li cambi poi nelle fasi).</span><span class="grow"></span><button class="btn" data-act="mv-close">Chiudi</button></footer></div></div>`; }
+function movPick(name){
+  const M = S.mvDlg, w = S.editor.w, x = newExercise(name); x.block = nextBlock(w.exercises);
+  const s0 = x.sets[0] || {}; x.sets = Array.from({length: Math.max(1, Math.min(20, +M.n || 1))}, () => ({...clone(s0), stim: M.e || "", stim2: [], role: M.role || ""}));
+  if (!M.e) x.sets.forEach(st => { delete st.stim; delete st.stim2; delete st.role; });
+  w.exercises.push(x); $("#confirm").innerHTML = ""; markDirty(); drawEditor(); toast(`${name} aggiunto${M.e ? " · " + exprLbl(M.e) : ""}`); }
 function drawEditor(){
   const E = S.editor; if (!E) { $("#modal").innerHTML = ""; return; }
   // ridisegnando l'editor la pagina tornava in cima: salvo la posizione e la ripristino subito dopo
@@ -4821,7 +5130,8 @@ function drawEditorInner(){
       ${(() => { const L = exLabels(w.exercises); return ssGroups(w.exercises).map(g => {
         const body = g.map(i => (i > 0 ? ssLinkHtml(w.exercises, i, L) : "") + exEditorHtml(w.exercises[i], i, res[w.exercises[i].id], L)).join("");
         return g.length > 1 || circOfGroup(w.exercises, g) ? `<div class="ssg ${circOfGroup(w.exercises, g) ? "circ" : ""}">${groupHeadHtml(w.exercises, g, L)}${body}</div>` : body; }).join(""); })()}
-      <div class="row"><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
+      <div class="row"><button class="btn pri" data-act="ed-add-mov" title="Parti da cosa vuoi ottenere: movimento e stimolo, poi scegli il mezzo">+ Movimento e stimolo</button><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
+      <div id="ed-firma">${firmaHtml(E.email, w)}</div>
     </div>
     <footer>${E.isNew?"":`<button class="btn ghost danger" data-act="ed-del">Elimina</button><button class="btn ghost" data-act="ed-copy">Copia in altre date / atleti…</button>`}<button class="btn ghost" data-act="ed-totpl">Salva in Allenamenti</button><button class="btn ghost" data-act="ed-pdf" title="Crea un PDF da salvare o mandare (solo il programma, senza la parte che compila l'atleta)">Genera PDF</button>
       <span class="grow"></span><span class="dirty" id="ed-dirty" ${E.dirty?"":"hidden"}>Modifiche non salvate</span>
@@ -4842,7 +5152,7 @@ function drawTplEditor(){
         <div class="field"><label class="lbl" for="ed-kind">Tipo di seduta</label><select class="in" id="ed-kind" data-bind="kind">${hasKind(w) ? "" : `<option value="" selected>Da scegliere (ora: ${KINDS[guessKind(w)].l})</option>`}${KIND_KEYS.map(k => `<option value="${k}" ${kindSet(w) === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select></div></div>
       <div class="field"><label class="lbl" for="ed-notes">Note per l'atleta</label><textarea class="in" id="ed-notes" data-bind="notes" placeholder="Riscaldamento, obiettivo della seduta…">${esc(w.notes||"")}</textarea></div>
       ${exBlocksHtml(w, {})}
-      <div class="row"><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
+      <div class="row"><button class="btn pri" data-act="ed-add-mov" title="Parti da cosa vuoi ottenere: movimento e stimolo, poi scegli il mezzo">+ Movimento e stimolo</button><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
     </div>
     <footer>${E.isNew ? "" : `<button class="btn ghost danger" data-act="tpl-del">Elimina</button><button class="btn ghost" data-act="tpl-dup">Duplica</button>`}<button class="btn ghost" data-act="ed-pdf" title="Crea un PDF da salvare o mandare">Genera PDF</button>
       <span class="grow"></span><span class="dirty" id="ed-dirty" ${E.dirty?"":"hidden"}>Modifiche non salvate</span>
@@ -6045,7 +6355,7 @@ function fixSession(){
     await saveCoachFix({...($("#fs-all")?.checked && $("#fs-st").value === "done" ? {results: plannedResults(w)} : {}), status: $("#fs-st").value, sessionRpe: rpe || null, durationMin: dur || null, athleteNote: $("#fs-note").value.trim(),
       completedAt: w.completedAt || new Date().toISOString(), doneDate: ($("#fs-date").value && $("#fs-date").value !== w.date) ? $("#fs-date").value : null}); };
 }
-function markDirty(){ if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; } }
+function markDirty(){ STIMV++; if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; firmaRefresh(); } }
 async function closeEditor(force=false){
   if (!S.editor) return;
   if (!force && S.editor.dirty && !(await confirmBox("Chiudere senza salvare le modifiche?", "Chiudi senza salvare"))) return;
@@ -6534,7 +6844,7 @@ async function flushSave(extra={}){
 }
 function keepExForm(){ const e = S.exEdit;
   [["x-name","name"],["x-video","video"],["x-notes","notes"]].forEach(([id,k]) => { const el = $("#"+id); if (el) e[k] = el.value; });
-  if ($("#x-cat")) { e.category = readOpt("cat"); e.pattern = readOpt("pat"); } return e; }
+  if ($("#x-pat")) { e.pattern = readOpt("pat"); if ($("#x-stim0")) e.stim0 = $("#x-stim0").value; } return e; }
 function swapSheet(xid){
   const w = athleteWorkout(); const x = w?.exercises?.find(e => e.id === xid); if (!x) return;
   const o = swapOptions(x); let pick = null, why = null;
@@ -6731,6 +7041,7 @@ const ACT = {
   "an-refs"(){ $(".intrefs")?.scrollIntoView({behavior: "smooth", block: "start"}); },
   "an-gran"(t){ anQ.gran = t.dataset.v; renderView(); },
   "an-days"(t){ anQ.gran = "day"; anQ.dws = t.dataset.ws; renderView(); },
+  "an-exby"(t){ anQ.exBy = t.dataset.v; renderView(); },
   "an-exall"(t){ anQ.exAll = !anQ.exAll; const tb = t.closest("section")?.querySelector("tbody"); if (!tb) return;
     [...tb.rows].forEach((r, j) => r.classList.toggle("exmore", j >= EX_SHOW && !anQ.exAll));
     t.setAttribute("aria-expanded", anQ.exAll); t.innerHTML = anQ.exAll ? `<span class="cxa o">▸</span>Mostra meno` : `<span class="cxa">▸</span>Mostra altri ${tb.rows.length - EX_SHOW}`; },
@@ -6784,6 +7095,9 @@ const ACT = {
     const w = S.editor.w;
     copyDialog({title:`Copia «${w.title}»`, date: addDays(w.date, 7), dateLabel:"Nella data", preselect:[S.editor.email],
       onCopy: async (d, emails) => { const n = await copyWorkouts([w], w.date, d, emails); closeEditor(true); return n; }}); },
+  "ed-add-mov"(){ movDialog(); },
+  "mv-close"(){ $("#confirm").innerHTML = ""; },
+  "mv-pick"(t){ movPick(t.dataset.name); },
   "ed-add-ex"(){ const w = S.editor.w; const x = newExercise(); x.block = nextBlock(w.exercises); w.exercises.push(x); markDirty(); drawEditor();
     const ins = document.querySelectorAll(".ex .nm"); ins[ins.length-1]?.focus(); },
   "ex-xfer"(t){ exXferDialog(+t.dataset.i); },
@@ -6859,6 +7173,14 @@ const ACT = {
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); exFormIntoView(); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); exFormIntoView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },
+  "fz-ok"(t){ const L = fzSets(t.dataset.sets); fzFix(L); markDirty(); },
+  "fz-e2rm"(t){ const L = fzSets(t.dataset.sets); fzFix(L); L.forEach(st => st.stim2 = (st.stim2 || []).filter(id => id !== t.dataset.id)); markDirty(); },
+  "fz-join"(t){ const P = fzSets(t.dataset.prev), L = fzSets(t.dataset.sets); fzFix(P); const s0 = P[0];
+    L.forEach(st => { st.stim = s0.stim; st.stim2 = [...(s0.stim2 || [])]; st.role = s0.role; delete st.fb; }); markDirty(); },
+  "xpin-rm"(t){ const e = keepExForm(); e.patIn = (e.patIn||[]).filter((_,k) => k !== +t.dataset.k); redrawEx(); },
+  "stim-new"(t){ stimDialog(t.dataset.k, t.dataset.id, true); },
+  "stim-ed"(t){ stimDialog(t.dataset.k, t.dataset.id, false); },
+  "patcaps"(t){ patCapsDialog(t.dataset.v); },
   "xalt-rm"(t){ const e = keepExForm(); e.alts = (e.alts||[]).filter((_,k) => k !== +t.dataset.k); redrawEx(); },
   /* alternative nell'editor allenamento: toccarle le rende "di questo allenamento" (la libreria non cambia) */
   "alt-rm"(t){ const x = S.editor.w.exercises[+t.dataset.i]; x.alts = altsOf(x).filter((_,k) => k !== +t.dataset.k); markDirty(); drawEditor(); },
@@ -7114,6 +7436,13 @@ document.addEventListener("change", async e => {
   if (k === "col-add") { const x = S.editor.w.exercises[+t.dataset.i]; const c = t.value; if (!c) return;
     if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }
     x.cols = [...x.cols, c]; x.sets.forEach(s => s[c] = s[c] || ""); markDirty(); return drawEditor(); }
+  if (k === "mv-set") { S.mvDlg[t.dataset.k] = t.value; if (t.dataset.k === "mov" && !S.mvDlg.e) { const L = S.exercises.filter(x => optKey(x.pattern) === optKey(t.value)).map(stim0Of).filter(Boolean), c = {}; L.forEach(e => c[e] = (c[e] || 0) + 1); S.mvDlg.e = Object.keys(c).sort((a, b) => c[b] - c[a])[0] || ""; } return movDialog(); }
+  if (k === "fz-e" || k === "fz-r" || k === "fz-e2") { const L = fzSets(t.dataset.sets); if (!L.length) return; fzFix(L);
+    L.forEach(st => { if (k === "fz-e") st.stim = t.value; else if (k === "fz-r") st.role = t.value; else if (t.value && !(st.stim2 || []).includes(t.value)) st.stim2 = [...(st.stim2 || []), t.value]; });
+    markDirty(); return; }
+  if (k === "fz-cut") { const [st] = fzSets(t.value); if (st) { const E = S.editor, F = firmaOf(E.email, E.w).mv.flatMap(stimFasi), z = F.find(q => q.L.some(o => o.st === st));
+      if (z && !z.asg) z.L.forEach(o => { o.st.stim = z.e || ""; o.st.stim2 = [...z.e2]; o.st.role = z.role || ""; }); st.fb = 1; } markDirty(); return; }
+  if (k === "xpin-add") { const e = keepExForm(), v = t.value; if (v && !(e.patIn || []).some(q => optKey(q) === optKey(v))) e.patIn = [...(e.patIn || []), v]; redrawEx(); return; }
   if (k === "alt-add" || k === "xalt-add") { const n = t.value.trim(); t.value = ""; if (!n) return;
     const hit = libByName(n); const name = hit ? hit.name : n;
     if (k === "xalt-add") { const e = keepExForm(); if (sameName(name, e.name)) return toast("È lo stesso esercizio");

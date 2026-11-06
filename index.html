@@ -847,6 +847,11 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .stree{display:flex;flex-direction:column;gap:10px;margin:8px 0}.scap{border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .scaph{background:var(--surface2)}.sexpr{padding-left:22px}.sexpr:last-child{border-bottom:0}
 .pcline{display:flex;flex-wrap:wrap;align-items:center;gap:3px 5px;margin-top:3px;font-size:11.5px;font-weight:500}.pcline .pcadd{font-size:11.5px;font-weight:600}
+.stg{margin-bottom:14px}.stgh{font-weight:700;font-size:14px;margin:0 0 6px}
+.stc{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:9px 12px;margin-bottom:8px}
+.stch{font-size:14px;margin-bottom:6px}.stch .faint{font-size:12px;margin-left:4px}
+.stcg{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;font-size:13px;line-height:1.35}
+.stoff{font-size:12px;margin:2px 2px 0}
 .pcc{background:var(--surface2);border-radius:99px;padding:1px 8px;font-weight:600}.pcchk{display:inline-flex;align-items:center;gap:4px;font-size:13px;margin-right:10px}
 .altrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px}
 .altrow .lbl{margin:0}
@@ -4612,8 +4617,8 @@ function drawSessionChart(el, w, sh = null){
 /* riquadro a destra della pagina Esercizi: Parametri · Categorie · Pattern motori */
 function libPanel(){
   const t = S.libTab === "cat" ? "params" : S.libTab || "params";
-  return `<div class="libtabs" role="tablist">${[["params", "Parametri"], ["pat", "Movimenti"], ["caps", "Capacità"], ["roles", "Ruoli"]].map(([k, l]) => `<button role="tab" class="${t === k ? "on" : ""}" aria-selected="${t === k}" data-act="lib-tab" data-v="${k}">${l}</button>`).join("")}</div>
-    ${t === "params" ? paramsPanel() : t === "caps" ? capsPanel() : t === "roles" ? rolesPanel() : optPanel(t)}`;
+  return `<div class="libtabs" role="tablist">${[["params", "Parametri"], ["pat", "Movimenti"], ["caps", "Capacità"], ["roles", "Ruoli"], ["struct", "Struttura degli stimoli"]].map(([k, l]) => `<button role="tab" class="${t === k ? "on" : ""}" aria-selected="${t === k}" data-act="lib-tab" data-v="${k}">${l}</button>`).join("")}</div>
+    ${t === "params" ? paramsPanel() : t === "caps" ? capsPanel() : t === "struct" ? structPanel() : t === "roles" ? rolesPanel() : optPanel(t)}`;
 }
 /* ---------- parametri: elenco e creazione ---------- */
 function paramsPanel(){
@@ -4755,8 +4760,43 @@ function exprToCat(id, pattern){ const q = exprById(id); if (!q) return "";
 const stim0Of = l => l && (exprById(l.stim0) ? l.stim0 : catToExpr(l.category, l));
 async function stimSave(d){ STIMV++; S.stim = d; await DB.saveSettings({stim: d}); }
 const exprById = id => { for (const c of stimData().caps) { const e = c.expr.find(q => q.id === id); if (e) return {cap: c, expr: e}; } return null; };
+/* ===== FIRMA TIPO DI OGNI STIMOLO =====
+   L'identikit di come il coach programma ogni espressione, ricavato SOLO dalle fasi che ha confermato (non dalle proposte dell'app),
+   su tutti gli atleti, nelle ultime 26 settimane. Per ora sola lettura (pagina Capacità); in seguito: proposta delle serie, controllo di coerenza, proposte migliori */
+const FT_WEEKS = 26;
+let FTL = null;   // caricamento delle settimane: una volta per sessione
+async function firmeTipoLoad(){ if (FTL) return FTL;
+  FTL = Promise.all(activeAthletes().map(a => ensureWeeks(a.email, addDays(monday(TODAY()), -7 * (FT_WEEKS - 1)), FT_WEEKS).catch(e => console.warn(e)))).then(() => { FTC = null; if (S.view === "exercises" && S.libTab === "struct") renderView(); });
+  return FTL; }
+let FTC = null;
+function firmeTipo(){ if (FTC && FTC.v === STIMV) return FTC.m;
+  const lo = addDays(monday(TODAY()), -7 * (FT_WEEKS - 1)), m = {};
+  Object.values(S.cache || {}).forEach(ws => Object.values(ws || {}).forEach(w => { if (!w?.exercises?.length || effDate(w) < lo) return; let F;
+    try { F = firmaOf(wEmail(w), w).mv.flatMap(stimFasi); } catch(e) { return; }
+    F.filter(z => z.asg && z.e).forEach(z => { const t = (m[z.e] ??= {ph: 0, n: [], reps: [], rpe: [], pct: [], dist: [], rest: {}, mez: {}, role: {}, sess: new Set()});
+      const T = z.L.filter(o => !ROLE_NOHARD.includes(z.role)); if (!T.length) return;
+      t.ph++; t.sess.add(w.id); t.n.push(T.length); t.role[z.role || ""] = (t.role[z.role || ""] || 0) + 1;
+      T.forEach(o => { if (o.reps != null) t.reps.push(o.reps); if (o.rpe != null) t.rpe.push(o.rpe); if (o.pct != null) t.pct.push(o.pct); if (o.dist != null) t.dist.push(o.dist);
+        if (o.rest) t.rest[o.rest] = (t.rest[o.rest] || 0) + 1; t.mez[o.name] = (t.mez[o.name] || 0) + 1; }); }); }));
+  FTC = {v: STIMV, m}; return m; }
+const ftQ = (L, q) => { const a = [...L].sort((x, y) => x - y); if (!a.length) return null; const i = (a.length - 1) * q, lo = Math.floor(i); return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo); };
+const ftRng = (L, f = v => fmtN(v, Number.isInteger(v) ? 0 : 1), st = 0.5) => { if (!L.length) return ""; const a = Math.round(ftQ(L, .25) / st) * st, b = Math.round(ftQ(L, .75) / st) * st; return a === b ? f(a) : `${f(a)}–${f(b)}`; };
+function structPanel(){ firmeTipoLoad(); const D = stimData(), M = firmeTipo(), RL = Object.fromEntries((D.roles || []).map(r => [r.id, r.name]));
+  const top = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
+  const card = e => { const t = M[e.id];
+    const rows = [["Serie", ftRng(t.n, undefined, 1)], ["Ripetizioni", t.reps.length ? ftRng(t.reps, undefined, 1) : ""], ["RPE", t.rpe.length ? ftRng(t.rpe, undefined, 1) : ""], ["% 1RM", t.pct.length ? ftRng(t.pct, v => Math.round(v) + "%") : ""],
+      ["Distanza", t.dist.length ? ftRng(t.dist, v => fmtN(v) + " m") : ""], ["Recupero", (r => r ? r[0] : "")(top(t.rest)[0])],
+      ["Ruolo", top(t.role).filter(q => q[0]).slice(0, 2).map(q => RL[q[0]] || q[0]).join(", ")], ["Mezzi", top(t.mez).slice(0, 3).map(q => q[0]).join(", ")]].filter(r => r[1]);
+    return `<div class="stc"><div class="stch"><b>${esc(e.name)}</b> <span class="faint">${t.ph} fas${t.ph === 1 ? "e" : "i"} in ${t.sess.size} sedut${t.sess.size === 1 ? "a" : "e"}</span></div>
+      <div class="stcg">${rows.map(([k, v]) => `<span class="faint">${k}</span><span>${esc(v)}</span>`).join("")}</div></div>`; };
+  const G = D.caps.map(c => ({c, on: c.expr.filter(e => M[e.id]?.ph), off: c.expr.filter(e => !M[e.id]?.ph)}));
+  const any = G.some(g => g.on.length);
+  return `<div class="form"><div class="note"><b>Struttura degli stimoli = come programmi di solito ogni espressione.</b> Per ognuna: serie, ripetizioni, RPE, carico, recupero e mezzi più usati, come fascia dei valori abituali (la metà centrale, così una seduta fuori dal normale non la sposta).
+    Si ricava solo dalle fasi che hai confermato tu nell'editor (✓ o stimolo scelto), senza preparazione e defaticamento, negli ultimi 6 mesi, per tutti gli atleti. Si riempie da sola man mano che programmi.${any ? "" : " <i>Ancora nessuna fase confermata: conferma (✓) o scegli lo stimolo delle fasi nell'editor e qui comparirà.</i>"}</div>
+    ${G.filter(g => g.on.length).map(g => `<div class="stg"><div class="stgh">${esc(g.c.name)}</div>${g.on.map(card).join("")}${g.off.length ? `<div class="faint stoff">Senza dati: ${esc(g.off.map(e => e.name).join(", "))}</div>` : ""}</div>`).join("")}
+    ${G.some(g => !g.on.length) && any ? `<div class="faint stoff">Capacità ancora senza dati: ${esc(G.filter(g => !g.on.length).map(g => g.c.name).join(", "))}</div>` : ""}</div>`; }
 function capsPanel(){ const D = stimData();
-  return `<div class="form"><div class="note"><b>Capacità = cosa vuoi sviluppare.</b> Ogni capacità ha le sue espressioni, più specifiche. Nel programma sceglierai l'espressione (e il ruolo) per ogni gruppo di serie: in arrivo. Puoi aggiungere, rinominare, spostare ed eliminare: lo storico segue le voci anche se cambi il nome.${S.stim ? "" : " <i>Questa è la bozza di partenza: si salva quando la modifichi.</i>"}</div>
+  return `<div class="form"><div class="note"><b>Capacità = cosa vuoi sviluppare.</b> Ogni capacità ha le sue espressioni, più specifiche. Nel programma scegli l'espressione (e il ruolo) per ogni gruppo di serie. Puoi aggiungere, rinominare, spostare ed eliminare: lo storico segue le voci anche se cambi il nome.${S.stim ? "" : " <i>Questa è la bozza di partenza: si salva quando la modifichi.</i>"}</div>
     <div class="stree">${D.caps.map(c => `<div class="scap"><div class="prow scaph"><span class="grow"><b>${esc(c.name)}</b>${c.desc ? `<div class="faint" style="font-size:12px">${esc(c.desc)}</div>` : ""}</span>
         <button class="lnk" data-act="stim-ed" data-k="cap" data-id="${c.id}">Modifica</button><button class="lnk" data-act="stim-new" data-k="expr" data-id="${c.id}">+ espressione</button></div>
       ${c.expr.map(e => `<div class="prow sexpr"><span class="grow">${esc(e.name)}${e.desc ? ` <span class="faint" style="font-size:12px">· ${esc(e.desc)}</span>` : ""}</span><button class="lnk" data-act="stim-ed" data-k="expr" data-id="${e.id}">Modifica</button></div>`).join("") || `<div class="prow sexpr faint">nessuna espressione</div>`}</div>`).join("")}</div>
@@ -5054,7 +5094,7 @@ function fasiHtml(f, w){
     const join = i > 0 && F[i - 1].L[0].x.id === o0.x.id;
     const ovr = ROLE_NOHARD.includes(z.role) ? z.L.filter(o => isHard((w?.results || {})[o.x.id]?.[o.j])).length : 0;
     return `<div class="fz ${z.asg ? "asg" : "prop"}">
-      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app (dalla categoria dell'esercizio e dalla firma). Cambiala o confermala.">proposta</span>`}</div>
+      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app (dalla categoria dell'esercizio e dalla struttura delle serie). Cambiala o confermala.">proposta</span>`}</div>
       ${exprSel(z, z.e, "fz-e", "— stimolo —")}
       <select class="in fzsel" data-change="fz-r" data-sets="${refs(z)}" aria-label="Ruolo"><option value="">— ruolo —</option>${D.roles.map(r => `<option value="${r.id}" ${r.id === z.role ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>
       <span class="fz2">${z.e2.map(id => `<span class="altc">${esc(exprLbl(id))}<button type="button" data-act="fz-e2rm" data-sets="${refs(z)}" data-id="${id}" aria-label="Togli">×</button></span>`).join("")}${exprSel(z, "", "fz-e2", "+ secondaria")}</span>
@@ -5093,7 +5133,7 @@ function firmaHtml(email, w){
       f.cl ? `${f.cl} cluster` : ""].filter(Boolean);
     return `<div class="frow" style="--fc:${c}"><div class="fh"><span class="fpat">${esc(f.pat || f.names[0])}</span>${!f.pat ? `<span class="faint" title="Esercizio senza pattern nella libreria: aggiungilo nella scheda dell'esercizio per raggrupparlo con gli altri dello stesso movimento"> · senza pattern</span>` : ""}<span class="fmez">mezzi: ${esc(f.names.join(", "))}</span></div>
       <div class="fb"><div class="ftxt">${parts.join(" · ")}</div><div class="fpos">${spark}<small>serie ${f.first === f.last ? f.first : `${f.first}–${f.last}`} di ${F.N} della seduta</small></div></div>${fasiHtml(f, w)}</div>`; }).join("");
-  return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Firma degli stimoli</b> <span class="faint">· per movimento, letta dal programma</span></summary>
+  return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Struttura degli stimoli</b> <span class="faint">· per movimento, letta dal programma</span></summary>
     <div class="fdesc">Per ogni movimento: forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del movimento, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app.</div>${rows}</details>`; }
 let firmaT = null;
 const firmaRefresh = () => { clearTimeout(firmaT); firmaT = setTimeout(() => { const E = S.editor, box = $("#ed-firma"); if (!E || !box) return; box.innerHTML = firmaHtml(E.email, E.w); }, 350); };

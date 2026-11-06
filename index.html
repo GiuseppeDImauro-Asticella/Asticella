@@ -740,12 +740,16 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .sess{margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:color-mix(in srgb, var(--ink) 2%, transparent)}
 .sessh{font-size:13px}.sessh .sessd{font-size:11.5px;margin-top:3px}.sessh .sesk{display:inline-flex;margin:0 0 0 8px;vertical-align:middle}.sesk button{font-size:12px;padding:2px 9px}.sesvg{display:block;width:100%;height:auto;margin:4px 0 2px}
 .sesvg .ssg{stroke:var(--line);stroke-width:1}.sesvg .ssth{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3;opacity:.7}.sesvg .ssyl{font-size:9px;fill:var(--muted);text-anchor:end}
+.sesvg .ssgl{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 2;opacity:.8}.sesvg .ssgh{fill:var(--surface);stroke:var(--muted);stroke-width:1.3}
 .sesvg .ssln{fill:none;stroke:var(--muted);stroke-width:1.2;opacity:.45}.sesvg .ssno{fill:var(--surface);stroke-width:1.6}
 .ssb{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:0;margin-top:3px}
 .ssb .ssbl{position:absolute;left:0;top:50%;transform:translateY(-50%) rotate(0);font-size:9px;color:var(--muted);width:0;overflow:visible;white-space:nowrap;display:none}
 .ssb > div:not(.ssbl){min-width:0;height:20px;display:flex;align-items:center;justify-content:center;margin:0 1px;border-radius:4px;font-size:11px;line-height:1}
 .ssb > div > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
 .ssb > .ss1 > span{padding:0}.ssleg{font-size:11px;color:var(--muted);margin-top:3px}.ssleg b{color:var(--ink)}
+.rpm{display:inline-flex;align-items:center;gap:6px}.rpm select{width:auto;padding:4px 8px;font-size:13px}
+.fpbox{margin:10px 0 4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:color-mix(in srgb, var(--accent) 5%, transparent)}.fph{font-size:13px;margin-bottom:4px}.fph .faint{font-size:12px}
+.fpr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px dashed var(--line)}.fpr:first-of-type{border-top:0}.fprl{font-size:13px}.fpr > .lt{flex:none;width:120px}
 .ssm{background:color-mix(in srgb, var(--mc) 13%, transparent);border-top:2.5px solid var(--mc);color:var(--ink)}
 .ssr{background:color-mix(in srgb, var(--ink) 8%, transparent);font-weight:700;color:var(--ink)}.ssr-r_ramp{background:color-mix(in srgb, var(--accent) 20%, transparent)}.ssr-r_work{background:color-mix(in srgb, var(--accent) 40%, transparent)}
 .ssr-r_back{background:color-mix(in srgb, var(--accent) 13%, transparent)}.ssr-r_prep,.ssr-r_down{background:color-mix(in srgb, var(--ink) 6%, transparent);font-weight:600;color:var(--muted)}
@@ -4380,6 +4384,21 @@ const intLbl = k => INTK[k]?.m || "%";
 function pctKg(email, x, name, s, date){ const p = oneNum(s?.pct); if (!p || p <= 0 || p > 120 || intKind(x, name) !== "kg") return null;
   const ref = intRef(email, intKey("kg", name, s, s), date); if (!ref) return null;
   return {kg: Math.round(ref.v * p / 100 / 2.5) * 2.5, pct: p, ref}; }
+/* ===== RPE PER FASE (campo) =====
+   Nel campo (sprint, corse, salti, pliometria) l'RPE della riga è l'INTENZIONE del coach (prescrizione); l'atleta non lo compila serie per serie
+   ma dà UN RPE a fine fase (percezione, exertion): results[x.id + "~f"][prima serie della fase].rpe. Vale per tutte le serie della fase
+   (le fasi sono quelle della Struttura degli stimoli). Un RPE scritto sulla singola serie resta e ha la precedenza.
+   Il coach sceglie per esercizio (x.rpeMode: "set" per serie, "phase" a fine fase); vuoto = automatico (campo a fine fase, palestra per serie). */
+const isField = (x, name) => ["sprint", "corsa", "plio", "stacchi"].includes(volBucket(x, name));
+const exPhases = (email, w, x) => { try { return firmaOf(email, w).mv.flatMap(stimFasi).filter(z => z.L[0].x.id === x.id); } catch(e) { return []; } };
+let FRC = new WeakMap();
+function phaseRpeMap(w){ const R = w.results || {}; if (!Object.keys(R).some(k => k.endsWith("~f"))) return null;
+  const key = STIMV + "|" + JSON.stringify(Object.entries(R).filter(([k]) => k.endsWith("~f"))) + JSON.stringify((w.exercises || []).map(x => (x.sets || []).map(st => [st.stim, st.role, st.fb, st.type])));
+  const c = FRC.get(w); if (c && c.key === key) return c.m;
+  const m = {}, em = wEmail(w); (w.exercises || []).forEach(x => { const F = R[x.id + "~f"]; if (!F) return;
+    exPhases(em, w, x).forEach(z => { const v = rpeNum(F[z.L[0].j]?.rpe); if (v != null && v > 0) z.L.forEach(o => m[x.id + ":" + o.j] = v); }); });
+  FRC.set(w, {key, m}); return m; }
+const phaseRpe = (w, x, j) => phaseRpeMap(w)?.[x.id + ":" + j] ?? null;
 /* sprint e salti prescritti a "% del migliore": tempo / misura obiettivo dal record mobile (12 settimane prima). Sprint: % della velocità → tempo = migliore ÷ % */
 function pbTarget(email, x, name, s, date){ const p = oneNum(s?.pbest), k = intKind(x, name); if (!p || p <= 0 || p > 120 || (k !== "spr" && k !== "jmp") || !email) return null;
   const ref = intRef(email, intKey(k, name, s, s), date); if (!ref) return {k, pct: p, v: null, ref: null, col: k === "spr" ? "time" : "height"};
@@ -4395,7 +4414,7 @@ function sessionSets(w){
       if (!r || emptyRes(r)) return; if (g.length === 1) pos++;
       const name = exName(w, x), s = x.sets[j] || {};
       if (!order.includes(name)) order.push(name);
-      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: g.length === 1 ? pos : j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, x, cols: x.cols, act: setRpe(r), plan: setRpe(s), vol: (v => v?.b === "sprint" && ROLE_NOHARD.includes(stimOfSet(stimMapOf(w), x, j)?.role) ? {...v, b: "corsa"} : v)(setVolume(x, name, r, s)), int: setInt(em, w, x, name, r, s)}); }));
+      out.push({name, lab: L[i], lead: L[g[0]] || "", grp: g[0], n: g.length === 1 ? pos : j + 1, extra: j >= x.sets.length, type: s.type || "", r, s, x, cols: x.cols, act: setRpe(r) || (v => v != null ? {v, from: "fase"} : null)(phaseRpe(w, x, j)), plan: setRpe(s), vol: (v => v?.b === "sprint" && ROLE_NOHARD.includes(stimOfSet(stimMapOf(w), x, j)?.role) ? {...v, b: "corsa"} : v)(setVolume(x, name, r, s)), int: setInt(em, w, x, name, r, s)}); }));
   });
   return {sets: out, order};
 }
@@ -5038,8 +5057,8 @@ function firmaSeq(email, w){
       let rpe = setRpe(src)?.v ?? null; const ra = arRng(st.rpe), rb = arRng(st.rir); if (ra) rpe = (ra[0] + ra[1]) / 2; else if (rb && !String(st.rpe ?? "").trim()) rpe = 10 - (rb[0] + rb[1]) / 2;
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
       const pct = oneNum(st.pct) ?? oneNum(st.pbest) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
-      const r = (w.results?.[x.id] || [])[j], did = !!r && !emptyRes(r), rpeA = did ? setRpe(r)?.v ?? null : null, pctA = did ? setInt(email, w, x, name, r, st)?.pct ?? null : null;
-      out.push({pos, gi, did, rpeA, pctA, ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+      const r = (w.results?.[x.id] || [])[j], did = !!r && !emptyRes(r), rpeA = did ? setRpe(r)?.v ?? null : null, rpeF = phaseRpe(w, x, j), pctA = did ? setInt(email, w, x, name, r, st)?.pct ?? null : null;
+      out.push({pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
   return out; }
 const FIRMA_EPS = {pct: 1.5, rpe: 0.25};
 function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
@@ -5168,8 +5187,10 @@ function sessStrip(F, KC){
   const fv = v => PCT ? Math.round(v) + "%" : fmtN(v, 1), unit = PCT ? "" : "RPE ";
   const grid = [lo, TH, hiV].filter((v, i, A) => A.indexOf(v) === i).map(v => `<line x1="${x0}" x2="${W - xr}" y1="${yy(v)}" y2="${yy(v)}" class="${v === TH ? "ssth" : "ssg"}"/><text x="${x0 - 5}" y="${yy(v) + 3.5}" class="ssyl">${v}</text>`).join("");
   const line = withR.length > 1 ? `<polyline class="ssln" points="${withR.map(a => `${sx(a.o.pos)},${yy(a.rpe)}`).join(" ")}"/>` : "";
+  /* intenzione (programmato) vs percezione (atleta): se diversi, puntino vuoto grigio all'RPE programmato collegato al dato dell'atleta */
+  const ghost = PCT ? "" : P.filter(a => a.rpe != null && isA(a.o) && a.o.rpe != null && Math.abs(a.o.rpe - a.rpe) > 1e-9).map(a => `<line x1="${sx(a.o.pos)}" x2="${sx(a.o.pos)}" y1="${yy(a.o.rpe)}" y2="${yy(a.rpe)}" class="ssgl"/><circle cx="${sx(a.o.pos)}" cy="${yy(a.o.rpe)}" r="2.6" class="ssgh"><title>${esc(a.name)} · serie ${a.o.pos} · intenzione: RPE ${fmtN(a.o.rpe, 1)}</title></circle>`).join("");
   const dots = P.map(a => a.rpe == null ? `<circle cx="${sx(a.o.pos)}" cy="${PT + PH - 3}" r="3" class="ssno" style="stroke:${a.c}"><title>${esc(a.name)} · serie ${a.o.pos}: senza ${PCT ? "% del migliore" : "RPE"}</title></circle>`
-    : `<circle cx="${sx(a.o.pos)}" cy="${yy(a.rpe)}" r="${a.pk ? 4.6 : 3.4}" style="fill:${a.c}${a.o.did && !isA(a.o) ? ";fill-opacity:.35" : ""}" ${a.pk ? `stroke="var(--ink)" stroke-width="${a.rpe === smx ? 2.2 : 1.2}"` : ""}><title>${esc(a.name)} · serie ${a.o.pos} · ${unit}${fv(a.rpe)}${isA(a.o) ? " (dato dell'atleta)" : a.o.did ? " (programmato: l'atleta non l'ha dato)" : " (programmato)"}</title></circle>`).join("");
+    : `<circle cx="${sx(a.o.pos)}" cy="${yy(a.rpe)}" r="${a.pk ? 4.6 : 3.4}" style="fill:${a.c}${a.o.did && !isA(a.o) ? ";fill-opacity:.35" : ""}" ${a.pk ? `stroke="var(--ink)" stroke-width="${a.rpe === smx ? 2.2 : 1.2}"` : ""}><title>${esc(a.name)} · serie ${a.o.pos} · ${unit}${fv(a.rpe)}${isA(a.o) ? (a.o.rpeFa && !PCT ? " (RPE di fase dell'atleta)" : " (dato dell'atleta)") + (!PCT && a.o.rpe != null && a.o.rpe !== a.rpe ? ` · intenzione ${fmtN(a.o.rpe, 1)}` : "") : a.o.did ? " (programmato: l'atleta non l'ha dato)" : " (programmato)"}</title></circle>`).join("");
   /* fasce: segmenti di serie consecutive con lo stesso valore */
   const segs = keyf => { const out = []; for (let k = 1; k <= N; k++){ const a = at[k]; if (!a) continue; const q = out[out.length - 1];
     if (q && q.k === keyf(a) && q.to === k - 1) q.to = k; else out.push({k: keyf(a), a, from: k, to: k}); } return out; };
@@ -5189,8 +5210,8 @@ function sessStrip(F, KC){
     : `<span class="faint">${withR.length ? "Nessun picco fuori da preparazione e defaticamento" : PCT ? "Nessuna % del migliore: servono tempi, misure o kg registrati (o la % nel programma)" : "Nessun RPE nel programma: la seduta si legge dai mezzi e dai ruoli"}</span>`;
   const noR = P.length - withR.length, pad = `padding:0 ${xr / W * 100}% 0 ${x0 / W * 100}%`;
   return `<div class="sess"><div class="sessh"><b>Seduta</b> <span class="kfilt sesk">${[["rpe", "RPE"], ["pct", "% del migliore"]].map(([k, l]) => `<button type="button" class="${M === k ? "on" : ""}" data-act="sess-scale" data-v="${k}" aria-pressed="${M === k}">${l}</button>`).join("")}</span>
-      <div class="faint sessd">${N} serie${nDid ? ` · ${nDid} eseguit${nDid === 1 ? "a" : "e"}` : ""} · ${PCT ? "altezza = % del migliore delle ultime 12 settimane (sprint: tempo; salti: misura; pesi: % e1RM) · tratteggio = 95%" : `altezza = RPE (tratteggio = ${AR_HARD}, allenante)`}${nDid ? ` · ${nA} dat${nA === 1 ? "o" : "i"} dell'atleta${nPl ? `, ${nPl} solo programmat${nPl === 1 ? "o" : "i"} (puntini chiari)` : ""}` : ""}${noR ? ` · ${noR} senza valore (puntini vuoti)` : ""}</div></div>
-    <svg viewBox="0 0 ${W} ${H}" class="sesvg" aria-hidden="true">${grid}${line}${dots}</svg>
+      <div class="faint sessd">${N} serie${nDid ? ` · ${nDid} eseguit${nDid === 1 ? "a" : "e"}` : ""} · ${PCT ? "altezza = % del migliore delle ultime 12 settimane (sprint: tempo; salti: misura; pesi: % e1RM) · tratteggio = 95%" : `altezza = RPE (tratteggio = ${AR_HARD}, allenante)`}${nDid ? ` · ${nA} dat${nA === 1 ? "o" : "i"} dell'atleta${nPl ? `, ${nPl} solo programmat${nPl === 1 ? "o" : "i"} (puntini chiari)` : ""}${!PCT && F.seq.some(o => isA(o) && o.rpe != null && o.rpe !== o.rpeA) ? " · ○ grigio = intenzione programmata, se diversa" : ""}` : ""}${noR ? ` · ${noR} senza valore (puntini vuoti)` : ""}</div></div>
+    <svg viewBox="0 0 ${W} ${H}" class="sesvg" aria-hidden="true">${grid}${line}${ghost}${dots}</svg>
     <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Mezzi</div>${mez}</div>
     <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Ruoli</div>${rol}</div>${leg}
     <div class="sest">${pkT}</div></div>`; }
@@ -5356,7 +5377,8 @@ function exEditorHtml(x, i, res, L){
         <td class="ra">${cc ? "" : `${clBtns(j, s)}<button class="btn ghost sm" data-act="set-dup" data-i="${i}" data-j="${j}" title="Duplica serie" aria-label="Duplica serie ${j+1}">${ICON.dup}</button><button class="btn ghost sm" data-act="set-rm" data-i="${i}" data-j="${j}" title="Elimina serie">✕</button>`}</td></tr>`).join("")}
     </tbody></table></div>
     ${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}
-    <div class="row">${!cc && S.editor && ssGroups(S.editor.w.exercises).find(g => g.includes(i))?.length === 1 ? `<button type="button" class="btn sm ghost" data-act="ex-solo-circ" data-i="${i}" title="Per un circuito di un solo esercizio: AMRAP (es. 5′ max burpees), EMOM, a tempo…">⟳ Circuito / AMRAP</button>` : ""}${cc ? "" : `<span class="lbl">Serie</span><span class="stepper"><button data-act="set-minus" data-i="${i}" aria-label="Togli serie">−</button><span class="num">${x.sets.length}</span><button data-act="set-plus" data-i="${i}" aria-label="Aggiungi serie">+</button></span>`}
+    <div class="row">${!cc && S.editor && ssGroups(S.editor.w.exercises).find(g => g.includes(i))?.length === 1 ? `<button type="button" class="btn sm ghost" data-act="ex-solo-circ" data-i="${i}" title="Per un circuito di un solo esercizio: AMRAP (es. 5′ max burpees), EMOM, a tempo…">⟳ Circuito / AMRAP</button>` : ""}${cc ? "" : `<span class="lbl">Serie</span><span class="stepper"><button data-act="set-minus" data-i="${i}" aria-label="Togli serie">−</button><span class="num">${x.sets.length}</span><button data-act="set-plus" data-i="${i}" aria-label="Aggiungi serie">+</button></span>`}${!cc && x.name && ((x.cols || []).some(c => c === "rpe" || c === "rir") || isField(x, x.name)) ? (a => `<label class="rpm" title="Come l'atleta dà l'RPE: in ogni serie, oppure un voto solo a fine fase (le fasi della Struttura degli stimoli). Con 'a fine fase' l'RPE delle righe resta la tua intenzione, in grigio"><span class="lbl">RPE atleta</span><select class="in" data-bind="exercises.${i}.rpeMode" aria-label="Come l'atleta dà l'RPE">
+        <option value="" ${x.rpeMode ? "" : "selected"}>Automatico · ${a === "phase" ? "a fine fase" : "per serie"}</option><option value="set" ${x.rpeMode === "set" ? "selected" : ""}>Per serie</option><option value="phase" ${x.rpeMode === "phase" ? "selected" : ""}>A fine fase</option></select></label>`)(isField(x, x.name) ? "phase" : "set") : ""}
       <input class="in grow" style="min-width:200px" aria-label="Note esercizio" data-bind="exercises.${i}.notes" value="${esc(x.notes||"")}" placeholder="Nota per l'atleta su questo esercizio"></div>
     ${x.name ? altsRowHtml(x, i, lib) : ""}
     ${progHtml(x, i)}
@@ -6934,7 +6956,8 @@ function athExHtml(w, x, label, res, compact){
   const lib = libByName(name);
   const last = historyFor(name, w, 1)[0];
   const em = wEmail(w), sug = x.sets.map(s => !oneNum(s.kg) && x.cols.includes("kg") ? pctKg(em, x, name, s, effDate(w)) : null);   // kg suggeriti dal %1RM (e1RM delle 12 settimane prima)
-  const cell = (c, j, s, rr) => isCl(s) && (c === "reps" || clPer(x, c))   // serie cluster: un valore per cluster, uno sotto l'altro
+  const FIELD = !compact && (x.rpeMode || (isField(x, name) ? "phase" : "set")) === "phase", ro = c => FIELD && (c === "rpe" || c === "rir");   // RPE a fine fase (scelta del coach; automatico: campo sì, palestra no): l'RPE della riga è l'intenzione del coach
+  const cell = (c, j, s, rr) => ro(c) ? `<td>${roHtml(s[c])}</td>` : isCl(s) && (c === "reps" || clPer(x, c))   // serie cluster: un valore per cluster, uno sotto l'altro
     ? `<td><div class="cst">${s.cl.map((q, k) => logCellHtml(x, c, j, q, rr.cl?.[k] || {}, null, "serie", k)).join("")}</div></td>` : `<td>${logCellHtml(x, c, j, s, rr, sug[j])}</td>`;
   const pz = (s, k) => String((clPer(x, "pi") ? s.cl[k]?.pi : s.pi) ?? "").trim();
   const clInfo = hasCl ? (() => { const R = serieRuns(x).filter(t => t.cl); return R.map(t => `<b>Cluster${x.sets.length > 1 ? ` (serie ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""})` : ""}:</b> ${esc(clTxt(x, t.s))}${setDisp(x, t.s, "pi") ? ` con <b>${esc(setDisp(x, t.s, "pi"))}</b> di pausa tra un cluster e l'altro` : ""}`).join("<br>") + `<br><span class="faint">Segna ${(L => L.length > 1 ? L.slice(0, -1).join(", ") + " e " + L[L.length - 1] : L[0])(logCols.filter(c => c === "reps" || clPer(x, c)).map(c => /^[A-Z]+$/.test(COLS[c].l) ? COLS[c].l : COLS[c].l.toLowerCase()))} di ogni cluster.</span>`; })() : "";
@@ -6954,15 +6977,21 @@ function athExHtml(w, x, label, res, compact){
     ${pbTxt ? `<div class="info"><b>${pbOk[0].k === "spr" ? "Tempo obiettivo" : "Misura obiettivo"}:</b> ${pbTxt} <span class="faint">(dal tuo ${pbOk[0].k === "spr" ? "miglior tempo: " + fmtN(pbOk[0].ref.v, 2) + " s" : "miglior salto: " + fmtN(pbOk[0].ref.v, 1) + " cm"})</span></div>` : ""}
     ${lib?.notes ? `<div class="info"><b>Indicazioni:</b> ${esc(lib.notes)}</div>` : ""}
     ${hasCl ? `<div class="info clinfo">${clInfo}</div>` : ""}
-    ${compact ? "" : tcols.length ? `${tcols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${tcols.length > 4 ? "many" : ""} ${hasCl ? "hascl" : ""}"><thead><tr><th></th>${hasCl ? "<th></th>" : ""}${tcols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${compact ? "" : tcols.length ? `${tcols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${tcols.length > 4 ? "many" : ""} ${hasCl ? "hascl" : ""}"><thead><tr><th></th>${hasCl ? "<th></th>" : ""}${tcols.map(c => `<th class="${COLS[c].log && !ro(c) ? "" : "roh"}">${esc(ro(c) ? "Intensità" : COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${Array.from({length:n}, (_,j) => { const s = x.sets[j] || {}; const rr = r[j] || {};
         return `<tr class="${rr.done?"ok":""} ${isCl(s) ? "clr" : ""}"><td class="n">${j >= x.sets.length ? `<button class="rmx" data-act="a-rmset" data-x="${x.id}" data-j="${j}" aria-label="Togli la serie extra ${j+1}" title="Togli questa serie extra">✕</button>` : `${j+1}${s.type ? "<br>"+typeBadge(s.type) : ""}`}</td>${hasCl ? `<td class="cln">${isCl(s) ? `<div class="cst">${s.cl.map((q, k) => `<span>C${k+1}${k && pz(s, k) ? `<small>dopo ${esc(pz(s, k))}</small>` : ""}</span>`).join("")}</div>` : ""}</td>` : ""}${tcols.map(c => cell(c, j, s, rr)).join("")}
           <td class="ckc"><button class="ck" data-act="a-check" data-x="${x.id}" data-j="${j}" aria-label="Serie ${j+1} fatta">${ICON.check}</button></td></tr>`; }).join("")}
-    </tbody></table></div>${infoCols.length ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
+    </tbody></table></div>${infoCols.length || x.cols.some(ro) ? `<div class="tlegend"><span><span class="ro mini">2'</span> In grigio tratteggiato: indicazioni del coach, non vanno compilate</span></div>` : ""}${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}<button class="addset" data-act="a-addset" data-x="${x.id}">+ Serie extra</button>` : `<button class="btn" data-act="a-check" data-x="${x.id}" data-j="0">${r[0]?.done?"✓ Fatto":"Segna come fatto"}</button>`}
+    ${FIELD ? phaseBoxHtml(w, x, em) : ""}
     ${compact ? "" : `<div class="histrow"><button class="histbtn" data-act="a-hist" data-x="${x.id}">Vedi cronologia <span class="arr" aria-hidden="true">›</span></button>${last ? `<span class="faint">ultima volta ${esc(fmtD(last.date))}</span>` : ""}</div>`}
     ${xNoteHtml(w, x)}
   </div>`;
 }
+/* riquadro "RPE a fine fase" (atleta, esercizi di campo): un RPE per fase, senza mostrare l'intenzione del coach (per non condizionare la risposta) */
+function phaseBoxHtml(w, x, em){ const F = exPhases(em, w, x); if (!F.length) return ""; const R = (w.results || {})[x.id + "~f"] || [], RN = Object.fromEntries(stimData().roles.map(r => [r.id, r.name]));
+  const rows = F.map(z => { const j0 = z.L[0].j, j1 = z.L[z.L.length - 1].j, rl = RN[z.role] || "";
+    return `<div class="fpr"><span class="fprl"><b>${j0 === j1 ? `Serie ${j0 + 1}` : `Serie ${j0 + 1}–${j1 + 1}`}</b>${rl && F.length > 1 ? ` <span class="faint">${esc(rl.replace(/\s*\(.*\)$/, ""))}</span>` : ""}</span><div class="lt">${pickCell("rpe", x.id + "~f", j0, R[j0]?.rpe, "")}</div></div>`; }).join("");
+  return `<div class="fpbox"><div class="fph"><b>${F.length > 1 ? "RPE a fine di ogni parte" : "RPE a fine esercizio"}</b> <span class="faint">· finita ${F.length > 1 ? "la parte" : "l'ultima serie"}: quanto è stata dura? Un voto solo, non serie per serie</span></div>${rows}</div>`; }
 /* circuito lato atleta: in alto gli esercizi (nome, note, video, valori per giro), sotto la registrazione giro per giro */
 function athCircHtml(w, g, L, res){
   const exs = w.exercises, lead = exs[g[0]], c = lead.circ, n = lead.sets.length, key = lead.id + "~c", cr = (res[key] || [])[0] || {};

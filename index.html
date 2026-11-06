@@ -174,6 +174,11 @@ table.ov{border-collapse:separate;border-spacing:0;width:100%;min-width:960px}
 .cal .cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px;min-height:150px;display:flex;flex-direction:column;gap:6px;position:relative}
 .cal .cell.sun{border-right:0}
 .stb{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 3px;border-radius:5px;font-size:10px;font-weight:800;letter-spacing:.02em;line-height:1;background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+.stb.t-P{background:transparent;color:var(--muted);border-style:dashed}
+.stb.tc-g{background:var(--surface2);color:var(--muted);border-color:var(--line);border-style:solid}.stb.tc-a{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.stb.tc-as{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.stb.tc-w{background:var(--warn-soft);color:var(--warn);border-color:transparent}.stb.tc-o{background:var(--ok-soft);color:var(--ok);border-color:transparent}.stb.tc-r{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.stb.tc-p{background:color-mix(in srgb, var(--s5) 18%, transparent);color:var(--s5);border-color:transparent}.stb.tc-x{background:transparent;color:var(--muted);border-style:dashed}
+.tcw{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.tco{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 7px;border:1px solid var(--line);border-radius:8px;cursor:pointer;min-width:56px}.tco input{position:absolute;opacity:0;pointer-events:none}.tco small{font-size:10.5px;color:var(--muted)}.tco:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .stb.t-R{background:var(--surface2);color:var(--muted)}
 .stb.t-W{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .stb.t-B{background:var(--warn-soft);color:var(--warn);border-color:transparent}
@@ -1928,8 +1933,13 @@ function sideSummary(sets){
   return {both: false, txt: runs.map(r => `${r.n} ${r.k}`).join(" → "), how: `prima ${runs.map(r => `${r.n} ${r.n === 1 ? "serie" : "serie"} ${r.k}`).join(", poi ")}`};
 }
 /* tipo di serie: lo decide solo il coach (campo "type" nella serie programmata) */
-const SET_TYPES = {R:{l:"Ramping set", s:"Ramp"}, W:{l:"Work set", s:"Work"}, B:{l:"Back-off set", s:"Back-off"}, D:{l:"Down set", s:"Down"}};
-const TYPE_ORDER = ["", "R", "W", "B", "D"];
+const SET_TYPES_BASE = {P:{l:"Preparatory set", s:"Prep"}, R:{l:"Ramping set", s:"Ramp"}, W:{l:"Work set", s:"Work"}, B:{l:"Back-off set", s:"Back-off"}, D:{l:"Down set", s:"Down"}};
+const SET_TYPES = {...SET_TYPES_BASE};
+const TYPE_ORDER = ["", "P", "R", "W", "B", "D"];
+/* lettere create dal coach sui suoi ruoli (Esercizi → Ruoli): diventano tipi di serie come R / W / B / D, con il nome del ruolo */
+function setTypesSync(){ Object.keys(SET_TYPES).forEach(k => { if (!(k in SET_TYPES_BASE)) delete SET_TYPES[k]; });
+  TYPE_ORDER.splice(0, TYPE_ORDER.length, "", ...Object.keys(SET_TYPES_BASE));
+  (S.stim?.roles || []).forEach(r => { const t = String(r.type || ""); if (t && !(t in SET_TYPES)) { SET_TYPES[t] = {l: r.name, s: r.name, c: TYPE_COLORS[r.tc] ? r.tc : "g"}; TYPE_ORDER.push(t); } }); }
 /* tipo di seduta: lo sceglie il coach nell'allenamento; se non l'ha indicato lo deduco dagli esercizi */
 /* tipi di seduta = le capacità (stesso nome dell'albero degli stimoli) + Partita e Gara (eventi: solo RPE e durata).
    Il tipo si ricava dagli stimoli delle serie (tutte); il coach può sceglierlo a mano (w.kind) */
@@ -1968,7 +1978,8 @@ const kindOf = w => kindSet(w) || kindStim(w)?.k || LEGACY_KIND[guessKind(w || {
 const kindExpr = w => kindSet(w) ? null : kindStim(w)?.e || null;
 const kindLbl = (w, short) => { if (kindSet(w)) return KINDS[kindSet(w)].l; const q = kindStim(w); if (!q) return KINDS[kindOf(w)].l;
   const one = (k, e) => e ? exprLbl(e) : KINDS[k].l; return one(q.k, q.e) + (q.mix ? " + " + (short ? KINDS[q.mix].l : one(q.mix, q.mixE)) : ""); };   // short: la seconda capacità senza espressione (calendario)
-const typeBadge = (t, extra="") => t && SET_TYPES[t] ? `<span class="stb t-${t}" title="${SET_TYPES[t].l}" ${extra}>${t}</span>` : "";
+const typeBadge = (t, extra="") => t && SET_TYPES[t] ? `<span class="stb t-${t}${SET_TYPES[t].c ? " tc-" + SET_TYPES[t].c : ""}" title="${SET_TYPES[t].l}" ${extra}>${t}</span>` : "";
+const TYPE_COLORS = {g: "Grigio", a: "Blu", as: "Azzurro", w: "Arancio", o: "Verde", r: "Rosso", p: "Rosa", x: "Tratteggiato"};   // colori delle lettere create dal coach
 /* una serie registrata è "vuota" se non ha valori e non è spuntata */
 const emptyRes = r => !r || (!r.done && !Object.entries(r).some(([k,v]) => k === "cl" ? Array.isArray(v) && v.some(q => Object.values(q || {}).some(z => String(z ?? "").trim() !== "")) : k !== "done" && k !== "at" && String(v ?? "").trim() !== ""));
 /* serie extra spostate dal coach (Correggi): r.at = dopo quante serie programmate è stata fatta (manca = in fondo).
@@ -2289,7 +2300,8 @@ async function roleOf(email){
 async function loadCoachData(){
   let st;
   [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);
-  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null; S.stim = st.stim || null; if (S.stim) S.stim.roles?.forEach(r => { if (r.id === "r_work" && r.name === "Allenante (work)") r.name = "Target (work)"; });   // nome nuovo del ruolo S.lastBackup = st.lastBackupAt || null; S.tenTh = st.tenTh || null;
+  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null; S.stim = st.stim || null; if (S.stim) S.stim.roles?.forEach(r => { if (r.id === "r_work" && r.name === "Allenante (work)") r.name = "Target (work)"; if (r.id === "r_prep" && !r.type) r.type = "P"; });   // nome nuovo del ruolo; Preparatorio prende la lettera P
+  setTypesSync(); S.lastBackup = st.lastBackupAt || null; S.tenTh = st.tenTh || null;
   S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name));
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = activeAthletes()[0]?.email || null;
@@ -4797,7 +4809,7 @@ const STIM_DEF = () => { const C = (id, name, desc, ex) => ({id: "c_" + id, name
     C("coord", "Coordinative", "Da scegliere come stimolo solo quando sono l'intento; altrimenti stanno sotto i movimenti (capacità sottostanti)", [["reaz", "Reazione", ""], ["equil", "Equilibrio", ""], ["ritmo", "Ritmo", ""], ["orient", "Orientamento spaziale", ""], ["diff", "Differenziazione", ""], ["comb", "Combinazione", ""], ["trasf", "Trasformazione", ""]]),
     C("tec", "Tecnica", "", [["appr", "Apprendimento", ""], ["cons", "Consolidamento", ""], ["perf", "Perfezionamento", ""], ["transf", "Transfer", ""]]),
     C("mob", "Mobilità", "", [["art", "Mobilità articolare", ""]])],
-  roles: [{id: "r_prep", name: "Preparatorio / tecnico", desc: "set-up, mezzi che predispongono il gesto (es. marcia → volo → corsa prima dello sprint)", type: ""},
+  roles: [{id: "r_prep", name: "Preparatorio / tecnico", desc: "set-up, mezzi che predispongono il gesto (es. marcia → volo → corsa prima dello sprint)", type: "P"},
     {id: "r_ramp", name: "Attivazione (ramping)", desc: "serie che salgono verso il lavoro", type: "R"},
     {id: "r_work", name: "Target (work)", desc: "le serie bersaglio della seduta (anche senza RPE: es. la mobilità in una seduta di mobilità)", type: "W"},
     {id: "r_back", name: "Back-off", desc: "dopo il picco, carico ridotto", type: "B"},
@@ -4815,7 +4827,7 @@ function exprToCat(id, pattern){ const q = exprById(id); if (!q) return "";
   if (EXPR_CAT[id]) return EXPR_CAT[id]; const c = q.cap.id;
   return c === "c_vel" ? "Velocità" : c === "c_res" ? "Condizionamento" : c === "c_tec" ? (/salto in alto/i.test(pattern || "") ? "Tecnica salto" : "Tecnica") : c === "c_coord" ? "Coordinazione" : q.cap.name; }
 const stim0Of = l => l && (exprById(l.stim0) ? l.stim0 : catToExpr(l.category, l));
-async function stimSave(d){ STIMV++; S.stim = d; await DB.saveSettings({stim: d}); }
+async function stimSave(d){ STIMV++; S.stim = d; setTypesSync(); await DB.saveSettings({stim: d}); }
 const exprById = id => { for (const c of stimData().caps) { const e = c.expr.find(q => q.id === id); if (e) return {cap: c, expr: e}; } return null; };
 /* ===== FIRMA TIPO DI OGNI STIMOLO =====
    L'identikit di come il coach programma ogni espressione, ricavato SOLO dalle fasi che ha confermato (non dalle proposte dell'app),
@@ -4859,7 +4871,7 @@ function capsPanel(){ const D = stimData();
       ${c.expr.map(e => `<div class="prow sexpr"><span class="grow">${esc(e.name)}${e.desc ? ` <span class="faint" style="font-size:12px">· ${esc(e.desc)}</span>` : ""}</span><button class="lnk" data-act="stim-ed" data-k="expr" data-id="${e.id}">Modifica</button></div>`).join("") || `<div class="prow sexpr faint">nessuna espressione</div>`}</div>`).join("")}</div>
     <button class="btn" data-act="stim-new" data-k="cap">+ Nuova capacità</button></div>`; }
 function rolesPanel(){ const D = stimData();
-  return `<div class="form"><div class="note"><b>Ruolo = perché quella serie sta lì nella seduta.</b> Si collega ai tipi di serie che usi già (Ramp, Work, Back-off, Down): sceglierai il ruolo insieme all'espressione sui gruppi di serie.</div>
+  return `<div class="form"><div class="note"><b>Ruolo = perché quella serie sta lì nella seduta.</b> Lo scegli sulle fasi nella Struttura degli stimoli. Ogni ruolo ha la sua lettera (P, R, W, B, D, o una nuova per i ruoli che crei tu): la colonna TIPO delle serie la prende da lì.</div>
     <div class="plist">${D.roles.map(r => `<div class="prow"><span class="grow"><b>${esc(r.name)}</b>${r.type ? ` ${typeBadge(r.type)}` : ""}${r.desc ? `<div class="faint" style="font-size:12px">${esc(r.desc)}</div>` : ""}</span><button class="lnk" data-act="stim-ed" data-k="role" data-id="${r.id}">Modifica</button></div>`).join("")}</div>
     <button class="btn" data-act="stim-new" data-k="role">+ Nuovo ruolo</button></div>`; }
 /* finestra: nuova / modifica capacità, espressione, ruolo */
@@ -4871,7 +4883,12 @@ function stimDialog(k, id, isNew){
     <div class="field"><label class="lbl" for="st-n">Nome</label><input class="in" id="st-n" value="${esc(cur.name)}" required autocomplete="off"></div>
     <div class="field"><label class="lbl" for="st-d">Descrizione <span class="faint">(facoltativa)</span></label><textarea class="in" id="st-d" rows="2">${esc(cur.desc || "")}</textarea></div>
     ${k === "expr" ? `<div class="field"><label class="lbl" for="st-p">Capacità</label><select class="in" id="st-p">${D.caps.map(c => `<option value="${c.id}" ${c.id === parent ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></div>` : ""}
-    ${k === "role" ? `<div class="field"><label class="lbl" for="st-t">Tipo di serie collegato</label><select class="in" id="st-t"><option value="">— nessuno —</option>${Object.entries(SET_TYPES).map(([t, o]) => `<option value="${t}" ${(cur.type || "") === t ? "selected" : ""}>${esc(o.l)}</option>`).join("")}</select></div>` : ""}
+    ${k === "role" ? (() => { const base = ["r_prep", "r_ramp", "r_work", "r_back", "r_down"].includes(id), own = cur.type && !(cur.type in SET_TYPES_BASE) && !D.roles.some(r => r.id !== id && r.type === cur.type);
+      return base ? `<div class="field"><span class="lbl">Lettera (tipo di serie)</span><div>${typeBadge(cur.type)} <span class="faint" style="font-size:12px">${esc(SET_TYPES[cur.type]?.l || "")} · fissa per i ruoli di base</span></div></div>`
+      : `<div class="field"><label class="lbl" for="st-t">Lettera (tipo di serie)</label><select class="in" id="st-t"><option value="">— nessuna —</option>${Object.entries(SET_TYPES).filter(([t]) => !own || t !== cur.type).map(([t, o]) => `<option value="${t}" ${!own && (cur.type || "") === t ? "selected" : ""}>${esc(t)} · ${esc(o.l)}</option>`).join("")}<option value="+" ${own ? "selected" : ""}>Lettera nuova…</option></select>
+        <div id="st-tlw" style="${own ? "" : "display:none"}"><input class="in" id="st-tl" maxlength="2" placeholder="es. C" value="${own ? esc(cur.type) : ""}" style="margin-top:6px;max-width:120px" aria-label="Lettera nuova" autocomplete="off">
+        <div class="tcw" role="radiogroup" aria-label="Colore della lettera">${Object.entries(TYPE_COLORS).map(([c, l]) => `<label class="tco" title="${l}"><input type="radio" name="st-tc" value="${c}" ${(cur.tc || "g") === c ? "checked" : ""}><span class="stb tc-${c}">${esc(own ? cur.type : "C")}</span><small>${l}</small></label>`).join("")}</div></div>
+        <span class="faint" style="font-size:12px">Nel programma la colonna TIPO prende questa lettera quando scegli il ruolo nella Struttura degli stimoli.</span></div>`; })() : ""}
     ${k === "cap" && !isNew && cap.expr.length ? `<div class="faint" style="font-size:12px">Eliminandola si eliminano anche le sue ${cap.expr.length} espressioni (spostale prima, se vuoi tenerle).</div>` : ""}
     </div><footer>${isNew ? "" : `<button type="button" class="btn ghost danger" id="st-del">Elimina</button>`}<span class="grow"></span><button type="button" class="btn" id="st-no">Annulla</button><button class="btn pri">${isNew ? "Aggiungi" : "Salva"}</button></footer></form></div>`;
   const close = () => $("#confirm").innerHTML = "";
@@ -4885,11 +4902,17 @@ function stimDialog(k, id, isNew){
     const name = $("#st-n").value.trim().replace(/\s+/g, " "), desc = $("#st-d").value.trim(); if (!name) return;
     if (k === "cap") { if (D.caps.some(c => c.id !== id && optKey(c.name) === optKey(name))) return toast(`«${name}» esiste già`);
       if (isNew) D.caps.push({id: "c_" + uid(), name, desc, expr: []}); else Object.assign(D.caps.find(c => c.id === id), {name, desc}); }
-    else if (k === "role") { const type = $("#st-t").value; if (isNew) D.roles.push({id: "r_" + uid(), name, desc, type}); else Object.assign(D.roles.find(r => r.id === id), {name, desc, type}); }
+    else if (k === "role") { let type = $("#st-t") ? $("#st-t").value : cur.type || "";
+      if (type === "+") { type = ($("#st-tl").value || "").trim().toUpperCase(); if (!/^[A-Z0-9]{1,2}$/.test(type)) return toast("La lettera: 1 o 2 caratteri, lettere o numeri");
+        if (type in SET_TYPES_BASE || D.roles.some(r => r.id !== id && r.type === type)) return toast(`La lettera ${type} è già usata: sceglila dall'elenco`); }
+      const tc = type && !(type in SET_TYPES_BASE) ? (document.querySelector("input[name=st-tc]:checked")?.value || SET_TYPES[type]?.c || "g") : undefined;
+      if (isNew) D.roles.push({id: "r_" + uid(), name, desc, type, ...(tc ? {tc} : {})}); else { const r = D.roles.find(r => r.id === id); Object.assign(r, {name, desc, type}); if (tc && $("#st-t")?.value === "+") r.tc = tc; else if (!tc) delete r.tc; } }
     else { const to = D.caps.find(c => c.id === $("#st-p").value); if (to.expr.some(e => e.id !== id && optKey(e.name) === optKey(name))) return toast(`«${name}» c'è già in ${to.name}`);
       if (isNew) to.expr.push({id: "e_" + uid(), name, desc});
       else { let e; D.caps.forEach(c => { const i = c.expr.findIndex(q => q.id === id); if (i >= 0) e = c.expr.splice(i, 1)[0]; }); Object.assign(e, {name, desc}); to.expr.push(e); } }   // spostata: stesso id, segue lo storico
     close(); await stimSave(D); toast(isNew ? `«${name}» aggiunto` : "Salvato"); renderView(); };
+  { const sel = $("#st-t"), tl = $("#st-tl"), tw = $("#st-tlw"); if (sel && tl) { sel.onchange = () => { tw.style.display = sel.value === "+" ? "" : "none"; if (sel.value === "+") tl.focus(); };
+      tl.oninput = () => document.querySelectorAll(".tco .stb").forEach(b => b.textContent = tl.value.trim().toUpperCase() || "C"); } }
   setTimeout(() => { const i = $("#st-n"); i?.focus(); i?.select(); }, 30);
 }
 /* capacità sottostanti di un movimento (contesto: cosa richiede, non cosa si allena) */
@@ -5173,9 +5196,15 @@ const hardOf = (r, sm) => { const h = isHard(r); return h && sm && ROLE_NOHARD.i
 const capName = id => exprById(id)?.cap.name || "Senza stimolo", roleName = id => stimData().roles.find(r => r.id === id)?.name || "Senza ruolo", movName = n => libByName(n)?.pattern?.trim() || "Senza pattern";
 /* scrive sulle serie della fase (bozza dell'editor) */
 function fzSets(str){ const w = S.editor?.w; if (!w) return []; return String(str || "").split(",").filter(Boolean).map(r => { const [xid, j] = r.split(":"); return w.exercises.find(x => x.id === xid)?.sets?.[+j]; }).filter(Boolean); }
+/* il TIPO della serie (R/W/B/D) eredita il RUOLO scelto nella Struttura degli stimoli: Attivazione → R, Target → W, Back-off → B, Defaticante → D,
+   Preparatorio → nessun tipo. Ruoli creati dal coach senza tipo: il tipo non si tocca. Ritorna true se qualcosa è cambiato (per ridisegnare la tabella) */
+function roleTypeSync(L){ const R = stimData().roles; let ch = false;
+  L.forEach(st => { const r = R.find(q => q.id === st.role); if (!r || r.type == null) return; const t = r.type || "";
+    if ((st.type || "") !== t) { st.type = t; ch = true; } }); return ch; }
+const fzDone = ch => { markDirty(); if (ch) drawEditor(); };
 function fzFix(L){   // la prima volta che il coach tocca una fase, la proposta diventa scelta (su tutte le serie della fase)
   const E = S.editor, F = firmaOf(E.email, E.w).mv.flatMap(stimFasi), z = F.find(q => q.L.some(o => L.includes(o.st)));
-  if (z && !z.asg) L.forEach(st => { st.stim = z.e || ""; st.stim2 = [...z.e2]; st.role = z.role || ""; }); }
+  if (z && !z.asg) { L.forEach(st => { st.stim = z.e || ""; st.stim2 = [...z.e2]; st.role = z.role || ""; }); return roleTypeSync(L); } return false; }
 /* ===== LIVELLO SEDUTA =====
    Lo stimolo si legge anche sulla seduta intera: rampe, picchi, back-off passano da un movimento all'altro e da un mezzo all'altro.
    Scala comune = RPE (anche da RIR); le serie senza RPE sono puntini vuoti in basso. Picchi (come nell'Architettura): in ogni blocco la serie con l'RPE più alto,
@@ -5217,9 +5246,10 @@ function sessStrip(F, KC){
   const rng = g => `serie ${g.from}${g.to > g.from ? "–" + g.to : ""}`;
   const mez = segs(a => a.name + "|" + a.c).map(g => cell(g, g.a.name, `${g.a.name} · ${g.a.lbl} · ${rng(g)}`, "ssm", `--mc:${g.a.c}`)).join("");
   /* ruoli: tutti per esteso se ci stanno, se no tutti con la lettera (come i tipi di serie R / W / B / D, + P = preparatorio) */
+  const RT = Object.fromEntries(stimData().roles.filter(r => r.type).map(r => [r.id, r.type]));
   const RS = segs(a => a.role), rl = k => ROLE_SH[k] || RN[k] || "—", full = RS.every(g => fits(rl(g.k), g.to - g.from + 1));
-  const rol = RS.map(g => cell(g, rl(g.k), `${RN[g.k] || "senza ruolo"} · ${rng(g)}`, `ssr ssr-${g.k || "x"}`, "", full ? rl(g.k) : ROLE_L[g.k] || rl(g.k).slice(0, 1))).join("");
-  const leg = full ? "" : `<div class="ssleg">${[...new Set(RS.map(g => g.k))].sort((a, b) => (Object.keys(ROLE_L).indexOf(a) + 1 || 99) - (Object.keys(ROLE_L).indexOf(b) + 1 || 99)).map(k => `<b>${esc(ROLE_L[k] || rl(k).slice(0, 1))}</b> ${esc(RN[k] || "senza ruolo")}`).join(" · ")}</div>`;
+  const rol = RS.map(g => cell(g, rl(g.k), `${RN[g.k] || "senza ruolo"} · ${rng(g)}`, `ssr ssr-${g.k || "x"}`, "", full ? rl(g.k) : RT[g.k] || ROLE_L[g.k] || rl(g.k).slice(0, 1))).join("");
+  const leg = full ? "" : `<div class="ssleg">${[...new Set(RS.map(g => g.k))].sort((a, b) => (Object.keys(ROLE_L).indexOf(a) + 1 || 99) - (Object.keys(ROLE_L).indexOf(b) + 1 || 99)).map(k => `<b>${esc(RT[k] || ROLE_L[k] || rl(k).slice(0, 1))}</b> ${esc(RN[k] || "senza ruolo")}`).join(" · ")}</div>`;
   const pkB = []; P.forEach(a => { if (!a.pk) return; const q = pkB[pkB.length - 1]; if (q && q.lbl === a.lbl && q.rpe === a.rpe && q.to === a.o.pos - 1) q.to = a.o.pos; else pkB.push({lbl: a.lbl, rpe: a.rpe, from: a.o.pos, to: a.o.pos, c: a.c}); });
   const pkT = pkB.length ? `<b>${pkB.length === 1 ? "Picco" : pkB.length + " picchi"}:</b> ` + pkB.map(q => `<span style="color:${q.c}">●</span> ${esc(q.lbl)} <span class="faint">serie ${q.from}${q.to > q.from ? "–" + q.to : ""}</span> · ${unit}${fv(q.rpe)}${q.rpe === smx && pkB.length > 1 ? " <b>(il più alto)</b>" : ""}`).join(" · ")
     : `<span class="faint">${withR.length ? "Nessun picco fuori da preparazione e defaticamento" : PCT ? "Nessuna % del migliore: servono tempi, misure o kg registrati (o la % nel programma)" : "Nessun RPE nel programma: la seduta si legge dai mezzi e dai ruoli"}</span>`;
@@ -7388,10 +7418,10 @@ const ACT = {
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); exFormIntoView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },
   "sess-scale"(t){ S.sessScale = t.dataset.v; const E = S.editor, box = $("#ed-firma"); if (E && box) box.innerHTML = firmaHtml(E.email, E.w); },
-  "fz-ok"(t){ const L = fzSets(t.dataset.sets); fzFix(L); markDirty(); },
-  "fz-e2rm"(t){ const L = fzSets(t.dataset.sets); fzFix(L); L.forEach(st => st.stim2 = (st.stim2 || []).filter(id => id !== t.dataset.id)); markDirty(); },
+  "fz-ok"(t){ const L = fzSets(t.dataset.sets); fzDone(fzFix(L)); },
+  "fz-e2rm"(t){ const L = fzSets(t.dataset.sets), ch = fzFix(L); L.forEach(st => st.stim2 = (st.stim2 || []).filter(id => id !== t.dataset.id)); fzDone(ch); },
   "fz-join"(t){ const P = fzSets(t.dataset.prev), L = fzSets(t.dataset.sets); fzFix(P); const s0 = P[0];
-    L.forEach(st => { st.stim = s0.stim; st.stim2 = [...(s0.stim2 || [])]; st.role = s0.role; delete st.fb; }); markDirty(); },
+    L.forEach(st => { st.stim = s0.stim; st.stim2 = [...(s0.stim2 || [])]; st.role = s0.role; delete st.fb; }); fzDone(roleTypeSync([...P, ...L])); },
   "xpin-rm"(t){ const e = keepExForm(); e.patIn = (e.patIn||[]).filter((_,k) => k !== +t.dataset.k); redrawEx(); },
   "stim-new"(t){ stimDialog(t.dataset.k, t.dataset.id, true); },
   "stim-ed"(t){ stimDialog(t.dataset.k, t.dataset.id, false); },
@@ -7653,11 +7683,11 @@ document.addEventListener("change", async e => {
     if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }
     x.cols = [...x.cols, c]; x.sets.forEach(s => s[c] = s[c] || ""); markDirty(); return drawEditor(); }
   if (k === "mv-set") { S.mvDlg[t.dataset.k] = t.value; if (t.dataset.k === "mov" && !S.mvDlg.e) { const L = S.exercises.filter(x => optKey(x.pattern) === optKey(t.value)).map(stim0Of).filter(Boolean), c = {}; L.forEach(e => c[e] = (c[e] || 0) + 1); S.mvDlg.e = Object.keys(c).sort((a, b) => c[b] - c[a])[0] || ""; } return movDialog(); }
-  if (k === "fz-e" || k === "fz-r" || k === "fz-e2") { const L = fzSets(t.dataset.sets); if (!L.length) return; fzFix(L);
+  if (k === "fz-e" || k === "fz-r" || k === "fz-e2") { const L = fzSets(t.dataset.sets); if (!L.length) return; let ch = fzFix(L);
     L.forEach(st => { if (k === "fz-e") st.stim = t.value; else if (k === "fz-r") st.role = t.value; else if (t.value && !(st.stim2 || []).includes(t.value)) st.stim2 = [...(st.stim2 || []), t.value]; });
-    markDirty(); return; }
+    if (k === "fz-r") ch = roleTypeSync(L) || ch; fzDone(ch); return; }
   if (k === "fz-cut") { const [st] = fzSets(t.value); if (st) { const E = S.editor, F = firmaOf(E.email, E.w).mv.flatMap(stimFasi), z = F.find(q => q.L.some(o => o.st === st));
-      if (z && !z.asg) z.L.forEach(o => { o.st.stim = z.e || ""; o.st.stim2 = [...z.e2]; o.st.role = z.role || ""; }); st.fb = 1; } markDirty(); return; }
+      let ch = false; if (z && !z.asg) { z.L.forEach(o => { o.st.stim = z.e || ""; o.st.stim2 = [...z.e2]; o.st.role = z.role || ""; }); ch = roleTypeSync(z.L.map(o => o.st)); } st.fb = 1; fzDone(ch); return; } markDirty(); return; }
   if (k === "xpin-add") { const e = keepExForm(), v = t.value; if (v && !(e.patIn || []).some(q => optKey(q) === optKey(v))) e.patIn = [...(e.patIn || []), v]; redrawEx(); return; }
   if (k === "alt-add" || k === "xalt-add") { const n = t.value.trim(); t.value = ""; if (!n) return;
     const hit = libByName(n); const name = hit ? hit.name : n;

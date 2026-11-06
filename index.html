@@ -1898,7 +1898,7 @@ function summarize(x){
   const out = [(anyCl ? serieRuns(x).map(t => t.cl ? `${t.b - t.a + 1}×(${clTxt(x, t.s)}) cluster` : `${t.b - t.a + 1}×${runTxt(x, t)}`).join(" + ")
     : cols.includes("reps") && vals("reps") ? `${sets.length}×${vals("reps")}` : `${sets.length}×`) + (sd?.both ? " per lato" : "")];
   if (sd && !sd.both) out.push(sd.txt);
-  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
     const u = COLS[c].u; out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
   return out.join(" · ");
 }
@@ -2006,8 +2006,17 @@ function serieRuns(x){ const runs = []; (x.sets || []).forEach((s, j) => { const
   if (t && t.key === key) t.b = j; else runs.push({key, cl: isCl(s), a: j, b: j, s}); }); return runs; }
 /* testo della serie con i contatti (stessa regola delle serie normali, v211): contatti compilati e reps vuote/1 → "5+5 contatti";
    reps > 1 → "2+2 reps da 3 contatti"; senza contatti → "2+2+2 reps" */
+/* cluster senza ripetizioni scritte o tutte 1 (ogni cluster = 1 ripetizione, come per i contatti): si legge da un altro parametro per cluster, es. "35+35+35 m" o "30+35+40 m" */
+const clNoReps = s => isCl(s) && s.cl.every(q => ["", "1"].includes(String(q?.reps ?? "").trim()));   // vuote o tutte 1 (come per i contatti)
+const clAltCol = (x, s) => !clNoReps(s) ? null : (x.cols || []).find(c => !["reps", "rest", "side", "pi", "tut", "rpe", "rir", "esito", "pbest", "pct"].includes(c) && clPer(x, c) && !COLS[c]?.txt && s.cl.some(q => String(q?.[c] ?? "").trim())) || null;
+function clAltTxt(x, s, sp = " "){ const c = clAltCol(x, s), K = s.cl.length; if (!c) return `${K}${sp}cluster`;
+  const v = s.cl.map(q => String(q?.[c] ?? "").trim() || "?"), u = COLS[c]?.u ? sp + COLS[c].u : sp + (COLS[c]?.l || c).toLowerCase();
+  return `${v.join("+")}${u}`; }   // sempre col "+", come "2+2+2 reps" e "5+5 contatti": si vede che sono cluster
+/* parametro già scritto nella riga della serie (contatti, o il parametro dei cluster senza reps): niente riga a parte se vale per tutte le serie */
+const rowShownOf = x => { const cc = ccShownOf(x); if (cc) return cc; const S = x.sets || [], c0 = S.length ? clAltCol(x, S[0]) : null;
+  return c0 && S.every(s => clAltCol(x, s) === c0) ? c0 : null; };
 function clTxt(x, s, sp = " "){ const cc = contCol(x.cols), cv = cc ? setDisp(x, s, cc) : "";
-  if (!cv) return `${clStruct(s)}${sp}reps`;
+  if (!cv) return clNoReps(s) ? clAltTxt(x, s, sp) : `${clStruct(s)}${sp}reps`;
   if (s.cl.every(q => ["", "1"].includes(String(q?.reps ?? "").trim()))) return `${s.cl.map(q => String((clPer(x, cc) ? q?.[cc] : s[cc]) ?? "").trim() || "?").join("+")}${sp}contatti`;
   return `${clStruct(s)}${sp}reps da ${cv}${sp}contatti`; }
 function runTxt(x, t, sp = " "){ const S = (x.sets || []).slice(t.a, t.b + 1), cc = contCol(x.cols), sq = c => { const v = S.map(s => String(s[c] ?? "").trim()); return v.every(q => q === v[0]) ? v[0] : v.map(q => q || "–").join("/"); };
@@ -2123,7 +2132,7 @@ function schemeGridHtml(x){
     rows.push(["Lato", g.length === 1 ? esc(L[0])   // tutte uguali: Dx + Sx
       : g.length === L.length ? L.map(esc).join("/<wbr>")   // cambia a ogni serie (es. alternate): Dx/Sx/Dx/Sx, come l'RPE
       : g.map(t => `<span class="sgr">${esc(t.v)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join("")]); }   // a blocchi: come il tempo esec.
-  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi" && c !== ccShownOf(x)).forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || anyCl ? grouped(c) : seq(c)]); });
+  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || anyCl ? grouped(c) : seq(c)]); });
   if (cols.includes("rest") && has("rest")) rows.push(["Recupero", grouped("rest")]);
   return `<div class="scg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;
 }
@@ -2151,7 +2160,7 @@ function schemeText(x){
   const out = anyCl ? [serieRuns(x).map(t => t.cl ? `${t.b - t.a + 1} cluster set × ${clTxt(x, t.s)}${sd?.both ? " per lato" : ""}${setDisp(x, t.s, "pi") ? " (pausa " + setDisp(x, t.s, "pi") + ")" : ""}` : `${t.b - t.a + 1} set${runTxt(x, t) ? ` × ${runTxt(x, t)}` : ""}${sd?.both ? " per lato" : ""}`).join(" + ")]
     : [`${n} ${n === 1 ? "set" : "set"}${cols.includes("reps") && vals("reps") ? ` × ${vals("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`];
   if (sd && !sd.both) out.push(sd.txt);
-  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi").forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
     const u = COLS[c].u; out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
   if (cols.includes("rest")) { const v = vals("rest"); if (v.replace(/[–/]/g,"")) out.push(`rec. ${v}`); }
   return out.join(" · ");
@@ -2165,7 +2174,7 @@ function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; co
     : (pv => pv ? [{v: `${sets.length} set × ` + (pv.cc ? (pv.one ? `${vals(pv.cc)}\u00a0contatti` : `${vals("reps")}\u00a0reps da ${vals(pv.cc)}\u00a0contatti`) : `${vals("reps")}\u00a0contatti`) + (sd?.both ? " per lato" : ""), main: 1}]   // pliometria: in contatti
       : [{v: `${sets.length} set` + (cols.includes("reps") && vals("reps") ? ` × ${vals("reps")}\u00a0reps` : "") + (sd?.both ? " per lato" : ""), main: 1}])(plioView(x));
   if (sd && !sd.both) out.push({v: sd.txt, side: 1});
-  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== ccShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
+  cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
     const wu = z => u ? (u === "%" ? `${z}%` : `${z}\u00a0${u}`) : z, L = sets.map(s => dv(s)(c)), g = [];
     L.forEach((z, j) => { const t = g[g.length - 1]; if (t && t.v === z) t.b = j; else g.push({v: z, a: j, b: j}); });
     if ((c === "tut" || L.some(z => z.includes("→"))) && g.length > 1 && g.length < L.length) {   // come nella vista atleta: tempo esec. (e kg dei cluster) raggruppati per serie
@@ -4321,6 +4330,12 @@ function setVolume(x, name, r, s){
       if (any) return {b: "plio", v: tot}; }
     const ct = ck2 ? numv(r[ck2]) ?? oneNum(plan(ck2)) : null;
     if (ct != null) return {b: "plio", v: ct * (numv(r.reps) ?? numv(plan("reps")) ?? 1)}; }
+  /* serie cluster: si somma cluster per cluster (ripetizioni vuote = 1, come per i contatti): metri = Σ distanza × rip; stacchi e pliometria = Σ rip */
+  if ((isCl(s) || hasClRes(r)) && ["sprint", "corsa", "plio", "stacchi"].includes(b)) {
+    const K = Math.max(s?.cl?.length || 0, r?.cl?.length || 0); let n = 0, m = 0, anyD = false;
+    for (let k = 0; k < K; k++) { const rq = r?.cl?.[k], sq = s?.cl?.[k]; if (!rq && !sq) continue; const nk = numv(rq?.reps) ?? numv(sq?.reps) ?? 1, dk = numv(rq?.dist) ?? numv(sq?.dist) ?? numv(r?.dist) ?? oneNum(plan("dist"));
+      n += nk; if (dk != null) { anyD = true; m += dk * nk; } }
+    if (b === "sprint" || b === "corsa") { if (anyD) return {b, v: m}; } else return {b, v: n}; }
   const k = numv(r.kg), rp = numv(r.reps), d = numv(r.dist) ?? numv(plan("dist")), n1 = rp ?? numv(plan("reps")) ?? 1, sc = secOf(r.time) ?? secOf(plan("time"));
   if (b === "carico") { if (k != null && rp != null) return {b, v: k * rp}; if (rp != null) return {b: "rip", v: rp}; if (sc != null) return {b: "tempo", v: sc}; return null; }
   if (b === "sprint" || b === "corsa") { if (d == null) { const dk = durCol(x.cols), mn = dk ? minOf(r[dk]) ?? minOf(plan(dk)) : null;   // senza metri: i minuti di Durata, poi le ripetizioni (il Tempo qui è la prestazione, non conta)

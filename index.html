@@ -5079,6 +5079,7 @@ function nextBlock(exs, skip=-1){ const used = ssGroups(exs).map(g => g[0]).filt
 function openEditor(email, w, isNew=false, tpl=false){
   $("#modal").innerHTML = "";          // un editor nuovo parte dall'inizio
   S.editor = {email, w: clone(w), isNew, dirty: isNew, tpl};
+  S.editor.aligned = alignTypes(S.editor.w);   // tipi allineati ai ruoli: non segna la seduta come modificata
   drawEditor();
   /* per "Ultime volte" servono anche le settimane passate di questo atleta (ultimi ~4 mesi) */
   if (email && !tpl) { const E = S.editor, from = addDays(monday(w.date || TODAY()), -7 * 16);
@@ -5202,6 +5203,16 @@ function roleTypeSync(L){ const R = stimData().roles; let ch = false;
   L.forEach(st => { const r = R.find(q => q.id === st.role); if (!r || r.type == null) return; const t = r.type || "";
     if ((st.type || "") !== t) { st.type = t; ch = true; } }); return ch; }
 const fzDone = ch => { markDirty(); if (ch) drawEditor(); };
+/* verso inverso: cambi a mano il TIPO di una serie già confermata → cambia anche il RUOLO (R → Attivazione, W → Target…; nessun tipo → nessun ruolo).
+   Sulle serie ancora "proposta" non tocca niente (lì il tipo serve alla proposta). La fase si divide da sola se il ruolo cambia */
+function typeRoleSync(st){ if (!st || !(st.stim || st.role)) return; const R = stimData().roles, t = st.type || "";
+  if (!t) { st.role = ""; return; } if (R.find(r => r.id === st.role)?.type === t) return;
+  const r = R.find(q => q.type === t && ["r_prep", "r_ramp", "r_work", "r_back", "r_down"].includes(q.id)) || R.find(q => q.type === t); if (r) st.role = r.id; }
+/* all'apertura: nelle fasi confermate il tipo prende la lettera del ruolo (sedute programmate prima che tipo e ruolo andassero insieme).
+   Solo nella copia aperta: si salva con la prossima modifica; ritorna quante serie sono cambiate */
+function alignTypes(w){ const R = stimData().roles; let n = 0;
+  (w.exercises || []).forEach(x => (x.sets || []).forEach(st => { if (!st.role) return; const r = R.find(q => q.id === st.role); if (!r || r.type == null) return;
+    if ((st.type || "") !== (r.type || "")) { st.type = r.type || ""; n++; } })); return n; }
 function fzFix(L){   // la prima volta che il coach tocca una fase, la proposta diventa scelta (su tutte le serie della fase)
   const E = S.editor, F = firmaOf(E.email, E.w).mv.flatMap(stimFasi), z = F.find(q => q.L.some(o => L.includes(o.st)));
   if (z && !z.asg) { L.forEach(st => { st.stim = z.e || ""; st.stim2 = [...z.e2]; st.role = z.role || ""; }); return roleTypeSync(L); } return false; }
@@ -5280,7 +5291,7 @@ function firmaHtml(email, w){
     return `<div class="frow" style="--fc:${c}"><div class="fh"><span class="fpat">${esc(f.pat || f.names[0])}</span>${!f.pat ? `<span class="faint" title="Esercizio senza pattern nella libreria: aggiungilo nella scheda dell'esercizio per raggrupparlo con gli altri dello stesso movimento"> · senza pattern</span>` : ""}<span class="fmez">mezzi: ${esc(f.names.join(", "))}</span></div>
       <div class="fb"><div class="ftxt">${parts.join(" · ")}</div><div class="fpos">${spark}<small>serie ${f.first === f.last ? f.first : `${f.first}–${f.last}`} di ${F.N} della seduta</small></div></div>${fasiHtml(f, w)}</div>`; }).join("");
   return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Struttura degli stimoli</b> <span class="faint">· in ordine di programma</span></summary>
-    <div class="fdesc">In alto la <b>seduta</b> intera: come lo stimolo sale, tocca i picchi e scende passando da un movimento all'altro. Sotto, nell'ordine del programma, un riquadro per ogni blocco dello stesso movimento (esercizi di seguito; se il movimento torna più avanti è un riquadro nuovo): forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del blocco, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app.</div>${sessStrip(F, KC)}${rows}</details>`; }
+    <div class="fdesc">In alto la <b>seduta</b> intera: come lo stimolo sale, tocca i picchi e scende passando da un movimento all'altro. Sotto, nell'ordine del programma, un riquadro per ogni blocco dello stesso movimento (esercizi di seguito; se il movimento torna più avanti è un riquadro nuovo): forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del blocco, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app. Tipo di serie e ruolo vanno insieme: cambiando l'uno cambia l'altro.</div>${S.editor?.aligned && S.editor.w === w ? `<div class="faint" style="font-size:12px;margin:2px 0 6px">↻ Aprendo la seduta ho allineato il tipo al ruolo in ${S.editor.aligned} serie: si salva con la prossima modifica.</div>` : ""}${sessStrip(F, KC)}${rows}</details>`; }
 let firmaT = null;
 const firmaRefresh = () => { clearTimeout(firmaT); firmaT = setTimeout(() => { const E = S.editor, box = $("#ed-firma"); if (!E || !box) return; box.innerHTML = firmaHtml(E.email, E.w); }, 350); };
 /* ===== PROGRAMMARE DALLO STIMOLO (passo 4) =====
@@ -7377,7 +7388,7 @@ const ACT = {
   "set-dup"(t){ const x = S.editor.w.exercises[+t.dataset.i]; const j = +t.dataset.j; x.sets.splice(j+1, 0, clone(x.sets[j])); markDirty(); drawEditor(); },
   "set-rm"(t){ const x = S.editor.w.exercises[+t.dataset.i]; if (x.sets.length > 1) x.sets.splice(+t.dataset.j, 1); markDirty(); drawEditor(); },
   "set-type"(t){ const s = S.editor.w.exercises[+t.dataset.i].sets[+t.dataset.j]; const k = TYPE_ORDER[(TYPE_ORDER.indexOf(s.type||"")+1) % TYPE_ORDER.length];
-    if (k) s.type = k; else delete s.type; markDirty(); drawEditor(); },
+    if (k) s.type = k; else delete s.type; typeRoleSync(s); markDirty(); drawEditor(); },
   "set-cl"(t){ const x = S.editor.w.exercises[+t.dataset.i], s = x.sets[+t.dataset.j]; if (!s) return;
     if (isCl(s)) { clSync(x, s); const f = s.cl[0] || {}; (x.cols || []).filter(c => c !== "reps" && clPer(x, c)).forEach(c => { if (/\//.test(s[c] || "")) s[c] = f[c] ?? ""; }); delete s.cl; delete s.pi; }   // torna serie normale: reps = somma, kg diversi → quelli del primo cluster
     else { const n = numv(s.reps), a = n && n > 1 ? Math.ceil(n / 2) : null, base = Object.fromEntries((x.cols || []).filter(c => c !== "reps" && clPer(x, c)).map(c => [c, s[c] ?? ""]));
@@ -7465,7 +7476,7 @@ const ACT = {
   "ar-add"(t){ const G = S.prog; t.dataset.xs.split(",").forEach(id => { const a = G.sess.sets[id]; if (a) a.push(nextSet(a)); }); G.arPop = null; drawProg(); },
   "ar-rm"(t){ const G = S.prog, w = progW(G, G.wid); t.dataset.xs.split(",").forEach(id => { const a = G.sess.sets[id], x = (w?.exercises || []).find(q => q.id === id);
     if (a && a.length > 1 && !(x && psLocked(w, x, a.length - 1))) a.pop(); }); G.arPop = null; drawProg(); },
-  "ar-type"(t){ const st = S.prog.sess.sets[t.dataset.x]?.[+t.dataset.j]; if (st) { if (t.dataset.t) st.type = t.dataset.t; else delete st.type; } drawProg(); },
+  "ar-type"(t){ const st = S.prog.sess.sets[t.dataset.x]?.[+t.dataset.j]; if (st) { if (t.dataset.t) st.type = t.dataset.t; else delete st.type; typeRoleSync(st); } drawProg(); },
   "ar-dup"(t){ const a = S.prog.sess.sets[t.dataset.x], j = +t.dataset.j; if (a?.[j]) a.splice(j + 1, 0, clone(a[j])); S.prog.arPop = null; drawProg(); },
   "ar-del"(t){ const G = S.prog, w = progW(G, G.wid), x = (w?.exercises || []).find(q => q.id === t.dataset.x), a = G.sess.sets[t.dataset.x], j = +t.dataset.j;
     if (!a || a.length <= 1) toast("L'esercizio deve avere almeno una serie"); else if (x && a.some((_, q) => q >= j && psLocked(w, x, q))) toast("Non si può: dopo questa ci sono serie già fatte dall'atleta"); else a.splice(j, 1);
@@ -7477,7 +7488,7 @@ const ACT = {
   "ps-type"(t){ const st = S.prog.sess.sets[t.dataset.x][+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
   "ps-add"(t){ const a = S.prog.sess.sets[t.dataset.x]; a.push(nextSet(a)); drawProg(); },
   "ps-rm"(t){ const G = S.prog, w = progW(G, G.wid), x = (w?.exercises || []).find(q => q.id === t.dataset.x), a = G.sess.sets[t.dataset.x]; if (a.length > 1 && !(x && psLocked(w, x, a.length - 1))) a.pop(); drawProg(); },
-  "ps-poptype"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; if (t.dataset.t) o.st.type = t.dataset.t; else delete o.st.type; drawProg(); },
+  "ps-poptype"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; if (t.dataset.t) o.st.type = t.dataset.t; else delete o.st.type; typeRoleSync(o.st); drawProg(); },
   "ps-popdup"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; G.sess.sets[o.x.id].splice(o.j + 1, 0, clone(o.st)); G.psPop = null; drawProg(); },
   "ps-popdel"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; const a = G.sess.sets[o.x.id]; if (a.length > 1) a.splice(o.j, 1); else toast("L'esercizio deve avere almeno una serie"); G.psPop = null; drawProg(); },
   "ps-popclose"(){ S.prog.psPop = null; drawProg(); },

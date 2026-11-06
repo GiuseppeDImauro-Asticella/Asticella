@@ -413,7 +413,7 @@ button.done-box:hover .fix{color:var(--ink)}
 .fixt .sgrip.on .gi,.fixt tbody.sdragging tr.sdrag .gi{opacity:1}
 .fixt tbody.sdragging tr{transition:transform .15s ease}.fixt tbody.sdragging tr.sdrag{transition:none;position:relative;z-index:3;background:var(--surface);box-shadow:0 3px 12px rgba(0,0,0,.12)}.fixt tbody.sdragging,.fixt tbody.sdragging .sgrip{cursor:grabbing}
 .fixt th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.done-sets{display:flex;flex-wrap:wrap;gap:4px 10px}
+.done-sets{display:flex;flex-wrap:wrap;gap:4px 10px}.dfl{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:4px;padding-top:5px;border-top:1px dashed color-mix(in srgb, var(--ink) 18%, transparent)}.dfl .dfr + .dfr::before{content:"·";margin-right:8px;color:var(--muted)}
 .checks{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto}
 .checks .grp{display:flex;flex-direction:column;gap:4px}
 .checks label{display:flex;gap:8px;align-items:center;padding:3px 0}
@@ -5383,7 +5383,7 @@ function exEditorHtml(x, i, res, L){
     ${x.name ? altsRowHtml(x, i, lib) : ""}
     ${progHtml(x, i)}
     ${S.editor?.w?.exNotes?.[x.id] ? `<div class="done-box xnote-c"><b>Nota dell'atleta</b><span>${esc(S.editor.w.exNotes[x.id])}</span></div>` : ""}
-    ${res && res.some((r,j) => !(j >= x.sets.length && emptyRes(r))) ? `<button type="button" class="done-box edit" data-act="fix-res" data-i="${i}" title="Clicca per correggere"><b>Eseguito dall'atleta${S.editor.w.coachEditedAt ? ` <span class="faint" style="font-weight:500">· corretto da te</span>` : ""}</b><div class="done-sets">${resOrder(x, res).filter(j => j < res.length && !(j >= x.sets.length && emptyRes(res[j]))).map((j, pos) => { const r = res[j] || {}; return `<span><span class="faint">${pos+1}${j >= x.sets.length ? " extra" : ""})</span> ${esc(resultLine(r, cols) || (r.done?"✓":"–"))}</span>`; }).join("")}</div><span class="fix">✎ Correggi</span></button>`
+    ${res && res.some((r,j) => !(j >= x.sets.length && emptyRes(r))) ? `<button type="button" class="done-box edit" data-act="fix-res" data-i="${i}" title="Clicca per correggere"><b>Eseguito dall'atleta${S.editor.w.coachEditedAt ? ` <span class="faint" style="font-weight:500">· corretto da te</span>` : ""}</b><div class="done-sets">${resOrder(x, res).filter(j => j < res.length && !(j >= x.sets.length && emptyRes(res[j]))).map((j, pos) => { const r = res[j] || {}; return `<span><span class="faint">${pos+1}${j >= x.sets.length ? " extra" : ""})</span> ${esc(resultLine(r, cols) || (r.done?"✓":"–"))}</span>`; }).join("")}${(F => F.length ? `<span class="dfl"><span class="faint">RPE a fine fase</span>${F.join("")}</span>` : "")((() => { const R = (S.editor.w.results || {})[x.id + "~f"] || []; if (!R.some(q => q?.rpe)) return []; const Z = exPhases(S.editor.email, S.editor.w, x); return R.map((q, j0) => { if (!q?.rpe) return ""; const z = Z.find(z => z.L[0].j === j0), j1 = z ? z.L[z.L.length - 1].j : j0; return `<span class="dfr">serie ${j0 + 1}${j1 > j0 ? "–" + (j1 + 1) : ""} → <b>RPE ${esc(q.rpe)}</b></span>`; }).filter(Boolean); })())}</div><span class="fix">✎ Correggi</span></button>`
       : !S.editor.tpl && S.editor.w.date <= TODAY() && !S.editor.isNew ? `<div><button type="button" class="btn sm ghost" data-act="fix-res" data-i="${i}">✎ Inserisci i dati eseguiti</button></div>` : ""}
   </section>`;
 }
@@ -6470,8 +6470,10 @@ async function saveCoachFix(patch){
 }
 function fixResults(i){
   const w = S.editor.w, x = w.exercises[i];
-  const cols = x.cols.filter(c => COLS[c].log);
   let rows = clone((w.results||{})[x.id] || []);
+  /* RPE a fine fase (come lato atleta): le colonne RPE/RIR delle righe sono l'intenzione e non si correggono qui, a meno che ci sia già un valore per serie */
+  const PH = (x.rpeMode || (isField(x, exName(w, x)) ? "phase" : "set")) === "phase", FZ = PH ? exPhases(S.editor.email, w, x) : [], fr = clone((w.results || {})[x.id + "~f"] || []);
+  const cols = x.cols.filter(c => COLS[c].log && !(PH && (c === "rpe" || c === "rir") && !rows.some(r => String(r?.[c] ?? "").trim())));
   while (rows.length < x.sets.length) rows.push({});
   const L = exLabels(w.exercises);
   const draw = () => {
@@ -6488,11 +6490,14 @@ function fixResults(i){
         <td>${j >= x.sets.length ? `<button type="button" class="btn sm ghost danger" data-fxrm="${j}" aria-label="Togli serie ${j+1}">✕</button>` : ""}</td></tr>`; }).join("")}
       </tbody></table></div><div class="row"><button type="button" class="btn sm" id="fx-add">+ Serie</button><button type="button" class="btn sm" id="fx-all" title="Spunta tutte le serie e compila i campi vuoti con i valori previsti">✓ Tutte fatte come previsto</button></div>`
       : `<label class="row"><input type="checkbox" data-fx="0|done" ${rows[0]?.done?"checked":""}> Esercizio svolto</label>`}
+      ${FZ.length ? (RN => `<div class="fpbox"><div class="fph"><b>RPE a fine ${FZ.length > 1 ? "di ogni parte" : "esercizio"}</b> <span class="faint">· la percezione dell'atleta, un voto per parte</span></div>${FZ.map(z => { const j0 = z.L[0].j, j1 = z.L[z.L.length - 1].j, rl = RN[z.role] || "", v = String(fr[j0]?.rpe ?? "");
+        return `<div class="fpr"><span class="fprl"><b>${j0 === j1 ? `Serie ${j0 + 1}` : `Serie ${j0 + 1}–${j1 + 1}`}</b>${rl && FZ.length > 1 ? ` <span class="faint">${esc(rl.replace(/\s*\(.*\)$/, ""))}</span>` : ""}</span><select class="in fxf" data-fxf="${j0}" aria-label="RPE serie ${j0 + 1}${j1 > j0 ? "–" + (j1 + 1) : ""}" style="width:190px"><option value="">–</option>${pickOpts("rpe").map(o => `<option value="${esc(o.v)}" ${o.v === v ? "selected" : ""}>${esc(o.l || o.v)}</option>`).join("")}${v && !pickOpts("rpe").some(o => o.v === v) ? `<option value="${esc(v)}" selected>${esc(v)}</option>` : ""}</select></div>`; }).join("")}</div>`)(Object.fromEntries(stimData().roles.map(r => [r.id, r.name]))) : ""}
       </div><footer><span class="grow"></span><button type="button" class="btn" id="fx-no">Annulla</button><button class="btn pri">Salva correzioni</button></footer></form></div>`;
     const f = $("#fix-form");
-    const read = () => f.querySelectorAll("[data-fx]").forEach(el => { const [j, c, k] = el.dataset.fx.split("|"); rows[+j] ??= {};
+    const read = () => { f.querySelectorAll("[data-fxf]").forEach(el => { const j0 = +el.dataset.fxf; while (fr.length <= j0) fr.push({}); fr[j0] = el.value ? {rpe: el.value} : {}; });
+      f.querySelectorAll("[data-fx]").forEach(el => { const [j, c, k] = el.dataset.fx.split("|"); rows[+j] ??= {};
       const v = el.type === "checkbox" ? el.checked : COLS[c]?.txt ? el.value.trim() : el.value.trim().replace(",", ".");
-      if (k != null) { const r = rows[+j]; r.cl ??= []; while (r.cl.length <= +k) r.cl.push({}); r.cl[+k][c] = v; } else rows[+j][c] = v; });
+      if (k != null) { const r = rows[+j]; r.cl ??= []; while (r.cl.length <= +k) r.cl.push({}); r.cl[+k][c] = v; } else rows[+j][c] = v; }); };
     f.querySelectorAll("[data-fxrm]").forEach(b => b.onclick = () => { read(); rows.splice(+b.dataset.fxrm, 1); draw(); });
     /* serie extra trascinate dal numero (stesso gesto della creazione): from/to = posizioni nella tabella (ordine fatto) */
     FXDROP = (from, to) => { read(); const n = x.sets.length, D = resOrder(x, rows); const [mv] = D.splice(from, 1); D.splice(to, 0, mv);
@@ -6512,6 +6517,7 @@ function fixResults(i){
         if (!("done" in o) && Object.keys(o).some(k => k !== "at")) o.done = true; if (o.done === false) delete o.done; return o; });
       while (rows.length > x.sets.length && emptyRes(rows[rows.length-1])) rows.pop();
       const results = {...(w.results||{}), [x.id]: rows};
+      if (FZ.length) { while (fr.length && !fr[fr.length - 1]?.rpe) fr.pop(); if (fr.length) results[x.id + "~f"] = fr; else delete results[x.id + "~f"]; }
       const patch = {results};
       if (!w.status || w.status === "todo") patch.status = "done";
       await saveCoachFix(patch); };

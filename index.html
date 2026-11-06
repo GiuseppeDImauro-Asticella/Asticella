@@ -737,6 +737,19 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 @media (max-width:760px){.fzhd{display:none}.fz{grid-template-columns:1fr 1fr}.fz .fzh{grid-column:1/-1}.fz .fz2{grid-column:1/-1}.fz .fzt{grid-column:1/-1;justify-content:flex-end}}
 .firma{margin-top:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:10px 12px}
 .firma > summary{cursor:pointer;font-size:14px;list-style-position:inside}.firma .fdesc{font-size:12px;color:var(--muted);margin:4px 0 6px}
+.sess{margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:color-mix(in srgb, var(--ink) 2%, transparent)}
+.sessh{font-size:13px}.sessh .faint{font-size:11.5px}.sesvg{display:block;width:100%;height:auto;margin:4px 0 2px}
+.sesvg .ssg{stroke:var(--line);stroke-width:1}.sesvg .ssth{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3;opacity:.7}.sesvg .ssyl{font-size:9px;fill:var(--muted);text-anchor:end}
+.sesvg .ssln{fill:none;stroke:var(--muted);stroke-width:1.2;opacity:.45}.sesvg .ssno{fill:var(--surface);stroke-width:1.6}
+.ssb{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:0;margin-top:3px}
+.ssb .ssbl{position:absolute;left:0;top:50%;transform:translateY(-50%) rotate(0);font-size:9px;color:var(--muted);width:0;overflow:visible;white-space:nowrap;display:none}
+.ssb > div:not(.ssbl){min-width:0;height:20px;display:flex;align-items:center;justify-content:center;margin:0 1px;border-radius:4px;font-size:11px;line-height:1}
+.ssb > div > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
+.ssb > .ss1 > span{padding:0}.ssleg{font-size:11px;color:var(--muted);margin-top:3px}.ssleg b{color:var(--ink)}
+.ssm{background:color-mix(in srgb, var(--mc) 13%, transparent);border-top:2.5px solid var(--mc);color:var(--ink)}
+.ssr{background:color-mix(in srgb, var(--ink) 8%, transparent);font-weight:700;color:var(--ink)}.ssr-r_ramp{background:color-mix(in srgb, var(--accent) 20%, transparent)}.ssr-r_work{background:color-mix(in srgb, var(--accent) 40%, transparent)}
+.ssr-r_back{background:color-mix(in srgb, var(--accent) 13%, transparent)}.ssr-r_prep,.ssr-r_down{background:color-mix(in srgb, var(--ink) 6%, transparent);font-weight:600;color:var(--muted)}
+.sest{font-size:12.5px;line-height:1.5;margin-top:3px}.sest .ssq{font-weight:700}
 .frow{border-left:4px solid var(--fc);padding:6px 0 6px 10px;margin-top:8px}
 .frow .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}.frow .fpat{font-weight:800;font-size:14px}.frow .fmez{font-size:12px;color:var(--muted)}
 .frow .fb{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:6px 16px;align-items:center;margin-top:2px}
@@ -5009,13 +5022,13 @@ function openEditor(email, w, isNew=false, tpl=false){
    l'app legge la "firma": forma delle serie (work setting), dose, intensità, posizione nella seduta, recuperi, modalità. Il significato lo darà il coach. */
 function firmaSeq(email, w){
   const ex = namedEx(w), out = []; let pos = 0;
-  ssGroups(ex).forEach(g => { const len = Math.max(0, ...g.map(i => (ex[i].sets || []).length));
+  ssGroups(ex).forEach((g, gi) => { const len = Math.max(0, ...g.map(i => (ex[i].sets || []).length));
     for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], st = (x.sets || [])[j]; if (!st) return; pos++;
       const name = exName(w, x), pat = pcOf(name), src = archPlan(st);
       let rpe = setRpe(src)?.v ?? null; const ra = arRng(st.rpe), rb = arRng(st.rir); if (ra) rpe = (ra[0] + ra[1]) / 2; else if (rb && !String(st.rpe ?? "").trim()) rpe = 10 - (rb[0] + rb[1]) / 2;
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
       const pct = oneNum(st.pct) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
-      out.push({pos, name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+      out.push({pos, gi, name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
   return out; }
 const FIRMA_EPS = {pct: 1.5, rpe: 0.25};
 function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
@@ -5031,7 +5044,10 @@ const FIRMA_SHAPE_D = {"lineare": "stessa intensità in tutte le serie (consolid
   "simmetrico": "alto, poi più basso, poi di nuovo alto", "onda": "l'intensità sale e scende più volte (transfer)", "serie singola": ""};
 function firmaOf(email, w){
   const seq = firmaSeq(email, w), N = seq.length, by = new Map();
-  seq.forEach(o => { if (!by.has(o.key)) by.set(o.key, []); by.get(o.key).push(o); });
+  /* in ordine di programma: lo stesso movimento resta nello stesso riquadro solo se è di seguito (esercizi o superserie consecutive);
+     se torna più avanti nella seduta, dopo altro, è un riquadro nuovo */
+  const cur = new Map(); let nr = 0;
+  seq.forEach(o => { let r = cur.get(o.key); if (!r || r.g < o.gi - 1) { r = {id: nr++}; by.set(r.id, []); } r.g = o.gi; cur.set(o.key, r); by.get(r.id).push(o); });
   return {N, seq, mv: [...by.values()].map(L => {
     const n = L.length, names = [...new Set(L.map(o => o.name))], pat = L[0].pat || "";
     /* intensità con cui leggere la forma: %1RM scritto nel programma, se no RPE/RIR (carico interno, come prescrive Giuseppe), se no % dell'e1RM, se no kg */
@@ -5115,10 +5131,55 @@ function fzSets(str){ const w = S.editor?.w; if (!w) return []; return String(st
 function fzFix(L){   // la prima volta che il coach tocca una fase, la proposta diventa scelta (su tutte le serie della fase)
   const E = S.editor, F = firmaOf(E.email, E.w).mv.flatMap(stimFasi), z = F.find(q => q.L.some(o => L.includes(o.st)));
   if (z && !z.asg) L.forEach(st => { st.stim = z.e || ""; st.stim2 = [...z.e2]; st.role = z.role || ""; }); }
+/* ===== LIVELLO SEDUTA =====
+   Lo stimolo si legge anche sulla seduta intera: rampe, picchi, back-off passano da un movimento all'altro e da un mezzo all'altro.
+   Scala comune = RPE (anche da RIR); le serie senza RPE sono puntini vuoti in basso. Picchi (come nell'Architettura): in ogni blocco la serie con l'RPE più alto,
+   tutte quelle a pari valore; non contano preparazione e defaticamento (l'allenante è relativo allo stimolo). Il più alto della seduta è più marcato.
+   Sotto il grafico due fasce allineate alle serie: i mezzi (colore del movimento) e i ruoli. */
+const ROLE_SH = {r_prep: "Prep", r_ramp: "Rampa", r_work: "Target", r_back: "Back-off", r_down: "Defatic."};
+function sessStrip(F, KC){
+  const N = F.N; if (N < 2) return "";
+  const at = [], RN = Object.fromEntries(stimData().roles.map(r => [r.id, r.name]));
+  F.mv.forEach(f => { const c = `var(--s${KC.indexOf(f.key) % 8 + 1})`, lbl = f.pat || f.names[0];
+    const role = {}; try { stimFasi(f).forEach(z => z.L.forEach(o => role[o.pos] = z.role || "")); } catch(e) {}
+    const cand = f.L.filter(o => o.rpe != null && !ROLE_NOHARD.includes(role[o.pos])), mx = cand.length ? Math.max(...cand.map(o => o.rpe)) : null;
+    f.L.forEach(o => at[o.pos] = {o, c, lbl, name: o.name, role: role[o.pos] || "", rpe: o.rpe, pk: mx != null && cand.includes(o) && o.rpe >= mx - 1e-9}); });
+  const P = at.filter(Boolean); if (!P.length) return "";
+  const withR = P.filter(a => a.rpe != null), smx = withR.length ? Math.max(...P.filter(a => a.pk).map(a => a.rpe), -1) : null;
+  const W = (window.innerWidth || 1000) < 640 ? 360 : 640, PT = 8, PH = 74, H = PT + PH + 2, x0 = 22, xr = 4, cw = (W - x0 - xr) / N, sx = k => x0 + (k - .5) * cw;
+  const lo = Math.min(4, ...withR.map(a => Math.floor(a.rpe))), yy = v => PT + PH - 10 - (v - lo) / (10 - lo) * (PH - 16);
+  const grid = [lo, AR_HARD, 10].filter((v, i, A) => A.indexOf(v) === i).map(v => `<line x1="${x0}" x2="${W - xr}" y1="${yy(v)}" y2="${yy(v)}" class="${v === AR_HARD ? "ssth" : "ssg"}"/><text x="${x0 - 5}" y="${yy(v) + 3.5}" class="ssyl">${v}</text>`).join("");
+  const line = withR.length > 1 ? `<polyline class="ssln" points="${withR.map(a => `${sx(a.o.pos)},${yy(a.rpe)}`).join(" ")}"/>` : "";
+  const dots = P.map(a => a.rpe == null ? `<circle cx="${sx(a.o.pos)}" cy="${PT + PH - 3}" r="3" class="ssno" style="stroke:${a.c}"><title>${esc(a.name)} · serie ${a.o.pos}: senza RPE</title></circle>`
+    : `<circle cx="${sx(a.o.pos)}" cy="${yy(a.rpe)}" r="${a.pk ? 4.6 : 3.4}" style="fill:${a.c}" ${a.pk ? `stroke="var(--ink)" stroke-width="${a.rpe === smx ? 2.2 : 1.2}"` : ""}><title>${esc(a.name)} · serie ${a.o.pos} · RPE ${fmtN(a.rpe, 1)}</title></circle>`).join("");
+  /* fasce: segmenti di serie consecutive con lo stesso valore */
+  const segs = keyf => { const out = []; for (let k = 1; k <= N; k++){ const a = at[k]; if (!a) continue; const q = out[out.length - 1];
+    if (q && q.k === keyf(a) && q.to === k - 1) q.to = k; else out.push({k: keyf(a), a, from: k, to: k}); } return out; };
+  /* etichetta che ci sta: per esteso, se no abbreviata (ruoli: le lettere dei tipi di serie), se no niente (resta il tooltip) */
+  const vw = window.innerWidth || 1000, cpx = (vw < 640 ? vw - 100 : Math.min(vw - 420, 1080)) * (W - x0 - xr) / W / N, fits = (t, n) => t.length * 6.2 + (t.length > 1 ? 8 : 2) <= n * cpx;
+  const cell = (g, txt, tip, cls, st, sh) => { const n = g.to - g.from + 1, t = sh != null ? (fits(sh, n) ? sh : "") : fits(txt, n) || n * cpx >= 34 ? txt : "";
+    return `<div class="${cls}${t.length === 1 ? " ss1" : ""}" style="grid-column:${g.from}/span ${n};${st || ""}" title="${esc(tip)}"><span>${esc(t)}</span></div>`; };
+  const ROLE_L = {r_prep: "P", r_ramp: "R", r_work: "W", r_back: "B", r_down: "D"};
+  const rng = g => `serie ${g.from}${g.to > g.from ? "–" + g.to : ""}`;
+  const mez = segs(a => a.name + "|" + a.c).map(g => cell(g, g.a.name, `${g.a.name} · ${g.a.lbl} · ${rng(g)}`, "ssm", `--mc:${g.a.c}`)).join("");
+  /* ruoli: tutti per esteso se ci stanno, se no tutti con la lettera (come i tipi di serie R / W / B / D, + P = preparatorio) */
+  const RS = segs(a => a.role), rl = k => ROLE_SH[k] || RN[k] || "—", full = RS.every(g => fits(rl(g.k), g.to - g.from + 1));
+  const rol = RS.map(g => cell(g, rl(g.k), `${RN[g.k] || "senza ruolo"} · ${rng(g)}`, `ssr ssr-${g.k || "x"}`, "", full ? rl(g.k) : ROLE_L[g.k] || rl(g.k).slice(0, 1))).join("");
+  const leg = full ? "" : `<div class="ssleg">${[...new Set(RS.map(g => g.k))].sort((a, b) => (Object.keys(ROLE_L).indexOf(a) + 1 || 99) - (Object.keys(ROLE_L).indexOf(b) + 1 || 99)).map(k => `<b>${esc(ROLE_L[k] || rl(k).slice(0, 1))}</b> ${esc(RN[k] || "senza ruolo")}`).join(" · ")}</div>`;
+  const pkB = []; P.forEach(a => { if (!a.pk) return; const q = pkB[pkB.length - 1]; if (q && q.lbl === a.lbl && q.rpe === a.rpe && q.to === a.o.pos - 1) q.to = a.o.pos; else pkB.push({lbl: a.lbl, rpe: a.rpe, from: a.o.pos, to: a.o.pos, c: a.c}); });
+  const pkT = pkB.length ? `<b>${pkB.length === 1 ? "Picco" : pkB.length + " picchi"}:</b> ` + pkB.map(q => `<span style="color:${q.c}">●</span> ${esc(q.lbl)} <span class="faint">serie ${q.from}${q.to > q.from ? "–" + q.to : ""}</span> · RPE ${fmtN(q.rpe, 1)}${q.rpe === smx && pkB.length > 1 ? " <b>(il più alto)</b>" : ""}`).join(" · ")
+    : `<span class="faint">${withR.length ? "Nessun picco fuori da preparazione e defaticamento" : "Nessun RPE nel programma: la seduta si legge dai mezzi e dai ruoli"}</span>`;
+  const noR = P.length - withR.length, pad = `padding:0 ${xr / W * 100}% 0 ${x0 / W * 100}%`;
+  return `<div class="sess"><div class="sessh"><b>Seduta</b> <span class="faint">· ${N} serie · altezza = RPE (tratteggio = ${AR_HARD}, allenante)${noR ? ` · ${noR} senza RPE (puntini vuoti)` : ""}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="sesvg" aria-hidden="true">${grid}${line}${dots}</svg>
+    <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Mezzi</div>${mez}</div>
+    <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Ruoli</div>${rol}</div>${leg}
+    <div class="sest">${pkT}</div></div>`; }
 function firmaHtml(email, w){
   const F = firmaOf(email, w); if (!F.mv.length) return "";
   const W = 300, H = 34, sx = k => 6 + (W - 12) * (F.N > 1 ? (k - 1) / (F.N - 1) : .5);
-  const rows = F.mv.map((f, i) => { const c = `var(--s${i % 8 + 1})`;
+  const KC = [...new Set(F.mv.map(f => f.key))];   // stesso movimento = stesso colore, anche se torna più avanti
+  const rows = F.mv.map((f, i) => { const c = `var(--s${KC.indexOf(f.key) % 8 + 1})`;
     const vv = f.v.filter(z => z != null), lo = vv.length ? Math.min(...vv) : 0, hi = vv.length ? Math.max(...vv) : 1, yy = z => H - 6 - (hi > lo ? (z - lo) / (hi - lo) : .5) * (H - 14);
     const spark = `<svg viewBox="0 0 ${W} ${H}" class="fsp" aria-hidden="true"><line x1="6" x2="${W - 6}" y1="${H - 3}" y2="${H - 3}" class="fax"/>${Array.from({length: F.N}, (_, k) => `<line x1="${sx(k + 1)}" x2="${sx(k + 1)}" y1="${H - 5}" y2="${H - 1}" class="ftk"/>`).join("")}
       ${f.L.map((o, k) => f.v[k] == null ? `<circle cx="${sx(o.pos)}" cy="${H - 8}" r="2.5" class="fnd"/>` : `<circle cx="${sx(o.pos)}" cy="${yy(f.v[k])}" r="${k === f.ip ? 4.5 : 3.2}" style="fill:${c}" ${k === f.ip ? `stroke="var(--ink)" stroke-width="1.5"` : ""}/>`).join("")}</svg>`;
@@ -5133,8 +5194,8 @@ function firmaHtml(email, w){
       f.cl ? `${f.cl} cluster` : ""].filter(Boolean);
     return `<div class="frow" style="--fc:${c}"><div class="fh"><span class="fpat">${esc(f.pat || f.names[0])}</span>${!f.pat ? `<span class="faint" title="Esercizio senza pattern nella libreria: aggiungilo nella scheda dell'esercizio per raggrupparlo con gli altri dello stesso movimento"> · senza pattern</span>` : ""}<span class="fmez">mezzi: ${esc(f.names.join(", "))}</span></div>
       <div class="fb"><div class="ftxt">${parts.join(" · ")}</div><div class="fpos">${spark}<small>serie ${f.first === f.last ? f.first : `${f.first}–${f.last}`} di ${F.N} della seduta</small></div></div>${fasiHtml(f, w)}</div>`; }).join("");
-  return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Struttura degli stimoli</b> <span class="faint">· per movimento, letta dal programma</span></summary>
-    <div class="fdesc">Per ogni movimento: forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del movimento, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app.</div>${rows}</details>`; }
+  return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Struttura degli stimoli</b> <span class="faint">· in ordine di programma</span></summary>
+    <div class="fdesc">In alto la <b>seduta</b> intera: come lo stimolo sale, tocca i picchi e scende passando da un movimento all'altro. Sotto, nell'ordine del programma, un riquadro per ogni blocco dello stesso movimento (esercizi di seguito; se il movimento torna più avanti è un riquadro nuovo): forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del blocco, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app.</div>${sessStrip(F, KC)}${rows}</details>`; }
 let firmaT = null;
 const firmaRefresh = () => { clearTimeout(firmaT); firmaT = setTimeout(() => { const E = S.editor, box = $("#ed-firma"); if (!E || !box) return; box.innerHTML = firmaHtml(E.email, E.w); }, 350); };
 /* ===== PROGRAMMARE DALLO STIMOLO (passo 4) =====

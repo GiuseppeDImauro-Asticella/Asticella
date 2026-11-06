@@ -738,7 +738,7 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .firma{margin-top:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:10px 12px}
 .firma > summary{cursor:pointer;font-size:14px;list-style-position:inside}.firma .fdesc{font-size:12px;color:var(--muted);margin:4px 0 6px}
 .sess{margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:color-mix(in srgb, var(--ink) 2%, transparent)}
-.sessh{font-size:13px}.sessh .faint{font-size:11.5px}.sesvg{display:block;width:100%;height:auto;margin:4px 0 2px}
+.sessh{font-size:13px}.sessh .sessd{font-size:11.5px;margin-top:3px}.sessh .sesk{display:inline-flex;margin:0 0 0 8px;vertical-align:middle}.sesk button{font-size:12px;padding:2px 9px}.sesvg{display:block;width:100%;height:auto;margin:4px 0 2px}
 .sesvg .ssg{stroke:var(--line);stroke-width:1}.sesvg .ssth{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3;opacity:.7}.sesvg .ssyl{font-size:9px;fill:var(--muted);text-anchor:end}
 .sesvg .ssln{fill:none;stroke:var(--muted);stroke-width:1.2;opacity:.45}.sesvg .ssno{fill:var(--surface);stroke-width:1.6}
 .ssb{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:0;margin-top:3px}
@@ -1402,6 +1402,7 @@ const BASE_COLS = {
   reps:  {l:"Reps",       u:"",    log:1},
   kg:    {l:"Kg",         u:"kg",  log:1},
   pct:   {l:"%1RM",       u:"%",   log:0},
+  pbest: {l:"% migliore", u:"%",   log:0, h:"sprint e salti: intensità come % del migliore delle ultime 12 settimane (sprint = velocità: tempo obiettivo = miglior tempo ÷ %; salti = misura × %). L'app mostra a te e all'atleta il tempo o la misura obiettivo"},
   rpe:   {l:"RPE",        u:"",    log:1, pick:1},   // pick: l'atleta lo sceglie da un menu (PICK_OPTS)
   rir:   {l:"RIR",        u:"",    log:1, pick:1},
   vel:   {l:"Vel. media", u:"m/s", log:1},
@@ -3888,6 +3889,9 @@ async function viewAnalysis(m){
   if (sess) drawSessCharts(a, sess);
 }
 /* editor: aggiorna al volo i kg consigliati di una serie mentre scrivi il %1RM */
+function edPbHint(i, j){ const E = S.editor, x = E?.w.exercises[i], s = x?.sets[j]; if (!x || !s) return; const q = E.email ? pbTarget(E.email, x, x.name, s, E.w.date || TODAY()) : null;
+  ["time", "height"].forEach(c => { const inp = document.querySelector(`input[data-bind="exercises.${i}.sets.${j}.${c}"]`); if (!inp) return;
+    inp.placeholder = q && q.col === c && !s[c] ? (q.v == null ? "?" : "≈ " + pbFmt(q)) : ""; inp.title = q && q.col === c && !s[c] ? pbTip(q) : ""; }); }
 function edKgHint(i, j){ const E = S.editor, x = E?.w.exercises[i], s = x?.sets[j], inp = document.querySelector(`input[data-bind="exercises.${i}.sets.${j}.kg"]`); if (!inp || !s) return;
   const p = oneNum(s.pct), q = !s.kg && p && E.email ? pctKg(E.email, x, x.name, s, E.w.date || TODAY()) : null;
   inp.placeholder = q ? "≈ " + fmtN(q.kg, 1) : !s.kg && p && E.email ? "?" : "";
@@ -4376,6 +4380,12 @@ const intLbl = k => INTK[k]?.m || "%";
 function pctKg(email, x, name, s, date){ const p = oneNum(s?.pct); if (!p || p <= 0 || p > 120 || intKind(x, name) !== "kg") return null;
   const ref = intRef(email, intKey("kg", name, s, s), date); if (!ref) return null;
   return {kg: Math.round(ref.v * p / 100 / 2.5) * 2.5, pct: p, ref}; }
+/* sprint e salti prescritti a "% del migliore": tempo / misura obiettivo dal record mobile (12 settimane prima). Sprint: % della velocità → tempo = migliore ÷ % */
+function pbTarget(email, x, name, s, date){ const p = oneNum(s?.pbest), k = intKind(x, name); if (!p || p <= 0 || p > 120 || (k !== "spr" && k !== "jmp") || !email) return null;
+  const ref = intRef(email, intKey(k, name, s, s), date); if (!ref) return {k, pct: p, v: null, ref: null, col: k === "spr" ? "time" : "height"};
+  return {k, pct: p, v: k === "spr" ? ref.v / (p / 100) : ref.v * p / 100, ref, col: k === "spr" ? "time" : "height"}; }
+const pbFmt = q => q.k === "spr" ? fmtN(Math.round(q.v * 100) / 100, 2) : fmtN(Math.round(q.v), 0);
+const pbTip = q => !q ? "" : q.v == null ? `Nessun riferimento nelle 12 settimane prima: serve almeno un ${q.k === "spr" ? "tempo sulla stessa distanza" : "salto con la misura"}` : `${fmtN(q.pct, 1)}% del ${q.k === "spr" ? "miglior tempo" : "miglior salto"} (${q.k === "spr" ? fmtN(q.ref.v, 2) + " s" : fmtN(q.ref.v, 1) + " cm"} del ${fmtD(q.ref.d)}) ≈ ${pbFmt(q)} ${q.k === "spr" ? "s" : "cm"}: lo vede anche l'atleta`;
 function sessionSets(w){
   const out = [], order = [], ex = w.exercises || [], res = w.results || {}, L = exLabels(ex), em = (S.sessDlg && $("#sd-body") ? S.sessDlg.email : null) || anQ.who || wEmail(w);
   ssGroups(ex).forEach(g => {
@@ -5027,8 +5037,9 @@ function firmaSeq(email, w){
       const name = exName(w, x), pat = pcOf(name), src = archPlan(st);
       let rpe = setRpe(src)?.v ?? null; const ra = arRng(st.rpe), rb = arRng(st.rir); if (ra) rpe = (ra[0] + ra[1]) / 2; else if (rb && !String(st.rpe ?? "").trim()) rpe = 10 - (rb[0] + rb[1]) / 2;
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
-      const pct = oneNum(st.pct) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
-      out.push({pos, gi, name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+      const pct = oneNum(st.pct) ?? oneNum(st.pbest) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
+      const r = (w.results?.[x.id] || [])[j], did = !!r && !emptyRes(r), rpeA = did ? setRpe(r)?.v ?? null : null, pctA = did ? setInt(email, w, x, name, r, st)?.pct ?? null : null;
+      out.push({pos, gi, did, rpeA, pctA, ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
   return out; }
 const FIRMA_EPS = {pct: 1.5, rpe: 0.25};
 function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
@@ -5139,19 +5150,26 @@ function fzFix(L){   // la prima volta che il coach tocca una fase, la proposta 
 const ROLE_SH = {r_prep: "Prep", r_ramp: "Rampa", r_work: "Target", r_back: "Back-off", r_down: "Defatic."};
 function sessStrip(F, KC){
   const N = F.N; if (N < 2) return "";
+  /* scala: RPE (eseguito se l'atleta l'ha dato, se no programmato) oppure % del migliore (eseguita: tempi, misure, kg; se no la % scritta nel programma).
+     Di partenza RPE; % se l'RPE manca in più di metà delle serie e la % c'è */
+  const vR = o => o.rpeA ?? o.rpe, vP = o => o.pctA ?? o.pct, cR = F.seq.filter(o => vR(o) != null).length, cP = F.seq.filter(o => vP(o) != null).length;
+  const M = S.sessScale || (cR < N / 2 && cP > cR ? "pct" : "rpe"), PCT = M === "pct", V = PCT ? vP : vR, nDid = F.seq.filter(o => o.did).length;
+  const isA = o => (PCT ? o.pctA : o.rpeA) != null, nA = F.seq.filter(isA).length, nPl = F.seq.filter(o => o.did && !isA(o) && V(o) != null).length;   // eseguita ma valore solo programmato
   const at = [], RN = Object.fromEntries(stimData().roles.map(r => [r.id, r.name]));
   F.mv.forEach(f => { const c = `var(--s${KC.indexOf(f.key) % 8 + 1})`, lbl = f.pat || f.names[0];
     const role = {}; try { stimFasi(f).forEach(z => z.L.forEach(o => role[o.pos] = z.role || "")); } catch(e) {}
-    const cand = f.L.filter(o => o.rpe != null && !ROLE_NOHARD.includes(role[o.pos])), mx = cand.length ? Math.max(...cand.map(o => o.rpe)) : null;
-    f.L.forEach(o => at[o.pos] = {o, c, lbl, name: o.name, role: role[o.pos] || "", rpe: o.rpe, pk: mx != null && cand.includes(o) && o.rpe >= mx - 1e-9}); });
+    const cand = f.L.filter(o => V(o) != null && !ROLE_NOHARD.includes(role[o.pos])), mx = cand.length ? Math.max(...cand.map(V)) : null;
+    f.L.forEach(o => at[o.pos] = {o, c, lbl, name: o.name, role: role[o.pos] || "", rpe: V(o), pk: mx != null && cand.includes(o) && V(o) >= mx - 1e-9}); });
   const P = at.filter(Boolean); if (!P.length) return "";
   const withR = P.filter(a => a.rpe != null), smx = withR.length ? Math.max(...P.filter(a => a.pk).map(a => a.rpe), -1) : null;
   const W = (window.innerWidth || 1000) < 640 ? 360 : 640, PT = 8, PH = 74, H = PT + PH + 2, x0 = 22, xr = 4, cw = (W - x0 - xr) / N, sx = k => x0 + (k - .5) * cw;
-  const lo = Math.min(4, ...withR.map(a => Math.floor(a.rpe))), yy = v => PT + PH - 10 - (v - lo) / (10 - lo) * (PH - 16);
-  const grid = [lo, AR_HARD, 10].filter((v, i, A) => A.indexOf(v) === i).map(v => `<line x1="${x0}" x2="${W - xr}" y1="${yy(v)}" y2="${yy(v)}" class="${v === AR_HARD ? "ssth" : "ssg"}"/><text x="${x0 - 5}" y="${yy(v) + 3.5}" class="ssyl">${v}</text>`).join("");
+  const TH = PCT ? 95 : AR_HARD, hiV = PCT ? Math.max(100, ...withR.map(a => Math.ceil(a.rpe))) : 10;
+  const lo = PCT ? Math.min(80, ...withR.map(a => Math.floor(a.rpe / 5) * 5)) : Math.min(4, ...withR.map(a => Math.floor(a.rpe))), yy = v => PT + PH - 10 - (v - lo) / (hiV - lo) * (PH - 16);
+  const fv = v => PCT ? Math.round(v) + "%" : fmtN(v, 1), unit = PCT ? "" : "RPE ";
+  const grid = [lo, TH, hiV].filter((v, i, A) => A.indexOf(v) === i).map(v => `<line x1="${x0}" x2="${W - xr}" y1="${yy(v)}" y2="${yy(v)}" class="${v === TH ? "ssth" : "ssg"}"/><text x="${x0 - 5}" y="${yy(v) + 3.5}" class="ssyl">${v}</text>`).join("");
   const line = withR.length > 1 ? `<polyline class="ssln" points="${withR.map(a => `${sx(a.o.pos)},${yy(a.rpe)}`).join(" ")}"/>` : "";
-  const dots = P.map(a => a.rpe == null ? `<circle cx="${sx(a.o.pos)}" cy="${PT + PH - 3}" r="3" class="ssno" style="stroke:${a.c}"><title>${esc(a.name)} · serie ${a.o.pos}: senza RPE</title></circle>`
-    : `<circle cx="${sx(a.o.pos)}" cy="${yy(a.rpe)}" r="${a.pk ? 4.6 : 3.4}" style="fill:${a.c}" ${a.pk ? `stroke="var(--ink)" stroke-width="${a.rpe === smx ? 2.2 : 1.2}"` : ""}><title>${esc(a.name)} · serie ${a.o.pos} · RPE ${fmtN(a.rpe, 1)}</title></circle>`).join("");
+  const dots = P.map(a => a.rpe == null ? `<circle cx="${sx(a.o.pos)}" cy="${PT + PH - 3}" r="3" class="ssno" style="stroke:${a.c}"><title>${esc(a.name)} · serie ${a.o.pos}: senza ${PCT ? "% del migliore" : "RPE"}</title></circle>`
+    : `<circle cx="${sx(a.o.pos)}" cy="${yy(a.rpe)}" r="${a.pk ? 4.6 : 3.4}" style="fill:${a.c}${a.o.did && !isA(a.o) ? ";fill-opacity:.35" : ""}" ${a.pk ? `stroke="var(--ink)" stroke-width="${a.rpe === smx ? 2.2 : 1.2}"` : ""}><title>${esc(a.name)} · serie ${a.o.pos} · ${unit}${fv(a.rpe)}${isA(a.o) ? " (dato dell'atleta)" : a.o.did ? " (programmato: l'atleta non l'ha dato)" : " (programmato)"}</title></circle>`).join("");
   /* fasce: segmenti di serie consecutive con lo stesso valore */
   const segs = keyf => { const out = []; for (let k = 1; k <= N; k++){ const a = at[k]; if (!a) continue; const q = out[out.length - 1];
     if (q && q.k === keyf(a) && q.to === k - 1) q.to = k; else out.push({k: keyf(a), a, from: k, to: k}); } return out; };
@@ -5167,10 +5185,11 @@ function sessStrip(F, KC){
   const rol = RS.map(g => cell(g, rl(g.k), `${RN[g.k] || "senza ruolo"} · ${rng(g)}`, `ssr ssr-${g.k || "x"}`, "", full ? rl(g.k) : ROLE_L[g.k] || rl(g.k).slice(0, 1))).join("");
   const leg = full ? "" : `<div class="ssleg">${[...new Set(RS.map(g => g.k))].sort((a, b) => (Object.keys(ROLE_L).indexOf(a) + 1 || 99) - (Object.keys(ROLE_L).indexOf(b) + 1 || 99)).map(k => `<b>${esc(ROLE_L[k] || rl(k).slice(0, 1))}</b> ${esc(RN[k] || "senza ruolo")}`).join(" · ")}</div>`;
   const pkB = []; P.forEach(a => { if (!a.pk) return; const q = pkB[pkB.length - 1]; if (q && q.lbl === a.lbl && q.rpe === a.rpe && q.to === a.o.pos - 1) q.to = a.o.pos; else pkB.push({lbl: a.lbl, rpe: a.rpe, from: a.o.pos, to: a.o.pos, c: a.c}); });
-  const pkT = pkB.length ? `<b>${pkB.length === 1 ? "Picco" : pkB.length + " picchi"}:</b> ` + pkB.map(q => `<span style="color:${q.c}">●</span> ${esc(q.lbl)} <span class="faint">serie ${q.from}${q.to > q.from ? "–" + q.to : ""}</span> · RPE ${fmtN(q.rpe, 1)}${q.rpe === smx && pkB.length > 1 ? " <b>(il più alto)</b>" : ""}`).join(" · ")
-    : `<span class="faint">${withR.length ? "Nessun picco fuori da preparazione e defaticamento" : "Nessun RPE nel programma: la seduta si legge dai mezzi e dai ruoli"}</span>`;
+  const pkT = pkB.length ? `<b>${pkB.length === 1 ? "Picco" : pkB.length + " picchi"}:</b> ` + pkB.map(q => `<span style="color:${q.c}">●</span> ${esc(q.lbl)} <span class="faint">serie ${q.from}${q.to > q.from ? "–" + q.to : ""}</span> · ${unit}${fv(q.rpe)}${q.rpe === smx && pkB.length > 1 ? " <b>(il più alto)</b>" : ""}`).join(" · ")
+    : `<span class="faint">${withR.length ? "Nessun picco fuori da preparazione e defaticamento" : PCT ? "Nessuna % del migliore: servono tempi, misure o kg registrati (o la % nel programma)" : "Nessun RPE nel programma: la seduta si legge dai mezzi e dai ruoli"}</span>`;
   const noR = P.length - withR.length, pad = `padding:0 ${xr / W * 100}% 0 ${x0 / W * 100}%`;
-  return `<div class="sess"><div class="sessh"><b>Seduta</b> <span class="faint">· ${N} serie · altezza = RPE (tratteggio = ${AR_HARD}, allenante)${noR ? ` · ${noR} senza RPE (puntini vuoti)` : ""}</span></div>
+  return `<div class="sess"><div class="sessh"><b>Seduta</b> <span class="kfilt sesk">${[["rpe", "RPE"], ["pct", "% del migliore"]].map(([k, l]) => `<button type="button" class="${M === k ? "on" : ""}" data-act="sess-scale" data-v="${k}" aria-pressed="${M === k}">${l}</button>`).join("")}</span>
+      <div class="faint sessd">${N} serie${nDid ? ` · ${nDid} eseguit${nDid === 1 ? "a" : "e"}` : ""} · ${PCT ? "altezza = % del migliore delle ultime 12 settimane (sprint: tempo; salti: misura; pesi: % e1RM) · tratteggio = 95%" : `altezza = RPE (tratteggio = ${AR_HARD}, allenante)`}${nDid ? ` · ${nA} dat${nA === 1 ? "o" : "i"} dell'atleta${nPl ? `, ${nPl} solo programmat${nPl === 1 ? "o" : "i"} (puntini chiari)` : ""}` : ""}${noR ? ` · ${noR} senza valore (puntini vuoti)` : ""}</div></div>
     <svg viewBox="0 0 ${W} ${H}" class="sesvg" aria-hidden="true">${grid}${line}${dots}</svg>
     <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Mezzi</div>${mez}</div>
     <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Ruoli</div>${rol}</div>${leg}
@@ -5333,7 +5352,7 @@ function exEditorHtml(x, i, res, L){
     <div class="scroll-x"><table class="sets"><thead><tr><th>${cc ? (cc.fmt === "amrap" ? "" : "Giro") : ""}</th>${cc ? "" : `<th title="Tipo di serie: clicca per cambiare (Ramping, Work, Back-off, Down)">Tipo</th>`}${hasCl ? "<th></th>" : ""}${cols.map(c=>`<th>${COLS[c].l}${unitTag(c)}${scp(c)}</th>`).join("")}<th></th></tr></thead><tbody>
       ${x.sets.map((s,j) => `<tr class="${isCl(s) && !cc ? "clr" : ""}"><td class="n ${cc ? "gn" : ""}">${cc ? (cc.fmt === "amrap" ? (amrapReps(cc) ? "" : "per giro") : j+1) : x.sets.length > 1 ? `<span class="sgrip" data-sgrip data-i="${i}" title="Trascina il numero per spostare la serie ${j+1}"><i class="gi">${ICON.grip}</i>${j+1}</span>` : j+1}</td>${cc ? "" : `<td><button type="button" class="tbtn ${s.type?"has":""}" data-act="set-type" data-i="${i}" data-j="${j}" title="${s.type ? SET_TYPES[s.type].l+" · clicca per cambiare" : "Nessun tipo · clicca per scegliere"}" aria-label="Tipo serie ${j+1}">${s.type ? typeBadge(s.type) : "—"}</button></td>`}${hasCl ? `<td class="cln">${isCl(s) ? `<div class="cst">${s.cl.map((q, k) => `<span>C${k+1}<button type="button" class="clrm" data-act="cl-rm" data-i="${i}" data-j="${j}" data-k="${k}" title="Togli il cluster ${k+1}" aria-label="Togli il cluster ${k+1} della serie ${j+1}">✕</button></span>`).join("")}</div>` : ""}</td>` : ""}${cols.map(c=> (!cc && cellCl(c, j, s)) || (c === "side"
           ? `<td><select aria-label="Lato serie ${j+1}" data-bind="exercises.${i}.sets.${j}.side">${[...new Set([...SIDES, s.side||""])].map(v => `<option value="${esc(v)}" ${(s.side||"")===v?"selected":""}>${esc(SIDE_LBL[v] ?? v)}</option>`).join("")}</select></td>`
-          : `<td><input aria-label="${COLS[c].l} serie ${j+1}" data-bind="exercises.${i}.sets.${j}.${c}" value="${esc(s[c]||"")}" ${c === "reps" && amrapReps(cc) ? `placeholder="max"` : ""}${c === "kg" && !s.kg && S.editor?.email ? (q => q ? ` placeholder="≈ ${fmtN(q.kg, 1)}" title="${fmtN(q.pct, 1)}% dell'e1RM stimato (${fmtN(q.ref.v, 1)} kg) ≈ ${fmtN(q.kg, 1)} kg: lo vede anche l'atleta"` : oneNum(s.pct) ? ` placeholder="?" title="Nessun e1RM stimato per ${esc(x.name || "questo esercizio")} nelle 12 settimane prima: servono serie con kg, max 10 rip e RPE ≥ 7 (o RIR ≤ 3)"` : "")(pctKg(S.editor.email, x, x.name, s, S.editor.w.date || TODAY())) : ""}></td>`)).join("")}
+          : `<td><input aria-label="${COLS[c].l} serie ${j+1}" data-bind="exercises.${i}.sets.${j}.${c}" value="${esc(s[c]||"")}" ${c === "reps" && amrapReps(cc) ? `placeholder="max"` : ""}${c === "kg" && !s.kg && S.editor?.email ? (q => q ? ` placeholder="≈ ${fmtN(q.kg, 1)}" title="${fmtN(q.pct, 1)}% dell'e1RM stimato (${fmtN(q.ref.v, 1)} kg) ≈ ${fmtN(q.kg, 1)} kg: lo vede anche l'atleta"` : oneNum(s.pct) ? ` placeholder="?" title="Nessun e1RM stimato per ${esc(x.name || "questo esercizio")} nelle 12 settimane prima: servono serie con kg, max 10 rip e RPE ≥ 7 (o RIR ≤ 3)"` : "")(pctKg(S.editor.email, x, x.name, s, S.editor.w.date || TODAY())) : ""}${(c === "time" || c === "height") && !s[c] && S.editor?.email ? (q => q && q.col === c ? ` placeholder="${q.v == null ? "?" : "≈ " + pbFmt(q)}" title="${esc(pbTip(q))}"` : "")(pbTarget(S.editor.email, x, x.name, s, S.editor.w.date || TODAY())) : ""}></td>`)).join("")}
         <td class="ra">${cc ? "" : `${clBtns(j, s)}<button class="btn ghost sm" data-act="set-dup" data-i="${i}" data-j="${j}" title="Duplica serie" aria-label="Duplica serie ${j+1}">${ICON.dup}</button><button class="btn ghost sm" data-act="set-rm" data-i="${i}" data-j="${j}" title="Elimina serie">✕</button>`}</td></tr>`).join("")}
     </tbody></table></div>
     ${x.sets.some(s => s.type) ? `<div class="tlegend">${Object.entries(SET_TYPES).filter(([k]) => x.sets.some(s => s.type === k)).map(([k,v]) => `<span>${typeBadge(k)} ${v.l}</span>`).join("")}</div>` : ""}
@@ -6000,7 +6019,7 @@ function archPts(G, w, plan){
       if (!did) { const ra = arRng(st.rpe), rb = arRng(st.rir);   // range scritti nel programma: barretta da… a…, il punto a metà
         if (ra) rpeR = ra; else if (rb && !String(st.rpe ?? "").trim()) rpeR = [10 - rb[1], 10 - rb[0]]; if (rpeR) rpe = (rpeR[0] + rpeR[1]) / 2;
         const rr = !isCl(st) && arRng(st.reps); if (rr) { repsR = rr; reps = (rr[0] + rr[1]) / 2; } }
-      const pc = !did && oneNum(st.pct) != null ? oneNum(st.pct) : setInt(G.email, w, x, name, src, st)?.pct ?? null;
+      const pp = oneNum(st.pct) ?? oneNum(st.pbest), pc = !did && pp != null ? pp : setInt(G.email, w, x, name, src, st)?.pct ?? null;
       out.push({name, gk: g[0], lab: L[g[0]] || "", rpe, rpeR, reps, repsR, pct: pc, did, x, j, st, n: j + 1, lock: did || psLocked(w, x, j), r: did ? r : null, s: st, cols: x.cols, type: st.type || ""}); }); });
   return out; }
 const arVal = (p, m) => m === "rpe" ? p.rpe : m === "pct" ? p.pct : m === "reps" ? p.reps : null;
@@ -6014,7 +6033,7 @@ function archStats(G, P, m){ const T = arTh(G, m), pm = m === "hard" ? "rpe" : m
     overReps: over.reduce((t, k) => t + rp(P[k]), 0), hard: P.filter(p => p.rpe != null && p.rpe >= AR_HARD - 1e-9).length, reps: P.reduce((t, p) => t + rp(p), 0), miss: P.filter(p => arVal(p, pm) == null).length}; }
 const arCanSet = (p, m) => !p.lock && p.st && (m === "rpe" ? ["rpe", "rir"].some(c => (p.x.cols || []).includes(c)) && p.rpe != null
   : m === "reps" ? (p.x.cols || []).includes("reps") && !isCl(p.st) && p.reps != null
-  : m === "pct" ? p.pct != null && ((p.x.cols || []).includes("pct") || (intKind(p.x, p.name) === "kg" && !isCl(p.st))) : false);
+  : m === "pct" ? p.pct != null && ((p.x.cols || []).includes("pct") || (p.x.cols || []).includes("pbest") || (intKind(p.x, p.name) === "kg" && !isCl(p.st))) : false);
 const AR_HARD = 7;   // serie allenante (come nell'Analisi): RPE ≥ 7 o RIR ≤ 3
 const rpeStep = () => pickOpts("rpe").some(o => !Number.isInteger(+String(o.v).replace(",", "."))) ? 0.5 : 1;   // l'atleta sceglie l'RPE da un menu: di solito numeri interi
 const AR_STEP = {get rpe(){ return rpeStep(); }, pct: 1, reps: 1};
@@ -6028,6 +6047,9 @@ function arSet(G, w, p, m, v){ const st = G.sess.sets[p.x.id]?.[p.j]; if (!st) r
   if (m === "rpe") { if ((p.x.cols || []).includes("rpe")) { two("rpe", p.rpeR, 1, 10, f1); if (isCl(st) && st.cl.some(q => String(q.rpe ?? "").trim())) st.cl.forEach(q => q.rpe = st.rpe); }
     else { v = 10 - v; two("rir", p.rpeR, 0, 9, f1); } }
   else if (m === "reps") two("reps", p.repsR, 1, 99, z => String(Math.round(z)));
+  else if (m === "pct" && ["spr", "jmp"].includes(intKind(p.x, p.name))) {   // sprint e salti: si programma la % del migliore (il parametro si aggiunge da solo)
+    if (!(p.x.cols || []).includes("pbest")) { p.x.cols = p.x.cols || []; const i = p.x.cols.findIndex(c => c === "time" || c === "height"); p.x.cols.splice(i < 0 ? p.x.cols.length : i, 0, "pbest"); }
+    st.pbest = String(Math.round(Math.max(50, Math.min(105, v)))); }
   else if (m === "pct") { if ((p.x.cols || []).includes("pct") && (oneNum(st.pct) != null || !(p.x.cols || []).includes("kg"))) st.pct = String(Math.round(Math.max(30, Math.min(110, v))));
     else { const ref = intRef(G.email, intKey("kg", p.name, st, st), w.date || TODAY()); if (ref) st.kg = String(Math.max(2.5, Math.round(ref.v * v / 100 / 2.5) * 2.5)); } } }
 function drawArchChart(G, w, order, editable){
@@ -6901,7 +6923,7 @@ function logCellHtml(x, c, j, s, rr, sg, unit = "serie", k = null){
   if (c === "side") { const v = rr.side || ""; const has = k => v.split("+").includes(k), plan = k => new RegExp(k, "i").test(s.side || "");
     return `<span class="side-in" title="${s.side ? "Da fare: "+esc(SIDE_LBL[s.side] ?? s.side) : "Lato"}">${["Sx","Dx"].map(k => `<button class="${has(k)?"on":""} ${plan(k) && !has(k) ? "plan" : ""}" data-act="a-side" data-x="${x.id}" data-j="${j}" data-v="${k}" aria-pressed="${has(k)}" aria-label="Lato ${k==="Dx"?"destro":"sinistro"} ${unit} ${j+1}">${k}</button>`).join("")}</span>`; }
   if (COLS[c].pick && pickOpts(c).length) return pickCell(c, x.id, j, rr[c], s[c], k);
-  return `<input inputmode="${COLS[c].txt ? "text" : "decimal"}" aria-label="${esc(COLS[c].l)} ${unit} ${j+1}${k != null ? " cluster " + (k+1) : ""}" data-r="${x.id}|${j}|${c}${k != null ? "|" + k : ""}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c] || (c === "kg" && sg ? "≈ " + fmtN(sg.kg, 1) : "–"))}">`;
+  return `<input inputmode="${COLS[c].txt ? "text" : "decimal"}" aria-label="${esc(COLS[c].l)} ${unit} ${j+1}${k != null ? " cluster " + (k+1) : ""}" data-r="${x.id}|${j}|${c}${k != null ? "|" + k : ""}" value="${esc(rr[c]||"")}" placeholder="${esc(s[c] || (c === "kg" && sg?.kg != null ? "≈ " + fmtN(sg.kg, 1) : sg?.col === c && sg.v != null ? pbFmt(sg) : "–"))}">`;
 }
 function athExHtml(w, x, label, res, compact){
   const logCols = x.cols.filter(c => COLS[c].log), tcols = x.cols.filter(c => c !== "pi");   // la pausa intra è scritta sopra la tabella e accanto ai cluster
@@ -6916,8 +6938,11 @@ function athExHtml(w, x, label, res, compact){
     ? `<td><div class="cst">${s.cl.map((q, k) => logCellHtml(x, c, j, q, rr.cl?.[k] || {}, null, "serie", k)).join("")}</div></td>` : `<td>${logCellHtml(x, c, j, s, rr, sug[j])}</td>`;
   const pz = (s, k) => String((clPer(x, "pi") ? s.cl[k]?.pi : s.pi) ?? "").trim();
   const clInfo = hasCl ? (() => { const R = serieRuns(x).filter(t => t.cl); return R.map(t => `<b>Cluster${x.sets.length > 1 ? ` (serie ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""})` : ""}:</b> ${esc(clTxt(x, t.s))}${setDisp(x, t.s, "pi") ? ` con <b>${esc(setDisp(x, t.s, "pi"))}</b> di pausa tra un cluster e l'altro` : ""}`).join("<br>") + `<br><span class="faint">Segna ${(L => L.length > 1 ? L.slice(0, -1).join(", ") + " e " + L[L.length - 1] : L[0])(logCols.filter(c => c === "reps" || clPer(x, c)).map(c => /^[A-Z]+$/.test(COLS[c].l) ? COLS[c].l : COLS[c].l.toLowerCase()))} di ogni cluster.</span>`; })() : "";
+  const pbs = x.sets.map(s => pbTarget(em, x, name, s, effDate(w))), pbOk = pbs.filter(q => q?.v != null);
+  pbs.forEach((q, j) => { if (q?.v != null && !sug[j]) sug[j] = q; });   // tempo / misura obiettivo dalla % del migliore
   if (hasCl) x.sets.forEach((s, j) => { if (isCl(s)) sug[j] = null; });   // kg dal %1RM: non per le serie cluster (i kg sono già per cluster)
-  const sugTxt = [...new Map(sug.filter(Boolean).map(q => [q.pct, q])).values()].map(q => `${fmtN(q.pct, 1)}% ≈ <b>${fmtN(q.kg, 1)} kg</b>`).join(" · ");
+  const pbTxt = [...new Map(pbOk.map(q => [q.pct, q])).values()].map(q => `${fmtN(q.pct, 1)}% ≈ <b>${pbFmt(q)} ${q.k === "spr" ? "s" : "cm"}</b>`).join(" · ");
+  const sugTxt = [...new Map(sug.filter(q => q && q.kg != null).map(q => [q.pct, q])).values()].map(q => `${fmtN(q.pct, 1)}% ≈ <b>${fmtN(q.kg, 1)} kg</b>`).join(" · ");
   const sideHint = x.cols.includes("side") ? [...new Set(x.sets.map(s => s.side).filter(Boolean))].join(" / ") : "";
   return `<div class="sub">
     <div class="h"><span class="b">${esc(label)}</span><span class="n">${esc(name)}</span>${lib?.video ? (videoEmbed(lib.video) ? `<button type="button" class="vbtn hv" data-act="video" data-u="${esc(lib.video)}" data-t="${esc(name)}" title="Guarda il video dell'esercizio">▶ Video</button>` : `<a class="vbtn hv" href="${esc(lib.video)}" target="_blank" rel="noopener" title="Guarda il video dell'esercizio">▶ Video ↗</a>`) : ""}<span class="hsp"></span>${sw ? "" : `<button class="swbtn" data-act="a-swap" data-x="${x.id}" title="Non riesci a farlo? Cambialo con un'alternativa">↔ Cambia</button>`}</div>
@@ -6925,7 +6950,8 @@ function athExHtml(w, x, label, res, compact){
     ${compact ? `<div class="sc cscheme">${circGridHtml(x, compact === "amrapreps", compact === "amrap")}</div>` : ""}
     ${sideHint && compact !== "light" ? (sd => `<div class="info sidehint">${sd?.both ? `<b>Ogni serie con tutti e due i lati:</b> fai le ripetizioni con il destro e con il sinistro, e segna <b>Sx</b> e <b>Dx</b>.` : `<b>Lato:</b> ${esc(sd?.how || sd?.txt || sideHint)} — ogni serie con il lato indicato (quello contornato); segna quello che hai fatto.`}</div>`)(sideSummary(x.sets)) : ""}
     ${x.notes ? `<div class="info"><b>Nota:</b> ${esc(x.notes)}</div>` : ""}
-    ${sugTxt ? `<div class="info"><b>Kg consigliati:</b> ${sugTxt} <span class="faint">(dal tuo e1RM stimato: ${fmtN(sug.find(Boolean).ref.v, 1)} kg)</span></div>` : ""}
+    ${sugTxt ? `<div class="info"><b>Kg consigliati:</b> ${sugTxt} <span class="faint">(dal tuo e1RM stimato: ${fmtN(sug.find(q => q && q.kg != null).ref.v, 1)} kg)</span></div>` : ""}
+    ${pbTxt ? `<div class="info"><b>${pbOk[0].k === "spr" ? "Tempo obiettivo" : "Misura obiettivo"}:</b> ${pbTxt} <span class="faint">(dal tuo ${pbOk[0].k === "spr" ? "miglior tempo: " + fmtN(pbOk[0].ref.v, 2) + " s" : "miglior salto: " + fmtN(pbOk[0].ref.v, 1) + " cm"})</span></div>` : ""}
     ${lib?.notes ? `<div class="info"><b>Indicazioni:</b> ${esc(lib.notes)}</div>` : ""}
     ${hasCl ? `<div class="info clinfo">${clInfo}</div>` : ""}
     ${compact ? "" : tcols.length ? `${tcols.length > 4 ? `<div class="scrollhint">scorri di lato per vedere tutti i parametri →</div>` : ""}<div class="ltwrap"><table class="lt ${tcols.length > 4 ? "many" : ""} ${hasCl ? "hascl" : ""}"><thead><tr><th></th>${hasCl ? "<th></th>" : ""}${tcols.map(c => `<th class="${COLS[c].log ? "" : "roh"}">${esc(COLS[c].l)}${unitTag(c)}</th>`).join("")}<th></th></tr></thead><tbody>
@@ -7311,6 +7337,7 @@ const ACT = {
   "ex-new"(){ S.exEdit = {isNew:true, cols:["reps","kg"]}; renderView(); exFormIntoView(); },
   "ex-edit"(t){ S.exEdit = clone(S.exercises.find(x => x.id === t.dataset.id)); renderView(); exFormIntoView(); },
   "ex-cancel"(){ S.exEdit = null; renderView(); },
+  "sess-scale"(t){ S.sessScale = t.dataset.v; const E = S.editor, box = $("#ed-firma"); if (E && box) box.innerHTML = firmaHtml(E.email, E.w); },
   "fz-ok"(t){ const L = fzSets(t.dataset.sets); fzFix(L); markDirty(); },
   "fz-e2rm"(t){ const L = fzSets(t.dataset.sets); fzFix(L); L.forEach(st => st.stim2 = (st.stim2 || []).filter(id => id !== t.dataset.id)); markDirty(); },
   "fz-join"(t){ const P = fzSets(t.dataset.prev), L = fzSets(t.dataset.sets); fzFix(P); const s0 = P[0];
@@ -7528,7 +7555,8 @@ document.addEventListener("input", e => {
   if (e.target.tagName === "SELECT" && e.target.dataset.bind && S.editor) { setPath(S.editor.w, e.target.dataset.bind, e.target.value); if (e.target.dataset.bind === "kind") { if (e.target.value) S.editor.w.kindMan = true; else delete S.editor.w.kindMan; } markDirty(); return; }
   const t = e.target;
   if (t.dataset.bind && S.editor) { let v = t.value; if (/^exercises\.\d+\.block$/.test(t.dataset.bind) && S.editor.w.exercises[+t.dataset.bind.split(".")[1]+1]?.ss) v = v.replace(/\d+$/, ""); setPath(S.editor.w, t.dataset.bind, v); markDirty();
-    { const m = t.dataset.bind.match(/^exercises\.(\d+)\.sets\.(\d+)\.(pct|kg)$/); if (m) edKgHint(+m[1], +m[2]); }   // %1RM → kg consigliati subito, senza salvare
+    { const m = t.dataset.bind.match(/^exercises\.(\d+)\.sets\.(\d+)\.(pct|kg)$/); if (m) edKgHint(+m[1], +m[2]); }
+    { const m = t.dataset.bind.match(/^exercises\.(\d+)\.sets\.(\d+)\.(pbest|time|height|dist)$/); if (m) edPbHint(+m[1], +m[2]); }   // % del migliore → tempo / misura obiettivo   // %1RM → kg consigliati subito, senza salvare
     { const m = t.dataset.bind.match(/^exercises\.(\d+)\.sets\.(\d+)\.cl\./); if (m) { const x = S.editor.w.exercises[+m[1]]; clSync(x, x.sets[+m[2]]); } }   // cluster: reps della serie = somma
     return; }
   if (t.dataset.xnote) { const w = athleteWorkout(); if (!w || S.user?.preview) return; (w.exNotes ??= {})[t.dataset.xnote] = t.value; w._xnDirty = true; scheduleSave(); return; }

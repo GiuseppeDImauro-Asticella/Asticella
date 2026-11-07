@@ -754,6 +754,7 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .ssb > .ss1 > span{padding:0}.ssleg{font-size:11px;color:var(--muted);margin-top:3px}.ssleg b{color:var(--ink)}
 .rpm{display:inline-flex;align-items:center;gap:6px}.rpm select{width:auto;padding:4px 8px;font-size:13px}
 .altc.inh{opacity:.75;border-style:dashed}
+.exfilt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--accent) 6%, transparent);font-size:13px}.exfilt .btn{margin-left:auto}
 .mvt{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--surface2);color:var(--muted);margin-left:4px;vertical-align:1px}.mvt.env{background:color-mix(in srgb, var(--accent) 10%, transparent);color:var(--accent)}.mvt.e4,.mvt.e5{background:color-mix(in srgb, var(--warn) 14%, transparent);color:var(--warn)}
 .mvskl{margin:0 12px 8px 28px;border-left:2px solid var(--line);padding-left:10px}.mvsk{padding:6px 0}.mvsk + .mvsk{border-top:1px dashed var(--line)}.mvskh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}.mvska{font-size:12px;margin-top:3px}
 .skit{display:inline-flex;align-items:center;gap:2px;margin-right:6px}.skst{cursor:pointer;line-height:1}.skst input{position:absolute;opacity:0;pointer-events:none}.skst span::before{content:"☆";font-size:17px;color:var(--faint)}.skst input:checked + span::before{content:"★";color:var(--warn)}.skst input:focus-visible + span{outline:2px solid var(--accent);border-radius:4px}.mvorph{border-color:color-mix(in srgb, var(--warn) 45%, var(--line))}.mvsel{width:auto;max-width:190px;padding:4px 8px;font-size:13px}
@@ -3525,13 +3526,17 @@ function viewAthletes(m){
 function exFormIntoView(){ const f = $("#ex-form"); if (!f) return; const r = f.getBoundingClientRect();
   if (r.top < 0 || r.top > innerHeight - 120) f.scrollIntoView({behavior: "smooth", block: "start"}); setTimeout(() => $("#x-name")?.focus({preventScroll: true}), 350); }
 function viewExercises(m){
-  const q = S.exQuery.toLowerCase();
-  const list = S.exercises.filter(x => !q || (x.name+" "+x.category+" "+x.pattern+" "+latLbl(x.lat)).toLowerCase().includes(q));
-  const cats = [...new Set(list.map(x => x.pattern || "Senza pattern"))].sort((a, b) => (a === "Senza pattern") - (b === "Senza pattern") || a.localeCompare(b, "it"));
+  const q = S.exQuery.toLowerCase(), FS = S.exSch && movItem(S.exSch) ? S.exSch : null;
+  const schN = x => exSchemi(x).all.map(id => movItem(id).it.name).join(" ");
+  const list = S.exercises.filter(x => (!q || (x.name+" "+x.category+" "+x.pattern+" "+latLbl(x.lat)+" "+schN(x)).toLowerCase().includes(q)) && (!FS || exSchemi(x).all.includes(FS)));
+  /* gruppi: l'abilità; senza abilità, lo schema / pattern principale dell'esercizio; in fondo chi non ha né l'una né l'altro */
+  const NONE = "Senza abilità né schemi", grpOfX = x => x.pattern || (id => id ? "§" + movItem(id).it.name : NONE)(exSchemi(x).all[0]);
+  const cats = [...new Set(list.map(grpOfX))].sort((a, b) => (a === NONE) - (b === NONE) || (a[0] === "§") - (b[0] === "§") || a.replace("§", "").localeCompare(b.replace("§", ""), "it"));
   const e = S.exEdit;
   m.innerHTML = `<div class="pagehead"><div><h1>Esercizi</h1><div class="sub">I tuoi mezzi, raggruppati per movimento: stimolo di partenza e parametri già pronti quando li inserisci in un allenamento.</div></div><div class="toolbar">${S.exercises.length ? "" : `<button class="btn" data-act="ex-base">Aggiungi esercizi di base</button>`}<button class="btn pri" data-act="ex-new">+ Nuovo esercizio</button></div></div>
   <div class="two"><div class="panel"><div style="padding:12px;border-bottom:1px solid var(--line)"><input class="in" id="ex-q" placeholder="Cerca esercizio…" value="${esc(S.exQuery)}" data-input="ex-q"></div>
-    <div class="scroll-x"><table class="list"><tbody>${cats.map(c => `<tr><th colspan="3" style="background:var(--surface2)">${esc(c)}</th></tr>` + list.filter(x => (x.pattern || "Senza pattern") === c).map(x => `<tr>
+    ${FS ? `<div class="exfilt">Esercizi che allenano <b>${esc(movItem(FS).it.name)}</b> <span class="faint">(${esc(movItem(FS).fam.name.toLowerCase())})</span><button class="btn sm ghost" data-act="sch-clear" aria-label="Togli il filtro">✕ Tutti</button></div>` : ""}
+    <div class="scroll-x"><table class="list"><tbody>${cats.map(c => `<tr><th colspan="3" style="background:var(--surface2)">${c[0] === "§" ? `${esc(c.slice(1))} <span class="faint" style="font-weight:500">· schema / pattern, senza abilità</span>` : esc(c)}</th></tr>` + list.filter(x => grpOfX(x) === c).map(x => `<tr>
       <td><b>${esc(x.name)}</b><div class="faint" style="font-size:12px">${esc([exprLbl(stim0Of(x)) || "", (Z => !x.pattern && Z.all.length ? Z.all.map(id => movItem(id).it.name).join(" · ") : Z.own.length ? "anche " + Z.own.map(id => movItem(id).it.name).join(", ") : "")(exSchemi(x)), latLbl(x.lat)].filter(Boolean).join(" · "))}</div></td>
       <td class="muted" style="font-size:12px">${(x.cols||[]).map(k => COLS[k]?.l).filter(Boolean).join(" · ")}</td>
       <td style="text-align:right"><button class="btn sm ghost" data-act="ex-edit" data-id="${x.id}">Modifica</button></td></tr>`).join("")).join("") || `<tr><td class="muted">Nessun esercizio trovato.</td></tr>`}</tbody></table></div></div>
@@ -4978,7 +4983,7 @@ function movPanel(){ const M = movData(), list = optList("pat"), PC = stimData()
   return `<div class="form"><div class="note"><b>Movimento, dal generale al particolare.</b> Schemi motori di base, schemi posturali e pattern motori → le <b>abilità motorie</b> (il movimento degli esercizi: Sprint, Salto in alto, Clean…) → gli esercizi, che sono i mezzi. Ogni abilità ha la sua scheda: schemi e pattern su cui si basa, se è discreta, seriale o continua, quanto è chiusa o aperta, le capacità presupposte. <i>Bozza di partenza: aggiungi, rinomina e sposta come vuoi.</i></div>
     ${orphan.length ? `<div class="scap mvorph"><div class="prow scaph"><span class="grow"><b>Abilità da assegnare</b><div class="faint" style="font-size:12px">scegli lo schema o pattern principale (gli altri dalla Scheda)</div></span></div>${orphan.map(v => { const n = optUsers("pat", v).length; return `<div class="prow mvorow"><span class="grow"><b>${esc(v)}</b> <span class="faint" style="font-size:12px">· ${n} eserciz${n === 1 ? "io" : "i"}</span></span>${sel(v)}<button class="btn sm ghost" data-act="mv-skill" data-v="${esc(v)}">Scheda</button></div>`; }).join("")}</div>` : ""}
     <div class="stree">${M.fams.map(f => `<div class="scap"><div class="prow scaph"><span class="grow"><b>${esc(f.name)}</b></span><button class="lnk" data-act="mv-ed" data-k="fam" data-id="${f.id}">Modifica</button><button class="lnk" data-act="mv-new" data-id="${f.id}">+ voce</button></div>
-      ${f.items.map(it => `<div class="mvsch"><div class="prow sexpr"><span class="grow">${esc(it.name)}${it.desc ? ` <span class="faint" style="font-size:12px">· ${esc(it.desc)}</span>` : ""}${(n0 => (byMain[it.id] || []).length ? (n0 ? ` <span class="faint" style="font-size:12px">· +${n0} eserciz${n0 === 1 ? "io" : "i"} senza abilità</span>` : "") : ` <span class="faint" style="font-size:12px">· ${n0 ? `${n0} eserciz${n0 === 1 ? "io" : "i"} senza abilità` : "nessuna abilità"}</span>`)(S.exercises.filter(x => !x.pattern && exSchemi(x).all.includes(it.id)).length)}</span><button class="lnk" data-act="mv-ed" data-k="it" data-id="${it.id}">Modifica</button></div>${(byMain[it.id] || []).length ? `<div class="mvskl">${byMain[it.id].map(skRow).join("")}</div>` : ""}</div>`).join("")}</div>`).join("")}</div>
+      ${f.items.map(it => `<div class="mvsch"><div class="prow sexpr"><span class="grow">${esc(it.name)}${it.desc ? ` <span class="faint" style="font-size:12px">· ${esc(it.desc)}</span>` : ""}${(byMain[it.id] || []).length ? "" : ` <span class="faint" style="font-size:12px">· nessuna abilità</span>`}</span>${(n => n ? `<button class="lnk" data-act="sch-show" data-id="${it.id}" title="Mostra gli esercizi che allenano ${esc(it.name)} (dalle abilità o scelti sull'esercizio)">${n} eserciz${n === 1 ? "io" : "i"}</button>` : "")(S.exercises.filter(x => exSchemi(x).all.includes(it.id)).length)}<button class="lnk" data-act="mv-ed" data-k="it" data-id="${it.id}">Modifica</button></div>${(byMain[it.id] || []).length ? `<div class="mvskl">${byMain[it.id].map(skRow).join("")}</div>` : ""}</div>`).join("")}</div>`).join("")}</div>
     <div class="row"><button class="btn" data-act="opt-new" data-k="pat">+ Nuova abilità</button><button class="btn ghost" data-act="mv-new-fam">+ Nuova famiglia</button></div></div>`; }
 /* scheda dell'abilità */
 function skillDialog(v){ const M = clone(movData()), key = optKey(v), k = clone(M.skill?.[key] || {}), S0 = k.s || [];
@@ -7515,7 +7520,9 @@ const ACT = {
   "lib-tab"(t){ S.libTab = t.dataset.v; renderView(); },
   "opt-edit"(t){ optDialog(t.dataset.k, t.dataset.v); },
   "opt-new"(t){ optDialog(t.dataset.k, null); },
-  "opt-show"(t){ S.exQuery = t.dataset.v; renderView(); $("#ex-q")?.scrollIntoView({block: "nearest"}); },
+  "sch-show"(t){ S.exSch = t.dataset.id; S.exQuery = ""; renderView(); $(".exfilt")?.scrollIntoView({block: "nearest"}); },
+  "sch-clear"(){ S.exSch = null; renderView(); },
+  "opt-show"(t){ S.exSch = null; S.exQuery = t.dataset.v; renderView(); $("#ex-q")?.scrollIntoView({block: "nearest"}); },
   "param-edit"(t){ const k = t.dataset.k; const p = (S.params||[]).find(x => x.key === k)
       || (k in BASE_COLS ? {key: k, label: BASE_COLS[k].l, unit: BASE_COLS[k].u, log: BASE_COLS[k].log, txt: BASE_COLS[k].txt || 0, pick: BASE_COLS[k].pick || 0, archived: false} : null);
     if (p) paramDialog(clone(p)); },

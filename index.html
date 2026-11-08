@@ -5035,7 +5035,8 @@ function skillDialog(v){ const M = clone(movData()), key = optKey(v), k = clone(
     </div><footer><button type="button" class="btn ghost" id="sk-ren">Rinomina / elimina</button><span class="grow"></span><button type="button" class="btn" id="sk-no">Annulla</button><button class="btn pri">Salva</button></footer></form></div>`;
   const close = () => $("#confirm").innerHTML = "";
   $("#sk-no").onclick = close; $("#sk-ren").onclick = () => { close(); optDialog("pat", v); };
-  { const det = $("#sk-form .skcaps"), lab = det.querySelector(".skcl"); det.ontoggle = () => lab.textContent = det.open ? "Chiudi l'elenco" : "Scegli le capacità";
+  { const det = $("#sk-form .skcaps"), lab = det.querySelector(".skcl"); det.ontoggle = () => { lab.textContent = det.open ? "Chiudi l'elenco" : "Scegli le capacità";
+      if (det.open) setTimeout(() => det.scrollIntoView({behavior: "smooth", block: "start"}), 30); };   // aperto: la scheda scorre da sola fino all'elenco
     det.querySelectorAll("input[name=sk-cap]").forEach(c => c.onchange = () => { const L = [...det.querySelectorAll("input[name=sk-cap]:checked")].map(q => q.dataset.n);   // le scelte si vedono subito sopra
       $("#sk-csel").innerHTML = L.length ? L.map(n => `<span class="pcc">${esc(n)}</span>`).join("") : `<span class="faint">nessuna</span>`; }); }
   const f = $("#sk-form");

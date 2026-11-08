@@ -874,6 +874,19 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .psdiff .pdk.up,.psdiff .up{color:var(--ok)}.psdiff .pdk.dn,.psdiff .dn{color:var(--warn)}
 .psdiff i{font-style:normal;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-left:2px}
 .kfilt.psk select{width:auto;max-width:340px;padding:4px 8px}
+/* elenco a comparsa delle sedute (Progressione → Riferimento, Analisi → Confronta con) */
+.spk{position:relative;display:inline-block;min-width:0;max-width:100%;vertical-align:middle}
+.spk>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;width:auto;max-width:420px;padding:5px 10px}.spk>summary::-webkit-details-marker{display:none}
+.spk>summary .spcv{color:var(--faint);font-size:12px;margin-left:auto}.spk[open]>summary{border-color:var(--accent)}.spph{color:var(--muted)}
+.spkl{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:max-content;min-width:100%;max-width:min(520px,calc(100vw - 16px));max-height:min(60vh,460px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px}
+.spkl.up{top:auto;bottom:calc(100% + 4px)}
+.spkg{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 8px 4px}.spkg~.spkg{border-top:1px solid var(--line);margin-top:4px;padding-top:10px}
+.spi{display:grid;grid-template-columns:6.4em minmax(0,1fr) auto;align-items:baseline;gap:4px 10px;text-align:left;min-width:0}
+.spk .spkl button.spi{width:100%;border:0;background:none;color:var(--ink);font:inherit;font-size:14px;font-weight:400;padding:7px 8px;border-radius:7px;cursor:pointer}.spk .spkl button.spi:hover{background:var(--surface2)}.spk .spkl button.spi.on{background:var(--accent-soft)}.spk .spkl button.spi.on .spn b{color:var(--accent)}
+.spcur{grid-template-columns:auto minmax(0,1fr);overflow:hidden}.spcur .spn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}.spcur .spn small{display:inline;margin-left:6px}
+.spd{color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.spn{min-width:0}.spn b{font-weight:600}.spn small{display:block;color:var(--muted);font-size:12px;line-height:1.3;margin-top:1px}
+.sptag{font-size:11px;color:var(--accent);white-space:nowrap}
 .psvol .up{color:var(--ok);font-weight:700}.psvol .dn{color:var(--warn);font-weight:700}
 .pscards{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .pscards .pgc{flex:0 1 250px}
@@ -2015,6 +2028,16 @@ const kindOf = w => kindSet(w) || kindStim(w)?.k || LEGACY_KIND[guessKind(w || {
 const kindExpr = w => kindSet(w) ? null : kindStim(w)?.e || null;
 const kindLbl = (w, short) => { if (kindSet(w)) return KINDS[kindSet(w)].l; const q = kindStim(w); if (!q) return KINDS[kindOf(w)].l;
   const one = (k, e) => e ? exprLbl(e) : KINDS[k].l; return one(q.k, q.e) + (q.mix ? " + " + (short ? KINDS[q.mix].l : one(q.mix, q.mixE)) : ""); };   // short: la seconda capacità senza espressione (calendario)
+/* etichetta di una seduta nei menu: data · nome dato dal coach · tipo (come nel calendario); il tipo non si ripete se coincide col nome */
+const sessOptLbl = (q, dayName) => { const t = q.title || "Allenamento", k = kindLbl(q, true); return `${dayName ? DAYS[dayIdx(effDate(q))].toLowerCase() + " " : ""}${fmtD(effDate(q))} · ${t}${optKey(k) === optKey(t) ? "" : " — " + k}`; };
+/* elenco a comparsa delle sedute (al posto del menu standard): data in grigio in colonna, nome in evidenza, tipo sotto più piccolo.
+   G = [{l: titolo del gruppo, items: [seduta]}]; k = azione (come data-change del vecchio menu); tag(q) = etichetta a destra (es. "più recente") */
+const spRow = (q, cls, attr) => { const t = q.title || "Allenamento", kk = kindLbl(q, true);
+  return `<span class="spd">${esc(DAYS[dayIdx(effDate(q))].slice(0, 3).toLowerCase())} ${esc(fmtD(effDate(q)))}</span><span class="spn"><b>${esc(t)}</b>${optKey(kk) === optKey(t) ? "" : `<small>${esc(kk)}</small>`}</span>`; };
+function spick(k, G, sel, ph, tag = () => ""){
+  const cur = G.flatMap(g => g.items).find(q => q === sel);
+  return `<details class="spk" data-k="${k}"><summary class="in spks" aria-label="${esc(ph)}">${cur ? `<span class="spi spcur">${spRow(cur)}</span>` : `<span class="spph">${esc(ph)}</span>`}<span class="spcv" aria-hidden="true">▾</span></summary>
+    <div class="spkl" role="listbox">${G.filter(g => g.items.length).map(g => `<div class="spkg">${esc(g.l)}</div>${g.items.map(q => `<button type="button" role="option" aria-selected="${q === sel}" class="spi${q === sel ? " on" : ""}" data-act="sp-pick" data-k="${k}" data-v="${q.id}">${spRow(q)}${tag(q) ? `<span class="sptag">${esc(tag(q))}</span>` : ""}</button>`).join("")}`).join("")}</div></details>`; }
 const typeBadge = (t, extra="") => t && SET_TYPES[t] ? `<span class="stb t-${t}${SET_TYPES[t].c ? " tc-" + SET_TYPES[t].c : ""}" title="${SET_TYPES[t].l}" ${extra}>${t}</span>` : "";
 const TYPE_COLORS = {g: "Grigio", a: "Blu", as: "Azzurro", w: "Arancio", o: "Verde", r: "Rosso", p: "Rosa", x: "Tratteggiato"};   // colori delle lettere create dal coach
 /* una serie registrata è "vuota" se non ha valori e non è spuntata */
@@ -4610,12 +4633,10 @@ function anExvHtml(a, w, others){ const {G, PP, ref} = anPsG(a, w, others), dl =
 function sessCmpHtml(a, w){
   const others = sessCmpList(a, w), used = new Set([w.id, ...others.map(x => x.id)]);
   const same = sameKindSessions(a.email, w, 6).filter(x => !used.has(x.id)), inP = sessListFor(a).filter(x => !used.has(x.id) && !same.includes(x));
-  const opt = x => `<option value="${x.id}">${esc(fmtD(effDate(x)))} · ${esc(x.title || "Senza titolo")} · ${esc(KINDS[kindOf(x)].l)}</option>`;
-  const pick = others.length < 3 && (same.length || inP.length) ? `<select class="in sm" data-change="an-cmp-add" aria-label="Confronta con un'altra seduta"><option value="">+ Confronta con…</option>
-    ${same.length ? `<optgroup label="Stesso tipo (${esc(KINDS[kindOf(w)].l)}), prima di questa">${same.map(opt).join("")}</optgroup>` : ""}${inP.length ? `<optgroup label="Altre sedute del periodo">${inP.map(opt).join("")}</optgroup>` : ""}</select>` : "";
+  const pick = others.length < 3 && (same.length || inP.length) ? spick("an-cmp-add", [{l: `Stesso tipo (${KINDS[kindOf(w)].l}), prima di questa`, items: same}, {l: "Altre sedute del periodo", items: inP}], null, "+ Confronta con…") : "";
   const st = x => { const ss = sessionSets(x).sets, wr = ss.filter(o => o.act), av = wr.length ? wr.reduce((t, o) => t + o.act.v, 0) / wr.length : null;
     return [`<b>${ss.length}</b> serie`, av != null ? `RPE medio serie <b>${fmtN(av, 1)}</b>` : "", x.sessionRpe ? `RPE seduta <b>${x.sessionRpe}</b>` : "", x.durationMin ? `<b>${x.durationMin}′</b>` : "", x.sessionRpe && x.durationMin ? `sRPE <b>${fmtN(x.sessionRpe * x.durationMin)}</b> UA` : ""].filter(Boolean).map(t => `<span>${t}</span>`).join(""); };
-  return {pick, others, blocks: others.map(x => `<div class="scmp"><div class="scmph"><b>${esc(fmtLong(effDate(x)))}</b><span>${esc(x.title || "Senza titolo")}</span><span class="faint">${esc(KINDS[kindOf(x)].l)}</span><span class="sstats">${st(x)}</span>
+  return {pick, others, blocks: others.map(x => `<div class="scmp"><div class="scmph"><b>${esc(fmtLong(effDate(x)))}</b><span>${esc(x.title || "Senza titolo")}</span><span class="faint">${esc(kindLbl(x, true))}</span><span class="sstats">${st(x)}</span>
       <button class="btn sm ghost" data-act="an-cmp-del" data-id="${x.id}" aria-label="Togli dal confronto" title="Togli dal confronto">✕</button></div><div class="chartwrap an-scc" data-id="${x.id}"></div></div>`).join("")};
 }
 /* tabella del confronto: una riga per posizione della serie (come nei grafici: la serie 1 accanto alla serie 1), per ogni seduta eseguito · RPE (· %) */
@@ -6179,7 +6200,7 @@ function drawProgSess(G, a){
       <section class="pgmain">${w ? `
         <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${inProg && editable ? "in corso: le serie già fatte restano, le altre si possono ancora cambiare" : editable && w.date < TODAY() ? "non registrata: trascina i punti per cambiare i valori" : editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}${G.edit ? ` · <b style="color:var(--accent)">dall'allenamento aperto</b>` : ""}</span></div>
         <div class="kfilt"><span class="lbl">Confronta con</span>${[["kind", `Seduta più recente (stesso tipo · ${kindLbl(w)})`], ["stim", "Stesso movimento e stimolo"], ["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "stim") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "stim") === k}">${esc(l)}</button>`).join("")}</div>
-        ${G.psRef === "kind" ? (({KS, OS, RS}) => RS || OS.length ? `<div class="kfilt psk"><span class="lbl">Riferimento</span><select class="in" data-change="ps-kref" aria-label="Seduta di riferimento">${RS ? "" : `<option value="" selected>— scegli una seduta —</option>`}${KS.length ? `<optgroup label="Stesso tipo (${esc(KINDS[kindOf(w)].l)})">${KS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")}${q === KS[0] ? " (la più recente)" : ""}</option>`).join("")}</optgroup>` : ""}${OS.length ? `<optgroup label="Altre sedute">${OS.map(q => `<option value="${q.id}" ${q === RS ? "selected" : ""}>${esc(DAYS[dayIdx(effDate(q))].toLowerCase())} ${esc(fmtD(effDate(q)))} · ${esc(q.title || "Allenamento")} · ${esc(KINDS[kindOf(q)].l)}</option>`).join("")}</optgroup>` : ""}</select>
+        ${G.psRef === "kind" ? (({KS, OS, RS}) => RS || OS.length ? `<div class="kfilt psk"><span class="lbl">Riferimento</span>${spick("ps-kref", [{l: `Stesso tipo (${KINDS[kindOf(w)].l})`, items: KS}, {l: "Altre sedute", items: OS}], RS, "— scegli una seduta —", q => q === KS[0] ? "più recente" : "")}
           ${RS ? `<button type="button" class="btn sm ghost pssv" data-act="ps-sessview" data-id="${RS.id}" title="Vedi l'andamento di questa seduta (intensità e volume serie per serie) senza uscire da qui">${ICON.data} Andamento</button>` : `<span class="faint" style="font-size:12px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)}: scegline un'altra.</span>`}
           </div>${RS && namedEx(w).length ? `<div class="kfilt psk"><span class="lbl">Confronta</span>${[["ex", "per esercizio"], ["arch", "architettura"]].map(([k, l]) => `<button class="${(G.psArch || "ex") === k ? "on" : ""}" data-act="ps-arch" data-v="${k}" aria-pressed="${(G.psArch || "ex") === k}">${l}</button>`).join("")}
           <span class="faint" style="font-size:12px">${G.psArch === "arch" ? "La seduta intera, serie per serie dall'inizio (1ª serie della seduta, 2ª…), qualunque sia l'esercizio: conta quando arriva lo stimolo. Parametri che valgono per ogni esercizio: RPE, % del riferimento, ripetizioni. Punti pieni = serie sopra la soglia che scegli." : "Ogni esercizio si confronta con lo stesso esercizio di quella seduta, se no con uno dello stesso pattern, se no con le serie che restano (serie, ripetizioni, RPE)."}</span></div>` : ""}`
@@ -7678,6 +7699,9 @@ const ACT = {
   "ps-type"(t){ const st = S.prog.sess.sets[t.dataset.x][+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
   "ps-add"(t){ const a = S.prog.sess.sets[t.dataset.x]; a.push(nextSet(a)); drawProg(); },
   "ps-rm"(t){ const G = S.prog, w = progW(G, G.wid), x = (w?.exercises || []).find(q => q.id === t.dataset.x), a = G.sess.sets[t.dataset.x]; if (a.length > 1 && !(x && psLocked(w, x, a.length - 1))) a.pop(); drawProg(); },
+  "sp-pick"(t){ const k = t.dataset.k, v = t.dataset.v; t.closest("details").open = false;   // elenco a comparsa delle sedute: come il "change" del vecchio menu
+    if (k === "ps-kref") { S.prog.psKref = v; S.prog.psPop = null; return drawProg(); }
+    if (k === "an-cmp-add") { anQ.cmp = [...(anQ.cmp || []).filter(id => id !== v), v].slice(-3); anQ.sess = $("#an-sess select[data-change=an-sess]")?.value || anQ.sess; return redrawSess(); } },
   "ps-poptype"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; if (t.dataset.t) o.st.type = t.dataset.t; else delete o.st.type; typeRoleSync(o.st); drawProg(); },
   "ps-popdup"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; G.sess.sets[o.x.id].splice(o.j + 1, 0, clone(o.st)); G.psPop = null; drawProg(); },
   "ps-popdel"(t){ const G = S.prog, w = progW(G, G.wid), o = psSeq(G, w).seq[+t.dataset.k]; const a = G.sess.sets[o.x.id]; if (a.length > 1) a.splice(o.j, 1); else toast("L'esercizio deve avere almeno una serie"); G.psPop = null; drawProg(); },
@@ -7819,6 +7843,7 @@ document.addEventListener("click", e => {
     const v = Math.min(mx, Math.max(mn, (parseFloat(String(inp.value).replace(",", ".")) || (stp.dataset.step > 0 ? mn - st : mn + st) || 0) + st * +stp.dataset.step));
     inp.value = Math.round(v * 100) / 100; inp.dispatchEvent(new Event("input", {bubbles: true})); inp.dispatchEvent(new Event("change", {bubbles: true})); } return; }
   if (document.getElementById("pmpop") && !e.target.closest("#pmpop, [data-act=per-mic], [data-act=per-mod]")) perPopClose();
+  document.querySelectorAll("details.spk[open]").forEach(d => { if (!d.contains(e.target)) d.open = false; });   // elenco sedute: si chiude toccando fuori
   const t = e.target.closest("[data-act]"); if (!t) return;
   if (t.tagName === "BUTTON" && t.closest("form")) e.preventDefault();
   const f = ACT[t.dataset.act]; if (f) f(t, e);
@@ -7827,6 +7852,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape" && $("#vid").innerHTML) { closeVideo(); return; }
   if (e.key === "Escape" && S.sessDlg && $("#sd-body")) { closeSessDlg(); return; }
   if (e.key === "Escape" && document.getElementById("pmpop")) { perPopClose(); return; }
+  if (e.key === "Escape" && document.querySelector("details.spk[open]")) { document.querySelectorAll("details.spk[open]").forEach(d => d.open = false); return; }
   if (e.key === "Escape" && S.view === "calendar" && S.calSel.size && !$("#modal").innerHTML) { S.calSel.clear(); drawCalendar(); return; }
   if (e.key === "Enter" && e.target.matches(".wcard")) ACT["open-w"](e.target, e);
   if (S.editor && e.key === "Escape" && !$("#confirm").innerHTML) closeEditor();
@@ -7852,6 +7878,10 @@ document.addEventListener("input", e => {
   if (t.dataset.input === "tpl-q") { S.tplQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#tpl-q"); q.focus(); q.setSelectionRange(pos,pos); return; }
   if (t.dataset.input === "ex-q") { S.exQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#ex-q"); q.focus(); q.setSelectionRange(pos,pos); }
 });
+document.addEventListener("toggle", e => { const d = e.target; if (!d.classList?.contains("spk") || !d.open) return; const l = d.querySelector(".spkl"); l.style.left = "0px"; l.classList.remove("up");   // elenco sedute: resta dentro lo schermo
+  const r = l.getBoundingClientRect(), sm = d.getBoundingClientRect(); if (r.right > innerWidth - 8) l.style.left = Math.min(0, innerWidth - 8 - r.right) + "px";
+  if (r.bottom > innerHeight - 8 && sm.top > innerHeight - sm.bottom) l.classList.add("up");   // sotto non c'è spazio e sopra di più: si apre verso l'alto
+  const on = l.querySelector(".spi.on"); if (on) l.scrollTop = on.offsetTop - l.clientHeight / 3; }, true);
 document.addEventListener("toggle", e => { const d = e.target; if (!d.classList?.contains("mvdet")) return; S.mvOpen ??= new Set(); if (d.open) S.mvOpen.add(d.dataset.k); else S.mvOpen.delete(d.dataset.k); }, true);   // Movimenti: dettagli aperti restano aperti
 document.addEventListener("change", async e => {
   const t = e.target, k = t.dataset.change; if (!k) return;

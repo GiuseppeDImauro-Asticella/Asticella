@@ -5021,7 +5021,7 @@ function movPanel(){ const M = movData(), list = optList("pat"), PC = stimData()
 /* scheda dell'abilità */
 function skillDialog(v){ const M = clone(movData()), key = optKey(v), k = clone(M.skill?.[key] || {}), S0 = k.s || [];
   $("#confirm").innerHTML = `<div class="back" style="z-index:75"><form class="modal sm" id="sk-form" style="max-width:600px"><header><h2>${esc(v)} · scheda dell'abilità</h2></header><div class="body">
-    <div class="field"><span class="lbl">Schemi e pattern</span><div class="faint" style="font-size:12px;margin-bottom:4px">Spunta quelli su cui si basa; ★ = il principale (decide dove sta nell'elenco).</div>
+    <div class="field"><span class="lbl">Schemi e pattern</span><div class="faint" style="font-size:12px;margin-bottom:4px">Spunta quelli su cui si basa. La ★ è il principale: va al primo che spunti, la sposti toccando un'altra stellina. Decide dove sta l'abilità nell'albero; gli altri restano "anche".</div>
       ${M.fams.map(f => `<div class="mvfam"><span class="faint" style="font-size:12px">${esc(f.name)}</span><div class="colpick">${f.items.map(it => `<span class="skit"><label class="pcchk"><input type="checkbox" name="sk-s" value="${it.id}" ${S0.includes(it.id) ? "checked" : ""}> ${esc(it.name)}</label><label class="skst" title="Rendi principale"><input type="radio" name="sk-m" value="${it.id}" ${S0[0] === it.id ? "checked" : ""} aria-label="${esc(it.name)} principale"><span></span></label></span>`).join("")}</div></div>`).join("")}</div>
     <div class="field"><span class="lbl">Continuità</span><div class="seg2">${Object.entries(CONT_L).map(([c, l]) => `<label title="${esc(CONT_D[c])}"><input type="radio" name="sk-c" value="${c}" ${k.cont === c ? "checked" : ""}><span>${l}</span></label>`).join("")}<label><input type="radio" name="sk-c" value="" ${k.cont ? "" : "checked"}><span>—</span></label></div>
       <div class="faint" style="font-size:12px">${Object.entries(CONT_L).map(([c, l]) => `<b>${l}</b>: ${esc(CONT_D[c])}`).join(" · ")}</div></div>
@@ -5041,7 +5041,12 @@ function skillDialog(v){ const M = clone(movData()), key = optKey(v), k = clone(
       $("#sk-csel").innerHTML = L.length ? L.map(n => `<span class="pcc">${esc(n)}</span>`).join("") : `<span class="faint">nessuna</span>`; }); }
   const f = $("#sk-form");
   f.querySelectorAll("input[name=sk-m]").forEach(r => r.onchange = () => { const c = f.querySelector(`input[name=sk-s][value="${r.value}"]`); if (c) c.checked = true; });
-  f.querySelectorAll("input[name=sk-s]").forEach(c => c.onchange = () => { const r = f.querySelector(`input[name=sk-m][value="${c.value}"]`); if (!c.checked && r?.checked) r.checked = false; });
+  /* ★ sempre visibile: la prima casella spuntata diventa il principale; se togli la spunta al principale, la ★ passa al primo ancora spuntato */
+  const star = id => { const r = id && f.querySelector(`input[name=sk-m][value="${id}"]`); if (r) r.checked = true; else f.querySelectorAll("input[name=sk-m]").forEach(q => q.checked = false); };
+  f.querySelectorAll("input[name=sk-s]").forEach(c => c.onchange = () => { const r = f.querySelector(`input[name=sk-m][value="${c.value}"]`), cur = f.querySelector("input[name=sk-m]:checked");
+    if (c.checked && !cur) star(c.value);
+    else if (!c.checked && r?.checked) star(f.querySelector("input[name=sk-s]:checked")?.value); });
+  if (!f.querySelector("input[name=sk-m]:checked")) star(f.querySelector("input[name=sk-s]:checked")?.value);   // schede salvate prima senza ★
   f.onsubmit = async ev => { ev.preventDefault(); const L = [...f.querySelectorAll("input[name=sk-s]:checked")].map(i => i.value), m = f.querySelector("input[name=sk-m]:checked")?.value;
     const S1 = m && L.includes(m) ? [m, ...L.filter(q => q !== m)] : L, cont = f.querySelector("input[name=sk-c]:checked")?.value || "", env = +(f.querySelector("input[name=sk-e]:checked")?.value || 0);
     M.skill ??= {}; const o = {...(S1.length ? {s: S1} : {}), ...(cont ? {cont} : {}), ...(env ? {env} : {})}; if (Object.keys(o).length) M.skill[key] = o; else delete M.skill[key];
@@ -5441,15 +5446,20 @@ function movDialog(){
   const M = S.mvDlg ??= {mov: "", e: "", role: "r_work", n: 3}, D = stimData();
   const pats = optList("pat"), cap = exprById(M.e)?.cap.id;
   /* mezzi: gli esercizi di quell'abilità, poi quelli che condividono i suoi schemi / pattern (es. marcia → volo → corsa → stacco per il Salto in alto) */
-  const mvS = (skillOf(M.mov).s || []).filter(movItem), viaSch = x => { if (optKey(x.pattern) === optKey(M.mov)) return null; const c = exSchemi(x).all.filter(id => mvS.includes(id)); return c.length ? c : null; };
-  const mezzi = !M.mov ? [] : S.exercises.filter(x => optKey(x.pattern) === optKey(M.mov) || viaSch(x))
-    .map(x => { const s0 = stim0Of(x), q = exprById(s0), vs = viaSch(x); return {x, s0, nv: vs ? vs.length : 0, rank: vs ? 3 : !M.e ? 1 : s0 === M.e ? 0 : q && q.cap.id === cap ? 1 : 2, via: !vs ? "" : "in comune: " + vs.map(id => movItem(id).it.name).join(", ")}; })
+  /* il "movimento" può essere un'abilità o uno schema / pattern ("§id"): con uno schema, prima i mezzi che lo hanno come principale, poi quelli che lo contengono "anche" */
+  const SCH = M.mov.startsWith("§") && movItem(M.mov.slice(1)) ? M.mov.slice(1) : null, movLbl = SCH ? movItem(SCH).it.name : M.mov;
+  const mvS = SCH ? [SCH] : (skillOf(M.mov).s || []).filter(movItem);
+  const own = x => SCH ? exSchemi(x).all[0] === SCH : optKey(x.pattern) === optKey(M.mov);
+  const viaSch = x => { if (own(x)) return null; const c = exSchemi(x).all.filter(id => mvS.includes(id)); return c.length ? c : null; };
+  const mezzi = !M.mov ? [] : S.exercises.filter(x => own(x) || viaSch(x))
+    .map(x => { const s0 = stim0Of(x), q = exprById(s0), vs = viaSch(x), pr = exSchemi(x).all[0]; return {x, s0, nv: vs ? vs.length : 0, rank: vs ? 3 : !M.e ? 1 : s0 === M.e ? 0 : q && q.cap.id === cap ? 1 : 2,
+      via: !vs ? "" : SCH ? `anche ${movLbl}${pr && movItem(pr) ? ` · principale: ${movItem(pr).it.name}` : ""}` : "in comune: " + vs.map(id => movItem(id).it.name).join(", ")}; })
     .sort((a, b) => a.rank - b.rank || b.nv - a.nv || a.x.name.localeCompare(b.x.name, "it"));
-  const grpL = ["Stesso stimolo", "Stessa capacità", M.e ? "Altri mezzi del movimento" : "Mezzi del movimento", "Altri mezzi con schemi in comune"];
+  const grpL = ["Stesso stimolo", "Stessa capacità", M.e ? "Altri mezzi del movimento" : "Mezzi del movimento", M.mov.startsWith("§") ? "Lo contengono anche (non come principale)" : "Altri mezzi con schemi in comune"];
   const last = name => { const em = S.editor?.email; const L = Object.values(S.cache[em] || {}).filter(w => (w.exercises || []).some(x => sameName(x.name, name)) && w.date < (S.editor?.w.date || TODAY())).sort((a, b) => b.date.localeCompare(a.date)); return L[0] ? fmtD(L[0].date) : ""; };
   $("#confirm").innerHTML = `<div class="back" style="z-index:75"><div class="modal sm mvdlg" role="dialog" aria-label="Movimento e stimolo"><header><h2>Movimento e stimolo</h2><button class="btn ghost icon" data-act="mv-close" aria-label="Chiudi">✕</button></header><div class="body">
     <div class="faint" style="font-size:13px">Parti da cosa vuoi ottenere: scegli il movimento e lo stimolo, poi il mezzo.</div>
-    <div class="row"><div class="field grow"><label class="lbl" for="mv-mov">Movimento</label><select class="in" id="mv-mov" data-change="mv-set" data-k="mov"><option value="">— scegli —</option>${pats.map(v => `<option ${optKey(v) === optKey(M.mov) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></div>
+    <div class="row"><div class="field grow"><label class="lbl" for="mv-mov">Movimento</label><select class="in" id="mv-mov" data-change="mv-set" data-k="mov"><option value="">— scegli —</option><optgroup label="Abilità motorie">${pats.map(v => `<option value="${esc(v)}" ${optKey(v) === optKey(M.mov) ? "selected" : ""}>${esc(v)}</option>`).join("")}</optgroup>${movData().fams.map(f => `<optgroup label="${esc(f.name)}">${f.items.map(it => `<option value="§${it.id}" ${M.mov === "§" + it.id ? "selected" : ""}>${esc(it.name)}</option>`).join("")}</optgroup>`).join("")}</select></div>
       <div class="field grow"><label class="lbl" for="mv-e">Stimolo</label><select class="in" id="mv-e" data-change="mv-set" data-k="e"><option value="">— scegli —</option>${D.caps.map(c => c.expr.length ? `<optgroup label="${esc(c.name)}">${c.expr.map(q => `<option value="${q.id}" ${q.id === M.e ? "selected" : ""}>${esc(c.name)} · ${esc(q.name)}</option>`).join("")}</optgroup>` : "").join("")}</select></div></div>
     <div class="row"><div class="field grow"><label class="lbl" for="mv-r">Ruolo</label><select class="in" id="mv-r" data-change="mv-set" data-k="role">${D.roles.map(r => `<option value="${r.id}" ${r.id === M.role ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
       <div class="field" style="width:110px"><label class="lbl" for="mv-n">Serie</label><input class="in" id="mv-n" type="number" min="1" max="20" value="${M.n}" data-change="mv-set" data-k="n"></div></div>
@@ -7844,7 +7854,7 @@ document.addEventListener("change", async e => {
     if (c === "__new") { t.value = ""; return paramDialog(null, key => { x.cols = [...x.cols, key]; x.sets.forEach(s => s[key] = s[key] || ""); markDirty(); drawEditor(); }); }
     x.cols = [...x.cols, c]; x.sets.forEach(s => s[c] = s[c] || ""); markDirty(); return drawEditor(); }
   if (k === "mv-main") { const M = clone(movData()), key = optKey(t.dataset.v); M.skill ??= {}; const o = (M.skill[key] ??= {}); o.s = [t.value, ...(o.s || []).filter(q => q !== t.value)]; await movSave(M); return renderView(); }
-  if (k === "mv-set") { S.mvDlg[t.dataset.k] = t.value; if (t.dataset.k === "mov" && !S.mvDlg.e) { const L = S.exercises.filter(x => optKey(x.pattern) === optKey(t.value)).map(stim0Of).filter(Boolean), c = {}; L.forEach(e => c[e] = (c[e] || 0) + 1); S.mvDlg.e = Object.keys(c).sort((a, b) => c[b] - c[a])[0] || ""; } return movDialog(); }
+  if (k === "mv-set") { S.mvDlg[t.dataset.k] = t.value; if (t.dataset.k === "mov" && !S.mvDlg.e) { const sc = t.value.startsWith("§") ? t.value.slice(1) : null, L = S.exercises.filter(x => sc ? exSchemi(x).all[0] === sc : optKey(x.pattern) === optKey(t.value)).map(stim0Of).filter(Boolean), c = {}; L.forEach(e => c[e] = (c[e] || 0) + 1); S.mvDlg.e = Object.keys(c).sort((a, b) => c[b] - c[a])[0] || ""; } return movDialog(); }
   if (k === "fz-e" || k === "fz-r" || k === "fz-e2") { const L = fzSets(t.dataset.sets); if (!L.length) return; let ch = fzFix(L);
     L.forEach(st => { if (k === "fz-e") st.stim = t.value; else if (k === "fz-r") st.role = t.value; else if (t.value && !(st.stim2 || []).includes(t.value)) st.stim2 = [...(st.stim2 || []), t.value]; });
     if (k === "fz-r") ch = roleTypeSync(L) || ch; fzDone(ch); return; }

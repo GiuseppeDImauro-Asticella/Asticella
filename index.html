@@ -275,7 +275,7 @@ body.nosel{user-select:none}
 .wcard.st-done{border-left:3px solid var(--ok)}
 .wcard.st-progress{border-left:3px solid var(--warn)}
 .wcard.st-missed,.wcard.st-skipped{border-left:3px solid var(--bad)}
-.wcard .kindt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:6px 0 4px}
+.wcard .kindt .ktg{color:var(--faint)}.wcard .kindt{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:6px 0 4px}
 .wcard .moved{margin-top:3px;font-size:11px;color:var(--muted);font-style:italic}
 .wcard .meta{margin-top:5px;font-size:11px;color:var(--ok);font-weight:600}
 
@@ -874,6 +874,14 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .psdiff .pdk.up,.psdiff .up{color:var(--ok)}.psdiff .pdk.dn,.psdiff .dn{color:var(--warn)}
 .psdiff i{font-style:normal;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-left:2px}
 .kfilt.psk select{width:auto;max-width:340px;padding:4px 8px}
+.kpf{flex:1 1 280px;min-width:0;max-width:460px}.kpk{display:block;min-width:0}.spk.kpk>summary{max-width:none;width:100%;contain:inline-size}.kpv{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kpk .spkl{width:100%;min-width:300px;max-width:min(560px,calc(100vw - 16px))}
+.kprow{display:flex;align-items:center;gap:6px;border-radius:7px}.kprow.on{background:var(--accent-soft)}.kprow.sec{background:var(--surface2)}
+.spk .kprow button.kpm{flex:1;display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0;text-align:left;border:0;background:none;color:var(--ink);font:inherit;font-size:14px;font-weight:400;padding:7px 8px;border-radius:7px;cursor:pointer}
+.spk .kprow button.kpm:hover{background:var(--surface2)}.kprow.on button.kpm{color:var(--accent);font-weight:600}
+.spk .kprow button.kps{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:11.5px;font-weight:600;border-radius:99px;padding:2px 9px;cursor:pointer;opacity:.85}
+.spk .kprow button.kps:hover{border-color:var(--accent);color:var(--accent);opacity:1}.spk .kprow button.kps.on{border-color:var(--accent);color:var(--accent);opacity:1}
+.kphint{font-size:12px;color:var(--muted);padding:6px 8px 2px}.kptg{color:var(--accent);font-weight:600}
+.kpft{position:sticky;bottom:-6px;background:var(--surface);display:flex;justify-content:flex-end;padding:8px 4px 4px;border-top:1px solid var(--line);margin-top:6px}
 /* elenco a comparsa delle sedute (Progressione → Riferimento, Analisi → Confronta con) */
 .spk{position:relative;display:inline-block;min-width:0;max-width:100%;vertical-align:middle}
 .spk>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;width:auto;max-width:420px;padding:5px 10px}.spk>summary::-webkit-details-marker{display:none}
@@ -2002,7 +2010,14 @@ const KINDS = new Proxy(KINDS_BASE, {get: (t, k) => t[k] ?? t[LEGACY_KIND[k]]});
 const kindRaw = w => KINDS_BASE[w?.kind] ? w.kind : LEGACY_KIND[w?.kind] || "";
 /* tipo scelto dal coach ("" = automatico dagli stimoli): vale se l'ha scelto a mano dopo v222 (kindMan), se è Partita / Gara (eventi) o se la seduta non ha ancora esercizi.
    I tipi salvati prima restano nei dati ma non contano più: le sedute vecchie diventano automatiche */
-const kindSet = w => { const k = kindRaw(w); return k && (w.kindMan || k === "partita" || k === "gara" || !(w.exercises || []).some(x => (x.name || "").trim())) ? k : ""; };
+const kindSet = w => { const k = kindRaw(w); if (!k) return "";
+  if (k === "partita" || k === "gara" || !(w.exercises || []).some(x => (x.name || "").trim())) return k;   // eventi e sedute ancora vuote (es. dal microciclo)
+  return w.kindMan && KIND_CAP[k] && exprById(w.kindE)?.cap.id === KIND_CAP[k] && kindPresent(w).includes(w.kindE) ? k : ""; };   // correzione: solo con uno stimolo che c'è nella seduta
+/* stimoli presenti nella seduta (tutte le serie), dal più usato: la correzione del tipo si sceglie solo tra questi */
+const kindPresentN = w => { if (!(w?.exercises || []).length) return []; let M; try { M = stimMapOf(w); } catch(e) { return []; }
+  const n = {}; Object.values(M).forEach(q => { if (q.e && exprById(q.e) && Object.values(KIND_CAP).includes(exprById(q.e).cap.id)) n[q.e] = (n[q.e] || 0) + 1; });
+  return Object.entries(n).sort((a, b) => b[1] - a[1]); };
+const kindPresent = w => kindPresentN(w).map(([e]) => e);
 const hasKind = w => !!kindSet(w);
 const KIND_KEYS = Object.keys(KINDS_BASE);
 const kindColor = k => `var(--s${KIND_KEYS.indexOf(LEGACY_KIND[k] || k) % 8 + 1})`;
@@ -2018,6 +2033,23 @@ function guessKind(w){
   const best = Object.entries(n).filter(([k]) => k !== "correttivi").sort((a, b) => b[1] - a[1])[0]; return best[1] ? best[0] : n.correttivi ? "correttivi" : "forza";
 }
 /* tipo ricavato dagli stimoli: conta tutte le serie (scelte o proposte) per capacità; quasi pari (≥ 60% della prima) = seduta mista */
+/* campo "Tipo di seduta" dell'editor: un solo elenco; automatico oppure capacità (o sua espressione) principale + "+ seconda" sulla stessa riga */
+function kindFieldHtml(w, open){ const k = kindSet(w), man = !!(k && KIND_CAP[k]), e1 = man ? w.kindE : null, k2 = kind2Of(w), e2 = k2 ? w.kindE2 : null;
+  const autoL = kindStim(w) ? kindLbl({...w, kind: ""}) : KINDS[kindOf({...w, kind: ""})].l, P = kindPresentN(w), tg = kindTarget(w), tgL = kindTgtLbl(w);
+  const tgAuto = (W => kindTgtLbl(W))({...w, kind: ""}), capOf = e => exprById(e)?.cap.id, kOf = e => Object.keys(KIND_CAP).find(z => KIND_CAP[z] === capOf(e));
+  const row = (v, name, n, isMain, isSec, canSec, isT) => `<div class="kprow${isMain ? " on" : ""}${isSec ? " sec" : ""}"><button type="button" class="kpm" data-act="kp-main" data-v="${v}"><span>${esc(name)}${n ? ` <small class="faint">${n} serie</small>` : ""}${isT ? ` <small class="kptg">target</small>` : ""}</span>${isMain ? `<span class="sptag">principale</span>` : ""}${isSec ? `<span class="sptag">seconda</span>` : ""}</button>${
+    isSec ? `<button type="button" class="kps on" data-act="kp-sec" data-v="" title="Togli la seconda capacità" aria-label="Togli la seconda capacità">×</button>` : canSec ? `<button type="button" class="kps" data-act="kp-sec" data-v="${v}" title="Aggiungi come seconda capacità">+ seconda</button>` : ""}</div>`;
+  const tgRaw = kindTargetRaw(w), rows = P.map(([e, n]) => row(kOf(e) + "|" + e, exprLbl(e), n, e === e1, e === e2, man && capOf(e) !== KIND_CAP[k], e === tgRaw)).join("");
+  const ev = KIND_KEYS.filter(z => !KIND_CAP[z]).map(z => row(z, KINDS[z].l, 0, k === z, false, false, false)).join("");
+  const cur = k ? kindLbl(w) : autoL;
+  return `<div class="field kpf"><span class="lbl">Tipo di seduta</span><details class="spk kpk" ${open ? "open" : ""}><summary class="in spks" aria-label="Tipo di seduta"><span class="kpv">${k ? "" : `<span class="faint">Automatico ·</span> `}<b>${esc(cur)}</b>${tgL ? `<span class="faint"> → ${esc(tgL)}</span>` : ""}</span><span class="spcv" aria-hidden="true">▾</span></summary>
+    <div class="spkl"><div class="kprow${k ? "" : " on"}"><button type="button" class="kpm" data-act="kp-main" data-v=""><span><span class="faint">Automatico · dagli stimoli:</span> ${esc(autoL)}${tgAuto ? `<span class="faint"> → target: ${esc(tgAuto)}</span>` : ""}</span>${k ? "" : `<span class="sptag">scelto</span>`}</button></div>
+      ${P.length ? `<div class="kphint">Per correggere, scegli tra gli stimoli che hai messo in questa seduta: tocca la <b>principale</b>, poi se serve <b>+ seconda</b> (un'altra capacità). Il <b>target</b> lo dicono le serie con ruolo Target (W).</div><div class="spkg">Stimoli della seduta</div>${rows}`
+        : `<div class="kphint">Gli stimoli si scelgono nella Struttura degli stimoli: quando ci sono, qui puoi correggere il tipo scegliendo tra quelli della seduta.</div>`}
+      <div class="spkg">Eventi</div>${ev}
+      <div class="kpft"><button type="button" class="btn sm" data-act="kp-done">Fatto</button></div></div></details></div>`; }
+function kpRedraw(t, open){ const f = t.closest(".field"), sc = f.querySelector(".spkl")?.scrollTop || 0; f.outerHTML = kindFieldHtml(S.editor.w, open);
+  const l = document.querySelector("details.kpk .spkl"); if (l && open) l.scrollTop = sc; }
 function kindStim(w){ if (!(w?.exercises || []).length) return null; let M; try { M = stimMapOf(w); } catch(e) { return null; }
   const n = {}; Object.values(M).forEach(q => { const c = exprById(q.e)?.cap.id, k = Object.keys(KIND_CAP).find(z => KIND_CAP[z] === c); if (k) n[k] = (n[k] || 0) + 1; });
   const L = Object.entries(n).sort((a, b) => b[1] - a[1]); if (!L.length) return null;
@@ -2025,15 +2057,31 @@ function kindStim(w){ if (!(w?.exercises || []).length) return null; let M; try 
   const mixK = L[1] && L[1][1] >= L[0][1] * .6 ? L[1][0] : null, eOf = k => E.find(([e]) => exprById(e)?.cap.id === KIND_CAP[k])?.[0] || null;
   return {k: L[0][0], e: eOf(L[0][0]), mix: mixK, mixE: mixK ? eOf(mixK) : null}; }   // capacità (colore, sRPE, microciclo) ed espressione principale (dettaglio, confronti)
 const kindOf = w => kindSet(w) || kindStim(w)?.k || LEGACY_KIND[guessKind(w || {})] || guessKind(w || {});
-const kindExpr = w => kindSet(w) ? null : kindStim(w)?.e || null;
-const kindLbl = (w, short) => { if (kindSet(w)) return KINDS[kindSet(w)].l; const q = kindStim(w); if (!q) return KINDS[kindOf(w)].l;
-  const one = (k, e) => e ? exprLbl(e) : KINDS[k].l; return one(q.k, q.e) + (q.mix ? " + " + (short ? KINDS[q.mix].l : one(q.mix, q.mixE)) : ""); };   // short: la seconda capacità senza espressione (calendario)
+/* tipo scelto a mano: capacità (w.kind) + espressione facoltativa (w.kindE) + seconda capacità facoltativa (w.kind2, w.kindE2), come l'automatico */
+/* campi del tipo da portare in una copia della seduta (con kindMan, se no con gli esercizi il tipo scelto si perderebbe) */
+const kindFields = c => { const k = kindSet(c); if (!k) return {}; const f = {kind: k}; if (c.kindMan) f.kindMan = true; ["kindE", "kind2", "kindE2"].forEach(z => { if (c[z]) f[z] = c[z]; }); return f; };
+const kindSE = (k, e) => e && KIND_CAP[k] && exprById(e)?.cap.id === KIND_CAP[k] ? e : null;
+const kind2Of = w => { const k = kindSet(w); return k && KIND_CAP[k] && KIND_CAP[w?.kind2] && w.kind2 !== k && exprById(w.kindE2)?.cap.id === KIND_CAP[w.kind2] && kindPresent(w).includes(w.kindE2) ? w.kind2 : ""; };
+/* TARGET della seduta: lo stimolo più frequente nelle serie con ruolo Target (W). Si mostra solo se diverso da quello del tipo
+   (es. "Forza · Adattamento anatomico → Esplosiva / potenza": il contorno lavora per il target) */
+const isTgtRole = id => id === "r_work" || stimData().roles.find(r => r.id === id)?.type === "W";
+function kindTarget(w){ if (!(w?.exercises || []).length || ["partita", "gara"].includes(kindRaw(w))) return null; let M; try { M = stimMapOf(w); } catch(e) { return null; }
+  const n = {}; Object.values(M).forEach(q => { if (q.e && exprById(q.e) && isTgtRole(q.role)) n[q.e] = (n[q.e] || 0) + 1; });
+  const t = Object.entries(n).sort((a, b) => b[1] - a[1])[0]?.[0]; return t && t !== kindExpr(w) ? t : null; }
+function kindTargetRaw(w){ if (!(w?.exercises || []).length) return null; let M; try { M = stimMapOf(w); } catch(e) { return null; }
+  const n = {}; Object.values(M).forEach(q => { if (q.e && isTgtRole(q.role)) n[q.e] = (n[q.e] || 0) + 1; }); return Object.entries(n).sort((a, b) => b[1] - a[1])[0]?.[0] || null; }
+const kindTgtLbl = w => { const t = kindTarget(w); if (!t) return ""; const q = exprById(t); return q.cap.id === KIND_CAP[kindOf(w)] ? q.expr.name : exprLbl(t); };
+const kindExpr = w => kindSet(w) ? kindSE(kindSet(w), w.kindE) : kindStim(w)?.e || null;
+const kindLbl = (w, short) => { const one = (k, e) => e ? exprLbl(e) : KINDS[k].l;
+  if (kindSet(w)) { const k = kindSet(w), k2 = kind2Of(w); return one(k, kindSE(k, w.kindE)) + (k2 ? " + " + (short ? KINDS[k2].l : one(k2, kindSE(k2, w.kindE2))) : ""); }
+  const q = kindStim(w); if (!q) return KINDS[kindOf(w)].l;
+  return one(q.k, q.e) + (q.mix ? " + " + (short ? KINDS[q.mix].l : one(q.mix, q.mixE)) : ""); };   // short: la seconda capacità senza espressione (calendario)
 /* etichetta di una seduta nei menu: data · nome dato dal coach · tipo (come nel calendario); il tipo non si ripete se coincide col nome */
 const sessOptLbl = (q, dayName) => { const t = q.title || "Allenamento", k = kindLbl(q, true); return `${dayName ? DAYS[dayIdx(effDate(q))].toLowerCase() + " " : ""}${fmtD(effDate(q))} · ${t}${optKey(k) === optKey(t) ? "" : " — " + k}`; };
 /* elenco a comparsa delle sedute (al posto del menu standard): data in grigio in colonna, nome in evidenza, tipo sotto più piccolo.
    G = [{l: titolo del gruppo, items: [seduta]}]; k = azione (come data-change del vecchio menu); tag(q) = etichetta a destra (es. "più recente") */
 const spRow = (q, cls, attr) => { const t = q.title || "Allenamento", kk = kindLbl(q, true);
-  return `<span class="spd">${esc(DAYS[dayIdx(effDate(q))].slice(0, 3).toLowerCase())} ${esc(fmtD(effDate(q)))}</span><span class="spn"><b>${esc(t)}</b>${optKey(kk) === optKey(t) ? "" : `<small>${esc(kk)}</small>`}</span>`; };
+  return `<span class="spd">${esc(DAYS[dayIdx(effDate(q))].slice(0, 3).toLowerCase())} ${esc(fmtD(effDate(q)))}</span><span class="spn"><b>${esc(t)}</b>${optKey(kk) === optKey(t) ? "" : `<small>${esc(kk)}${kindTgtLbl(q) ? ` → ${esc(kindTgtLbl(q))}` : ""}</small>`}</span>`; };
 function spick(k, G, sel, ph, tag = () => ""){
   const cur = G.flatMap(g => g.items).find(q => q === sel);
   return `<details class="spk" data-k="${k}"><summary class="in spks" aria-label="${esc(ph)}">${cur ? `<span class="spi spcur">${spRow(cur)}</span>` : `<span class="spph">${esc(ph)}</span>`}<span class="spcv" aria-hidden="true">▾</span></summary>
@@ -2360,7 +2408,7 @@ async function roleOf(email){
 async function loadCoachData(){
   let st;
   [S.athletes, S.exercises, S.templates, st] = await Promise.all([DB.listAthletes(), DB.listExercises(), DB.listTemplates(), DB.getSettings()]);
-  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null; S.stim = st.stim || null; if (S.stim) S.stim.roles?.forEach(r => { if (r.id === "r_work" && r.name === "Allenante (work)") r.name = "Target (work)"; if (r.id === "r_prep" && !r.type) r.type = "P"; });   // nome nuovo del ruolo; Preparatorio prende la lettera P
+  S.params = st.params || []; applyParams(S.params); S.pdfSig = st.pdf || null; S.opts = st.opts || null; S.stim = st.stim || null; if (S.stim) S.stim.roles?.forEach(r => { if (r.id === "r_work" && r.name === "Allenante (work)") r.name = "Target (work)"; if (r.id === "r_prep" && !r.type) r.type = "P"; if (r.id === "r_down" && r.name === "Defaticante (down / cool-down)") { r.name = "Defaticante / condizionamento (down)"; r.desc = "volume di contorno dopo il target: scarico o condizionamento (es. corsa lenta, complementari)"; } });   // nome nuovo del ruolo; Preparatorio prende la lettera P
   setTypesSync(); S.lastBackup = st.lastBackupAt || null; S.tenTh = st.tenTh || null;
   S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
   S.exercises.sort((a,b)=>a.name.localeCompare(b.name));
@@ -3460,7 +3508,7 @@ function cardHtml(email, w, pl){
   return `<div class="wcard st-${st} ${pl ? "mk" : ""} ${S.calSel.has(w.id) ? "sel" : ""} ${w.hidden ? "hid" : ""}" ${pl ? `style="--kc:${kindColor(kindOf(w))}"` : ""} draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <span class="tr">${ST_ICON[st] ? `<span class="stb st-${st}" title="${STATUS_TXT[st]}" aria-label="${STATUS_TXT[st]}">${ST_ICON[st]}</span>` : ""}<button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></span><div class="t"><span class="dot st-${st}"></span><span class="tt">${esc(w.title||"Senza titolo")}</span></div>
     ${w.hidden ? `<div class="hidl">Nascosto all'atleta</div>` : ""}
-    <div class="kindt" title="Tipo di seduta${hasKind(w) ? " (scelto da te)" : " (ricavato dagli stimoli delle serie: puoi sceglierlo nell'allenamento)"}"><span>${esc(kindLbl(w, true))}</span><span class="nex"> · ${(w.exercises || []).length} eserc.</span></div>${plh}
+    <div class="kindt" title="Tipo di seduta${hasKind(w) ? " (corretto da te)" : " (ricavato dagli stimoli delle serie)"}${kindTgtLbl(w) ? " → target: " + esc(kindTgtLbl(w)) + " (serie Target)" : ""}"><span>${esc(kindLbl(w, true))}</span>${kindTgtLbl(w) ? `<span class="ktg"> → ${esc(kindTgtLbl(w))}</span>` : ""}<span class="nex"> · ${(w.exercises || []).length} eserc.</span></div>${plh}
     ${miniListHtml(w.exercises, w)}
     ${st==="done" ? `<div class="meta">✓ ${w.sessionRpe?`RPE ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin}′`:""}</div>` : ""}
     ${w.doneDate && w.doneDate !== w.date ? `<div class="moved">↷ previsto ${esc(DAYS[dayIdx(w.date)].toLowerCase())} ${parse(w.date).getDate()}</div>` : ""}</div>`;
@@ -4885,7 +4933,7 @@ const STIM_DEF = () => { const C = (id, name, desc, ex) => ({id: "c_" + id, name
     {id: "r_ramp", name: "Attivazione (ramping)", desc: "serie che salgono verso il lavoro", type: "R"},
     {id: "r_work", name: "Target (work)", desc: "le serie bersaglio della seduta (anche senza RPE: es. la mobilità in una seduta di mobilità)", type: "W"},
     {id: "r_back", name: "Back-off", desc: "dopo il picco, carico ridotto", type: "B"},
-    {id: "r_down", name: "Defaticante (down / cool-down)", desc: "ritorno, scarico", type: "D"}],
+    {id: "r_down", name: "Defaticante / condizionamento (down)", desc: "volume di contorno dopo il target: scarico o condizionamento (es. corsa lenta, complementari)", type: "D"}],
   patCaps: {}}; };
 const stimData = () => S.stim || STIM_DEF();
 /* categoria → stimolo di partenza (per gli esercizi che non l'hanno ancora) e stimolo → categoria interna (le regole del volume e delle alternative la usano ancora) */
@@ -5407,7 +5455,7 @@ function fzFix(L){   // la prima volta che il coach tocca una fase, la proposta 
    Scala comune = RPE (anche da RIR); le serie senza RPE sono puntini vuoti in basso. Picchi (come nell'Architettura): in ogni blocco la serie con l'RPE più alto,
    tutte quelle a pari valore; non contano preparazione e defaticamento (l'allenante è relativo allo stimolo). Il più alto della seduta è più marcato.
    Sotto il grafico due fasce allineate alle serie: i mezzi (colore del movimento) e i ruoli. */
-const ROLE_SH = {r_prep: "Prep", r_ramp: "Rampa", r_work: "Target", r_back: "Back-off", r_down: "Defatic."};
+const ROLE_SH = {r_prep: "Prep", r_ramp: "Rampa", r_work: "Target", r_back: "Back-off", r_down: "Down"};
 function sessStrip(F, KC){
   const N = F.N; if (N < 2) return "";
   /* scala: RPE (eseguito se l'atleta l'ha dato, se no programmato) oppure % del migliore (eseguita: tempi, misure, kg; se no la % scritta nel programma).
@@ -5540,7 +5588,7 @@ function drawEditorInner(){
     <header><h2>${E.isNew?"Nuovo allenamento":"Allenamento"} · ${esc(a?.name||"")}</h2><button type="button" class="vispill edprog" data-act="ed-prog" title="Apri la Progressione su questo allenamento (anche se non è ancora salvato): confronto con le sedute precedenti">↗ Progressione</button><button type="button" class="vispill ${w.hidden ? "off" : ""}" data-act="ed-vis" title="Clicca per ${w.hidden ? "renderlo visibile" : "nasconderlo"} all'atleta">${w.hidden ? ICON.eyeoff + "Nascosto all'atleta" : ICON.eye + "Visibile all'atleta"}</button><span class="status-pill st-${st}"><span class="dot st-${st}"></span>${STATUS_TXT[st]}</span><button class="btn ghost icon" data-act="ed-close" aria-label="Chiudi">✕</button></header>
     <div class="body">
       <div class="row"><div class="field grow" style="min-width:220px"><label class="lbl" for="ed-title">Titolo</label><input class="in" id="ed-title" data-bind="title" value="${esc(w.title||"")}" placeholder="es. Forza + rincorsa"></div>
-        <div class="field"><label class="lbl" for="ed-kind">Tipo di seduta</label><select class="in" id="ed-kind" data-bind="kind"><option value="" ${hasKind(w) ? "" : "selected"}>Automatico · dagli stimoli: ${esc(kindStim(w) ? kindLbl({...w, kind: ""}) : KINDS[kindOf({...w, kind: ""})].l)}</option>${KIND_KEYS.map(k => `<option value="${k}" ${kindSet(w) === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select></div>
+        ${kindFieldHtml(w)}
         <div class="field"><label class="lbl" for="ed-date">Data</label><input class="in" id="ed-date" type="date" data-bind="date" value="${w.date}"></div></div>
       ${E.isNew && S.templates.length ? `<div class="field"><label class="lbl" for="ed-from">Parti da un allenamento salvato</label><select class="in" id="ed-from" data-change="ed-from"><option value="">— scegli (facoltativo) —</option>${S.templates.map(t => `<option value="${t.id}">${esc(t.title)}</option>`).join("")}</select></div>` : ""}
       <div class="field"><label class="lbl" for="ed-notes">Note per l'atleta</label><textarea class="in" id="ed-notes" data-bind="notes" placeholder="Riscaldamento, obiettivo della seduta…">${esc(w.notes||"")}</textarea></div>
@@ -5568,7 +5616,7 @@ function drawTplEditor(){
     <header><h2>${E.isNew ? "Nuovo allenamento" : "Allenamento"}</h2><span class="status-pill">Non assegnato</span><button class="btn ghost icon" data-act="ed-close" aria-label="Chiudi">✕</button></header>
     <div class="body">
       <div class="row"><div class="field grow" style="min-width:220px"><label class="lbl" for="ed-title">Titolo</label><input class="in" id="ed-title" data-bind="title" value="${esc(w.title||"")}" placeholder="es. Pliometria · base"></div>
-        <div class="field"><label class="lbl" for="ed-kind">Tipo di seduta</label><select class="in" id="ed-kind" data-bind="kind"><option value="" ${hasKind(w) ? "" : "selected"}>Automatico · dagli stimoli: ${esc(kindStim(w) ? kindLbl({...w, kind: ""}) : KINDS[kindOf({...w, kind: ""})].l)}</option>${KIND_KEYS.map(k => `<option value="${k}" ${kindSet(w) === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select></div></div>
+        ${kindFieldHtml(w)}</div>
       <div class="field"><label class="lbl" for="ed-notes">Note per l'atleta</label><textarea class="in" id="ed-notes" data-bind="notes" placeholder="Riscaldamento, obiettivo della seduta…">${esc(w.notes||"")}</textarea></div>
       ${exBlocksHtml(w, {})}
       <div class="row"><button class="btn pri" data-act="ed-add-mov" title="Parti da cosa vuoi ottenere: movimento e stimolo, poi scegli il mezzo">+ Movimento e stimolo</button><button class="btn" data-act="ed-add-ex">+ Esercizio</button></div>
@@ -6802,7 +6850,8 @@ function fixSession(){
     await saveCoachFix({...($("#fs-all")?.checked && $("#fs-st").value === "done" ? {results: plannedResults(w)} : {}), status: $("#fs-st").value, sessionRpe: rpe || null, durationMin: dur || null, athleteNote: $("#fs-note").value.trim(),
       completedAt: w.completedAt || new Date().toISOString(), doneDate: ($("#fs-date").value && $("#fs-date").value !== w.date) ? $("#fs-date").value : null}); };
 }
-function markDirty(){ STIMV++; if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; firmaRefresh(); } }
+function markDirty(){ STIMV++; if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; firmaRefresh();
+  const kf = document.querySelector(".kpf"); if (kf && !kf.querySelector("details[open]")) kf.outerHTML = kindFieldHtml(S.editor.w); } }   // il tipo segue gli stimoli mentre programmi
 async function closeEditor(force=false){
   if (!S.editor) return;
   if (!force && S.editor.dirty && !(await confirmBox("Chiudere senza salvare le modifiche?", "Chiudi senza salvare"))) return;
@@ -7100,7 +7149,7 @@ function freshCopy(w, date){
   const c = clone(w); const now = new Date().toISOString();
   const idMap = {};
   c.exercises = (c.exercises||[]).map(x => { const nid = uid(); idMap[x.id] = nid; return {...x, id: nid}; });
-  return {id: uid(), date, title: c.title, notes: c.notes||"", ...(hasKind(c) ? {kind: kindSet(c)} : {}), exercises: c.exercises, status:"todo", results:{}, createdAt: now, updatedAt: now, ...(c.hidden ? {hidden: true} : {})};
+  return {id: uid(), date, title: c.title, notes: c.notes||"", ...kindFields(c), exercises: c.exercises, status:"todo", results:{}, createdAt: now, updatedAt: now, ...(c.hidden ? {hidden: true} : {})};
 }
 async function copyWorkouts(list, shiftFrom, toDate, emails){
   const diff = daysBetween(shiftFrom, toDate); let n = 0;
@@ -7538,7 +7587,7 @@ const ACT = {
   async "tpl-del"(){ const E = S.editor; if (!(await confirmBox(`Eliminare «${E.w.title||"allenamento"}» dagli Allenamenti? Quelli già assegnati agli atleti restano.`, "Elimina"))) return;
     await DB.deleteTemplate(E.w.id); S.templates = S.templates.filter(x => x.id !== E.w.id); closeEditor(true); toast("Eliminato"); refreshCoach(); },
   async "tpl-dup"(){ const E = S.editor; if (E.dirty && !(await confirmBox("Duplicare senza salvare le modifiche fatte a questo?", "Duplica", false))) return;
-    const c = freshCopy(E.w, ""); S.editor = null; openEditor(null, {id: c.id, title: (E.w.title||"") + " (copia)", notes: c.notes, kind: c.kind, exercises: c.exercises}, true, true); },
+    const c = freshCopy(E.w, ""); S.editor = null; openEditor(null, {id: c.id, title: (E.w.title||"") + " (copia)", notes: c.notes, ...kindFields(c), exercises: c.exercises}, true, true); },
   "ed-pdf"(){ pdfDialog(); },
   "ed-prog"(){ pgOpenFromEditor(); },
   async "ed-totpl"(){ const w = S.editor.w; const c = freshCopy(w, "");
@@ -7699,6 +7748,13 @@ const ACT = {
   "ps-type"(t){ const st = S.prog.sess.sets[t.dataset.x][+t.dataset.j]; const i = TYPE_ORDER.indexOf(st.type || ""); const nt = TYPE_ORDER[(i + 1) % TYPE_ORDER.length]; if (nt) st.type = nt; else delete st.type; drawProg(); },
   "ps-add"(t){ const a = S.prog.sess.sets[t.dataset.x]; a.push(nextSet(a)); drawProg(); },
   "ps-rm"(t){ const G = S.prog, w = progW(G, G.wid), x = (w?.exercises || []).find(q => q.id === t.dataset.x), a = G.sess.sets[t.dataset.x]; if (a.length > 1 && !(x && psLocked(w, x, a.length - 1))) a.pop(); drawProg(); },
+  "kp-main"(t){ const w = S.editor?.w; if (!w) return; const [k, q] = t.dataset.v.split("|");   // tipo di seduta: principale (o automatico)
+    if (k) { w.kind = k; if (KIND_CAP[k]) w.kindMan = true; else delete w.kindMan; } else { delete w.kind; delete w.kindMan; } if (q) w.kindE = q; else delete w.kindE;
+    if (!k || !KIND_CAP[k] || w.kind2 === k) { delete w.kind2; delete w.kindE2; }
+    markDirty(); kpRedraw(t, !!(k && KIND_CAP[k])); },
+  "kp-sec"(t){ const w = S.editor?.w; if (!w) return; const [k, q] = t.dataset.v.split("|");   // seconda capacità (vuoto = togli)
+    if (k) w.kind2 = k; else delete w.kind2; if (q) w.kindE2 = q; else delete w.kindE2; markDirty(); kpRedraw(t, true); },
+  "kp-done"(t){ t.closest("details").open = false; },
   "sp-pick"(t){ const k = t.dataset.k, v = t.dataset.v; t.closest("details").open = false;   // elenco a comparsa delle sedute: come il "change" del vecchio menu
     if (k === "ps-kref") { S.prog.psKref = v; S.prog.psPop = null; return drawProg(); }
     if (k === "an-cmp-add") { anQ.cmp = [...(anQ.cmp || []).filter(id => id !== v), v].slice(-3); anQ.sess = $("#an-sess select[data-change=an-sess]")?.value || anQ.sess; return redrawSess(); } },
@@ -7843,7 +7899,7 @@ document.addEventListener("click", e => {
     const v = Math.min(mx, Math.max(mn, (parseFloat(String(inp.value).replace(",", ".")) || (stp.dataset.step > 0 ? mn - st : mn + st) || 0) + st * +stp.dataset.step));
     inp.value = Math.round(v * 100) / 100; inp.dispatchEvent(new Event("input", {bubbles: true})); inp.dispatchEvent(new Event("change", {bubbles: true})); } return; }
   if (document.getElementById("pmpop") && !e.target.closest("#pmpop, [data-act=per-mic], [data-act=per-mod]")) perPopClose();
-  document.querySelectorAll("details.spk[open]").forEach(d => { if (!d.contains(e.target)) d.open = false; });   // elenco sedute: si chiude toccando fuori
+  if (e.target.isConnected) document.querySelectorAll("details.spk[open]").forEach(d => { if (!d.contains(e.target)) d.open = false; });   // (un elenco appena ridisegnato non si chiude)   // elenco sedute: si chiude toccando fuori
   const t = e.target.closest("[data-act]"); if (!t) return;
   if (t.tagName === "BUTTON" && t.closest("form")) e.preventDefault();
   const f = ACT[t.dataset.act]; if (f) f(t, e);

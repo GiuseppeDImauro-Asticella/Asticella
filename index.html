@@ -5482,7 +5482,8 @@ function movDialog(){
     .map(x => { const s0 = stim0Of(x), vs = viaSch(x), pr = exSchemi(x).all[0]; return {x, s0, nv: vs ? vs.length : 0, rank: vs ? 3 : !M.e ? 1 : hasE(x, s0) ? 0 : hasCap(x, s0) ? 1 : 2,
       via: [M.e ? usedTxt(x) : "", !vs ? "" : SCH ? `anche ${movLbl}${pr && movItem(pr) ? ` · principale: ${movItem(pr).it.name}` : ""}` : "in comune: " + vs.map(id => movItem(id).it.name).join(", ")].filter(Boolean).join(" · ")}; })
     .sort((a, b) => a.rank - b.rank || b.nv - a.nv || a.x.name.localeCompare(b.x.name, "it"));
-  const grpL = !M.mov && M.e ? ["Stesso stimolo · tutti i movimenti", "Stessa capacità · tutti i movimenti", "", ""] : ["Stesso stimolo", "Stessa capacità", M.e ? "Altri mezzi del movimento" : "Mezzi del movimento", M.mov.startsWith("§") ? "Lo contengono anche (non come principale)" : "Altri mezzi con schemi in comune"];
+  const capL = (n => n ? `Stessa capacità (${esc(n)})` : "Stessa capacità")(exprById(M.e)?.cap.name);
+  const grpL = !M.mov && M.e ? ["Stesso stimolo · tutti i movimenti", `${capL} · tutti i movimenti`, "", ""] : ["Stesso stimolo", capL, M.e ? "Altri mezzi del movimento" : "Mezzi del movimento", M.mov.startsWith("§") ? "Lo contengono anche (non come principale)" : "Altri mezzi con schemi in comune"];
   const last = name => { const em = S.editor?.email; const L = Object.values(S.cache[em] || {}).filter(w => (w.exercises || []).some(x => sameName(x.name, name)) && w.date < (S.editor?.w.date || TODAY())).sort((a, b) => b.date.localeCompare(a.date)); return L[0] ? fmtD(L[0].date) : ""; };
   $("#confirm").innerHTML = `<div class="back" style="z-index:75"><div class="modal sm mvdlg" role="dialog" aria-label="Movimento e stimolo"><header><h2>Movimento e stimolo</h2><button class="btn ghost icon" data-act="mv-close" aria-label="Chiudi">✕</button></header><div class="body">
     <div class="faint" style="font-size:13px">Parti da cosa vuoi ottenere: scegli il movimento e lo stimolo, poi il mezzo.</div>

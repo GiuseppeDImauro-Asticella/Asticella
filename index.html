@@ -288,7 +288,7 @@ table.list{width:100%;border-collapse:collapse}
 .list tr.grprow th{background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 12px}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--surface2);font-size:12px;font-weight:600;color:var(--muted)}
 .two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
-.two.exl{grid-template-columns:minmax(0,1.2fr) minmax(380px,1fr)}   /* Esercizi: elenco un po' più stretto, Parametri / Movimenti / Capacità più larghi */
+.two.exl{grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr)}   /* Esercizi: elenco un po' più stretto, Parametri / Movimenti / Capacità più larghi */
 /* il riquadro a destra (scheda esercizio / atleta) segue lo scorrimento della pagina */
 @media (min-width:861px){.two > .panel:last-child{position:sticky;top:16px;max-height:calc(100dvh - 32px);overflow-y:auto}}
 .lnk.libed{font-size:12px;font-weight:600;color:var(--muted)}.lnk.libed:hover{color:var(--accent)}
@@ -766,6 +766,9 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .mva{align-items:start}.mva .mvc2,.mva .mvc3{padding-top:1px}
 .mvan{border:0;background:none;padding:0;font:inherit;font-weight:700;font-size:13.5px;color:var(--ink);cursor:pointer;text-align:left}.mvan:hover{color:var(--accent);text-decoration:underline}
 .mvam{font-size:12px;color:var(--muted);margin-top:1px;line-height:1.45}.mvam i{font-style:normal;margin:0 5px;opacity:.6}.mvam span{white-space:nowrap}.mvam span[title]{cursor:help}
+.mvdet{margin-top:3px;font-size:12px}.mvdet summary{cursor:pointer;color:var(--accent);list-style:none;display:inline-flex;align-items:center;gap:4px;user-select:none}.mvdet summary::-webkit-details-marker{display:none}
+.mvdet summary::before{content:"▸";font-size:10px;transition:transform .15s}.mvdet[open] summary::before{transform:rotate(90deg)}
+.mvdl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-top:5px}.mvdl > .faint{flex-basis:100%;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 .mve.e1,.mve.e2{color:var(--accent)}.mve.e4,.mve.e5{color:var(--warn)}
 .mvic{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:3px 5px;border-radius:6px}.mvic:hover{color:var(--accent);background:var(--accent-soft)}
 .mvorph{border-color:color-mix(in srgb, var(--warn) 45%, var(--line))}.mvo{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px;padding:7px 8px 7px 12px;border-top:1px solid var(--line)}.mvo .mvsel{width:auto;max-width:150px;padding:3px 6px;font-size:12.5px}
@@ -4992,10 +4995,12 @@ function movPanel(){ const M = movData(), list = optList("pat"), PC = stimData()
   const nEx = n => `${n} eserciz${n === 1 ? "io" : "i"}`, few = (L, many) => L.length <= 2 ? L.join(", ") : `${L.length} ${many}`;
   /* griglia unica (nome | esercizi | azione): i numeri e le icone sono in colonna a tutti i livelli */
   const skRow = v => { const k = skillOf(v), S2 = (k.s || []).slice(1).map(movItem).filter(Boolean).map(q => q.it.name), n = optUsers("pat", v).length, caps = (PC[optKey(v)] || []).map(exprById).filter(Boolean).map(q => q.expr.name);
-    const meta = [k.cont ? `<span title="${esc(CONT_D[k.cont])}">${CONT_L[k.cont]}</span>` : "", k.env ? `<span class="mve e${k.env}">${ENV_L[k.env - 1]}</span>` : "",
-      S2.length ? `<span title="Anche: ${esc(S2.join(", "))}">+ ${esc(few(S2, "schemi"))}</span>` : "", caps.length ? `<span title="Capacità presupposte: ${esc(caps.join(", "))}">${caps.length} capacità</span>` : ""].filter(Boolean);
+    const meta = [k.cont ? `<span title="${esc(CONT_D[k.cont])}">${CONT_L[k.cont]}</span>` : "", k.env ? `<span class="mve e${k.env}">${ENV_L[k.env - 1]}</span>` : ""].filter(Boolean);
+    /* altri schemi e capacità: chiusi in un "dettaglio" che si apre e si chiude (resta aperto finché non lo chiudi) */
+    const det = S2.length || caps.length ? `<details class="mvdet" data-k="${esc(optKey(v))}" ${S.mvOpen?.has(optKey(v)) ? "open" : ""}><summary>${[S2.length ? `${S2.length} altr${S2.length === 1 ? "o schema" : "i schemi"}` : "", caps.length ? `${caps.length} capacità` : ""].filter(Boolean).join(" · ")}</summary>
+      ${S2.length ? `<div class="mvdl"><span class="faint">Anche</span>${S2.map(n => `<span class="pcc">${esc(n)}</span>`).join("")}</div>` : ""}${caps.length ? `<div class="mvdl"><span class="faint">Capacità presupposte</span>${caps.map(n => `<span class="pcc">${esc(n)}</span>`).join("")}</div>` : ""}</details>` : "";
     return `<div class="mvg mva"><div class="mvc1"><button class="mvan" data-act="mv-skill" data-v="${esc(v)}" title="Apri la scheda">${esc(v)}</button>
-        <div class="mvam ${meta.length ? "" : "faint"}">${meta.length ? meta.join(`<i>·</i>`) : "scheda da completare"}</div></div>
+        <div class="mvam ${meta.length || det ? "" : "faint"}">${meta.length ? meta.join(`<i>·</i>`) : det ? "" : "scheda da completare"}</div>${det}</div>
       <div class="mvc2">${n ? `<button class="lnk" data-act="opt-show" data-v="${esc(v)}" title="Mostra questi esercizi nell'elenco">${nEx(n)}</button>` : `<span class="faint">—</span>`}</div>
       <div class="mvc3"><button class="mvic" data-act="mv-skill" data-v="${esc(v)}" title="Scheda dell'abilità" aria-label="Scheda di ${esc(v)}">›</button></div></div>`; };
   const sel = v => `<select class="in mvsel" data-change="mv-main" data-v="${esc(v)}" aria-label="Schema o pattern principale di ${esc(v)}"><option value="">assegna…</option>${M.fams.map(f => `<optgroup label="${esc(f.name)}">${f.items.map(it => `<option value="${it.id}">${esc(it.name)}</option>`).join("")}</optgroup>`).join("")}</select>`;
@@ -7793,6 +7798,7 @@ document.addEventListener("input", e => {
   if (t.dataset.input === "tpl-q") { S.tplQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#tpl-q"); q.focus(); q.setSelectionRange(pos,pos); return; }
   if (t.dataset.input === "ex-q") { S.exQuery = t.value; const pos = t.selectionStart; renderView(); const q = $("#ex-q"); q.focus(); q.setSelectionRange(pos,pos); }
 });
+document.addEventListener("toggle", e => { const d = e.target; if (!d.classList?.contains("mvdet")) return; S.mvOpen ??= new Set(); if (d.open) S.mvOpen.add(d.dataset.k); else S.mvOpen.delete(d.dataset.k); }, true);   // Movimenti: dettagli aperti restano aperti
 document.addEventListener("change", async e => {
   const t = e.target, k = t.dataset.change; if (!k) return;
   if (k === "demo-role") return setDemoRole(t.value);

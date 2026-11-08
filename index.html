@@ -425,6 +425,10 @@ button.done-box:hover .fix{color:var(--ink)}
 .checks label{display:flex;gap:8px;align-items:center;padding:3px 0}
 
 /* toast/confirm */
+#undobar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:calc(100vw - 24px);display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);padding:8px 8px 8px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:91;box-shadow:var(--shadow);overflow:hidden}
+#undobar span{min-width:0}#undobar button{border:0;font:inherit;cursor:pointer;border-radius:8px}
+#undobar .ub-undo{background:var(--accent);color:var(--accent-ink);padding:6px 12px;font-weight:700;white-space:nowrap}#undobar .ub-x{background:none;color:var(--bg);opacity:.7;font-size:18px;line-height:1;padding:4px 8px}
+#undobar .ub-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--accent);transform-origin:left;animation:ubshrink linear forwards}@keyframes ubshrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 #toast{max-width:90vw;text-align:center;position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-weight:600;font-size:13px;z-index:90;box-shadow:var(--shadow);transition:opacity .2s}
 #toast[hidden]{display:none}
 
@@ -3687,7 +3691,7 @@ ${exFieldsHtml(e)}
   const f = $("#ex-form");
   if (f) f.onsubmit = async ev => { ev.preventDefault(); const sb = f.querySelector(".btn.pri"); if (sb.disabled) return; sb.disabled = true;
     const ok = await saveExForm(e); sb.disabled = false; if (!ok) return;
-    S.exEdit = null; toast(takeRenMsg("Esercizio salvato")); renderView(); };
+    S.exEdit = null; if (!$("#undobar")) toast(takeRenMsg("Esercizio salvato")); renderView(); };
 }
 /* campi della scheda esercizio: usati nella pagina Esercizi e nella finestra "Aggiungilo alla libreria" dell'editor */
 /* esecuzione dell'esercizio: bilaterale (due arti insieme) o unilaterale (un arto alla volta); "" = non indicato */
@@ -3718,7 +3722,9 @@ async function saveExForm(e){
   const x = {id: e.id || uid(), name: $("#x-name").value.trim(), stim0: s0, category: s0 && s0 !== "none" ? exprToCat(s0, pat0) : (e.category || ""), pattern: pat0, lat: LAT_OPTS[e.lat] ? e.lat : "", cols: e.cols||[], alts: (e.alts||[]).filter(n => !sameName(n, $("#x-name").value)), sch: exOwnSch(e).filter(id => !(skillOf(readOpt("pat")).s || []).includes(id)), patIn: [], video: $("#x-video").value.trim(), notes: $("#x-notes").value.trim()};
   if (!x.name) return null;
   const dup = S.exercises.find(y => y.id !== x.id && sameName(y.name, x.name));
-  if (dup) { toast(`«${dup.name}» è già nella libreria`); return null; }
+  if (dup) { const old = S.exercises.find(y => y.id === x.id);
+    if (!old || $("#exd-form")) { toast(`«${dup.name}» è già nella libreria${old ? ": per unirli, apri l'esercizio dalla pagina Esercizi" : ""}`); return null; }
+    return mergeExercises(old, dup); }
   const oldName = S.exercises.find(y => y.id === x.id)?.name;
   await DB.saveExercise(x);
   const i = S.exercises.findIndex(y => y.id === x.id); if (i>=0) S.exercises[i] = x; else S.exercises.push(x);
@@ -3726,26 +3732,67 @@ async function saveExForm(e){
   if (oldName && oldName.trim() !== x.name) await renameExEverywhere(oldName, x.name);
   return x;
 }
+/* UNISCI due esercizi scritti in modo diverso: rinomini quello da togliere col nome di quello da tenere.
+   La scheda tenuta comanda; da quella tolta prendo solo ciò che manca (video, indicazioni, alternative, schemi). Sedute, modelli e alternative passano al nome tenuto (lo storico si somma). */
+async function mergeExercises(old, keep){
+  const nC = Object.values(S.cache || {}).flatMap(c => Object.values(c || {})).filter(w => (w.exercises || []).some(x => sameName(x.name, old.name))).length,
+    nT = S.templates.filter(t => (t.exercises || []).some(x => sameName(x.name, old.name))).length;
+  const msg = `Unisco «${old.name}» in «${keep.name}»? Tutte le sedute${nT ? ", gli allenamenti salvati" : ""} e le alternative passano a «${keep.name}»${nC ? ` (${nC} tra le settimane caricate, più le altre)` : ""}: lo storico si somma. La scheda «${old.name}» viene eliminata; da lei prendo solo ciò che manca a «${keep.name}» (video, indicazioni, alternative, schemi).`;
+  if (!(await confirmBox(msg, "Unisci", false))) return null;
+  const keepPrev = clone(keep), oldPrev = clone(old), LOG = {w: [], t: [], e: []};
+  const k = clone(keep), uq = L => L.filter((v, i) => L.findIndex(z => sameName(z, v)) === i);
+  if (!k.video && old.video) k.video = old.video;
+  if (old.notes && !(k.notes || "").includes(old.notes.trim())) k.notes = k.notes ? `${k.notes}\n${old.notes}` : old.notes;
+  k.alts = uq([...(k.alts || []), ...(old.alts || [])]).filter(n => !sameName(n, k.name) && !sameName(n, old.name));
+  const ks = exOwnSch(k), os = exOwnSch(old); if (os.some(id => !ks.includes(id))) k.sch = [...new Set([...ks, ...os])];
+  if (!k.lat && old.lat) k.lat = old.lat; if (!k.pattern && old.pattern) k.pattern = old.pattern;
+  if (!(k.cols || []).length && (old.cols || []).length) k.cols = [...old.cols];
+  if (!k.stim0 && old.stim0) k.stim0 = old.stim0;
+  await DB.saveExercise(k); await DB.deleteExercise(old.id);
+  S.exercises = S.exercises.filter(y => y.id !== old.id).map(y => y.id === k.id ? k : y); fillDatalist();
+  await renameExEverywhere(old.name, k.name, LOG);
+  renMsg = renMsg.startsWith("Rinominato") ? renMsg.replace(/^Rinominato «[^»]*» → «[^»]*»/, `Uniti «${old.name}» e «${k.name}»`) : renMsg;
+  const um = renMsg; renMsg = ""; setTimeout(() => undoBar(um, () => undoMerge({oldN: oldPrev.name, old: oldPrev, keepPrev, L: LOG})), 50);
+  STIMV++; return k; }
+/* annulla un'unione: rimette il nome vecchio SOLO dove l'unione l'aveva cambiato (registro LOG), ricrea la scheda tolta e riporta quella tenuta com'era */
+async function undoMerge(U){ toast("Annullo l'unione…", 60000); let err = 0; const jobs = [];
+  const back = (x, rec) => { if (rec?.n?.includes(x.id)) x.name = U.oldN; if (rec?.a?.[x.id]) x.alts = [...rec.a[x.id]]; };
+  for (const {email, w, rec} of U.L.w) { (w.exercises || []).forEach(x => back(x, rec)); (rec.s || []).forEach(k => { if (w.swaps?.[k]) w.swaps[k].name = U.oldN; });
+    jobs.push(async () => { try { if (rec.n || rec.a) await DB.saveWorkout(email, w); if (rec.s) await DB.saveResults(email, w.id, {swaps: w.swaps}); } catch(e) { console.error(e); err++; } });
+    const c = S.cache[email]?.[w.id]; if (c) { (c.exercises || []).forEach(x => back(x, rec)); (rec.s || []).forEach(k => { if (c.swaps?.[k]) c.swaps[k].name = U.oldN; }); } }
+  for (let i = 0; i < jobs.length; i += 10) await Promise.all(jobs.slice(i, i + 10).map(f => f()));
+  for (const {t, rec} of U.L.t) { (t.exercises || []).forEach(x => back(x, rec)); try { await DB.saveTemplate(t); } catch(e) { console.error(e); err++; } }
+  for (const {id, alts} of U.L.e) { const cur = S.exercises.find(y => y.id === id); if (cur) { cur.alts = alts; try { await DB.saveExercise(cur); } catch(e) { console.error(e); err++; } } }
+  try { await DB.saveExercise(U.old); await DB.saveExercise(U.keepPrev); } catch(e) { console.error(e); err++; }
+  S.exercises = [...S.exercises.filter(y => y.id !== U.old.id && y.id !== U.keepPrev.id), U.old, U.keepPrev].sort((a, b) => a.name.localeCompare(b.name)); fillDatalist(); STIMV++;
+  toast(err ? `Unione annullata, ma ${err} salvataggi non sono riusciti: controlla la connessione e riprova` : `Unione annullata: «${U.oldN}» è tornato com'era`, 3500); renderView(); }
+/* avviso in basso con "Annulla" (e × per chiuderlo: vuol dire tenere com'è); sparisce da solo dopo ms */
+let undoT = null;
+function undoBar(msg, onUndo, ms = 15000){ $("#undobar")?.remove(); clearTimeout(undoT); $("#toast").hidden = true;
+  const b = document.createElement("div"); b.id = "undobar"; b.setAttribute("role", "status");
+  b.innerHTML = `<span>${esc(msg)}</span><button type="button" class="ub-undo">Annulla</button><button type="button" class="ub-x" aria-label="Chiudi l'avviso">×</button><i class="ub-bar" style="animation-duration:${ms}ms"></i>`;
+  document.body.appendChild(b); const close = () => { clearTimeout(undoT); b.remove(); };
+  b.querySelector(".ub-x").onclick = close; b.querySelector(".ub-undo").onclick = () => { close(); onUndo(); }; undoT = setTimeout(close, ms); }
 /* esercizio rinominato in libreria: il nuovo nome va in tutti gli allenamenti (di tutti gli atleti, anche passati), negli allenamenti
    salvati, nelle alternative e negli esercizi cambiati dall'atleta. Gli allenamenti sono legati all'esercizio per nome. */
-async function renameExEverywhere(oldN, newN){
-  const fix = n => sameName(n, oldN) ? newN : n, fixX = x => { let ch = false;
-    if (sameName(x.name, oldN)) { x.name = newN; ch = true; }
-    if (Array.isArray(x.alts) && x.alts.some(n => sameName(n, oldN))) { x.alts = x.alts.map(fix); ch = true; } return ch; };
+async function renameExEverywhere(oldN, newN, L){   // L (facoltativo): registro preciso dei cambi, per poter annullare un'unione
+  const fix = n => sameName(n, oldN) ? newN : n, fixX = (x, rec) => { let ch = false;
+    if (sameName(x.name, oldN)) { if (rec) (rec.n ??= []).push(x.id); x.name = newN; ch = true; }
+    if (Array.isArray(x.alts) && x.alts.some(n => sameName(n, oldN))) { if (rec) (rec.a ??= {})[x.id] = [...x.alts]; x.alts = x.alts.map(fix); ch = true; } return ch; };
   toast(`Aggiorno «${newN}» negli allenamenti…`);
   let nW = 0, err = 0; const jobs = [];
   await Promise.all(S.athletes.map(async a => {
     let list = []; try { list = await DB.listAllWorkouts(a.email); } catch(e) { console.error(e); err++; return; }
     for (const w of list) {
-      const ch = (w.exercises || []).map(fixX).some(Boolean);
-      let chS = false; Object.values(w.swaps || {}).forEach(sw => { if (sameName(sw.name, oldN)) { sw.name = newN; chS = true; } });
-      if (!ch && !chS) continue;
+      const rec = L ? {} : null, ch = (w.exercises || []).map(x => fixX(x, rec)).some(Boolean);
+      let chS = false; Object.entries(w.swaps || {}).forEach(([k, sw]) => { if (sameName(sw.name, oldN)) { if (rec) (rec.s ??= []).push(k); sw.name = newN; chS = true; } });
+      if (!ch && !chS) continue; if (L) L.w.push({email: a.email, w, rec});
       jobs.push(async () => { try { if (ch) await DB.saveWorkout(a.email, w); if (chS) await DB.saveResults(a.email, w.id, {swaps: w.swaps}); nW++; } catch(e) { console.error(e); err++; } });
-      const c = S.cache[a.email]?.[w.id]; if (c) { (c.exercises || []).forEach(fixX); Object.values(c.swaps || {}).forEach(sw => { if (sameName(sw.name, oldN)) sw.name = newN; }); } } }));
+      const c = S.cache[a.email]?.[w.id]; if (c) { (c.exercises || []).forEach(x => fixX(x)); Object.values(c.swaps || {}).forEach(sw => { if (sameName(sw.name, oldN)) sw.name = newN; }); } } }));
   for (let k = 0; k < jobs.length; k += 10) await Promise.all(jobs.slice(k, k + 10).map(f => f()));   // 10 salvataggi alla volta
-  for (const t of S.templates) if ((t.exercises || []).map(fixX).some(Boolean)) { try { await DB.saveTemplate(t); } catch(e) { console.error(e); err++; } }
-  for (const e of S.exercises) if (Array.isArray(e.alts) && e.alts.some(n => sameName(n, oldN))) { e.alts = e.alts.map(fix); try { await DB.saveExercise(e); } catch(er) { console.error(er); err++; } }
-  if (S.editor?.w) (S.editor.w.exercises || []).forEach(fixX);   // allenamento aperto in questo momento
+  for (const t of S.templates) { const rec = L ? {} : null; if ((t.exercises || []).map(x => fixX(x, rec)).some(Boolean)) { if (L) L.t.push({t, rec}); try { await DB.saveTemplate(t); } catch(e) { console.error(e); err++; } } }
+  for (const e of S.exercises) if (Array.isArray(e.alts) && e.alts.some(n => sameName(n, oldN))) { if (L) L.e.push({id: e.id, alts: [...e.alts]}); e.alts = e.alts.map(fix); try { await DB.saveExercise(e); } catch(er) { console.error(er); err++; } }
+  if (S.editor?.w) (S.editor.w.exercises || []).forEach(x => fixX(x));   // allenamento aperto in questo momento
   renMsg = (err ? `Nome aggiornato, ma ${err} salvataggi non sono riusciti: riprova a rinominare con la connessione` : `Rinominato «${oldN}» → «${newN}»${nW ? ` anche in ${nW} allenament${nW === 1 ? "o" : "i"}` : ""}`); toast(renMsg);
 }
 let renMsg = "";   // messaggio del rinomina: lo mostra chi ha salvato (al posto di "Esercizio salvato")

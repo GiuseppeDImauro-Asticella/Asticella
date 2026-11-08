@@ -1376,6 +1376,9 @@ select.in.pmsel{height:28px;padding:0 26px 0 8px;font-size:12px;width:auto;max-w
 .ctip .tl.tap{color:var(--accent);font-weight:600;margin-top:3px}
 .kfilt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
 .kfilt .lbl{margin:0 4px 0 0}
+/* filtri di Analisi: etichetta in colonna, i pulsanti vanno a capo allineati sotto il primo (non sotto la scritta) */
+@media (min-width:700px){.kfilt.anf{position:relative;padding-left:10.5em}.kfilt.anf>.lbl{position:absolute;left:0;top:6px;width:10em;line-height:1.25}}
+.kfilt .kbr{flex-basis:100%;height:0}.kfilt .kfam{font-size:11px;color:var(--faint);width:12em;flex:none;line-height:1.2}
 .kfilt .wkn{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:13px}
 .kfilt button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:12px;font-weight:600;color:var(--muted)}
 .kfilt button.nodata:not(.on){opacity:.5;border-style:dashed}
@@ -3905,7 +3908,7 @@ function wStats(w){
   return {sets, vol, vb, reps, srpe, ex, types, typesH, hard, known, ints, meth, methH, es, grp, rpe: w.status === "done" && w.sessionRpe ? +w.sessionRpe : null};
 }
 /* schemi e pattern di un esercizio (dalla libreria): principale (il primo: ★ dell'abilità o il primo scelto), sua famiglia, gli altri */
-const SCH_NONE = "Senza schemi";
+const SCH_NONE = "Non classificati", MOV_SOLO = "Solo schemi e pattern";   // senza schemi né abilità / senza abilità ma con schemi (coperti)
 function schOfName(n){ const l = libByName(n), Z = l ? exSchemi(l).all.map(movItem).filter(Boolean) : [];
   return Z.length ? {p: Z[0].it.name, f: Z[0].fam.name, o: [...new Set(Z.slice(1).map(q => q.it.name))].filter(q => q !== Z[0].it.name)} : {p: SCH_NONE, f: SCH_NONE, o: []}; }
 function weeklySeries(email, from, to){
@@ -4012,7 +4015,7 @@ async function viewAnalysis(m){
   /* "Dividi per categoria" + una categoria scelta: la metrica (volume, serie, serie allenanti) conta solo gli esercizi di quella categoria */
   const SPL = SPL_K.includes(anQ.split) && ["volume", "sets", "hard"].includes(anQ.metric), GK = SPL_K.includes(anQ.split) ? anQ.split : "cat";
   const catsD = SPL ? new Set(ser.flatMap(o => Object.entries(weekNums(o, anQ.metric)[GK]).filter(([, c]) => anQ.metric === "volume" ? c.vb[anQ.vk] : anQ.metric === "sets" ? c.sets : c.hard).map(([n]) => n))) : new Set();
-  const catsP = !SPL ? [] : grpOrder(GK, [...new Set([...grpAll(GK), ...catsD])]).filter(c => !/^(Non classificato|Senza (stimolo|ruolo|pattern|categoria|schemi))$/.test(c) || catsD.has(c));   // tutte le categorie, anche senza dati (tratteggiate): si vede cosa non è stato allenato
+  const catsP = !SPL ? [] : grpOrder(GK, [...new Set([...grpAll(GK), ...catsD])]).filter(c => !/^(Non classificat[oi]|Solo schemi e pattern|Senza (stimolo|ruolo|pattern|categoria|schemi|abilità))$/.test(c) || catsD.has(c));   // tutte le categorie, anche senza dati (tratteggiate): si vede cosa non è stato allenato
   if (SPL && anQ.cf && anQ.cf !== "all" && !catsP.includes(anQ.cf)) anQ.cf = "all";
   const CF = SPL && anQ.cf && anQ.cf !== "all" ? anQ.cf : "";
   if (CF) [ser, ...(dser ? [dser] : [])].forEach(L => L.forEach(o => { const N = weekNums(o, anQ.metric), c = N[GK][CF], val = c => !c ? 0 : anQ.metric === "volume" ? (c.vb[anQ.vk] || 0) : anQ.metric === "sets" ? c.sets : c.hard;
@@ -4087,19 +4090,21 @@ async function viewAnalysis(m){
         <div class="kgrp g-tmp">${head(0, "Risposta nel tempo", "adattamento · cosa è cambiato")}<div class="kpis">${recCard}</div></div>
       </div>`; })()}
     <section class="panel chartcard"><h3>${M.l} per ${byDay ? "giorno" : "settimana"}${M.u ? ` <span class="muted" style="font-weight:500">(${M.u})</span>` : ""} · ${esc(a.name)}</h3>
-      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto). Clicca un giorno per sceglierlo e un altro per confrontarli, anche di settimane diverse." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per sceglierla e un'altra per confrontarle (sotto il grafico); da lì vedi anche i giorni."}${CF ? (GK === "sch" ? ` ${anQ.schSec ? `Serie dei mezzi in cui <b>${esc(CF)}</b> è dominante, più (tratteggiate, sopra) quelle dei mezzi in cui è coinvolto: l'esposizione totale.` : `Solo le serie dei mezzi in cui <b>${esc(CF)}</b> è dominante; quelle in cui è coinvolto le vedi passando sulla colonna e nel confronto.`}` : ` Solo le serie con ${SPL_L[GK].toLowerCase()} <b>${esc(CF)}</b>.`) : SPL && GK === "sch" ? " Ogni colonna è divisa per schema o pattern dominante del mezzo: ogni serie conta una volta sola." : SPL && GK === "stim" ? " Ogni colonna è divisa per stimolo (capacità), quello scelto o proposto sulle serie del programma." : SPL && GK === "mov" ? " Ogni colonna è divisa per abilità motoria dell'esercizio." : SPL && GK === "role" ? " Ogni colonna è divisa per ruolo delle serie nella seduta." : SPL ? (GK === "lat" ? " Ogni colonna è divisa tra esercizi bilaterali e unilaterali (Esecuzione nella scheda dell'esercizio)." : " Ogni colonna è divisa per categoria dell'esercizio (quella della libreria).") : anQ.metric === "srpe" || (anQ.metric !== "int" && anQ.metric !== "ten" && !kFilt(anQ.metric)) ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
-      <div class="kfilt" role="group" aria-label="Vista"><span class="lbl">Vista</span>${[["week","Settimane"],["day","Giorni"]].map(([k,l]) => `<button class="${anQ.gran === k ? "on" : ""}" data-act="an-gran" data-v="${k}" aria-pressed="${anQ.gran === k}">${l}</button>`).join("")}
+      <div class="cdesc">${M.d} ${byDay ? "Ogni colonna è un giorno della settimana scelta (conta il giorno in cui l'allenamento è stato svolto). Clicca un giorno per sceglierlo e un altro per confrontarli, anche di settimane diverse." : "Le colonne più chiare sono settimane non ancora finite o comprese solo in parte nel periodo. Clicca una colonna per sceglierla e un'altra per confrontarle (sotto il grafico); da lì vedi anche i giorni."}${CF ? (GK === "sch" ? ` ${anQ.schSec ? `Serie dei mezzi in cui <b>${esc(CF)}</b> è dominante, più (tratteggiate, sopra) quelle dei mezzi in cui è coinvolto: l'esposizione totale.` : `Solo le serie dei mezzi in cui <b>${esc(CF)}</b> è dominante; quelle in cui è coinvolto le vedi passando sulla colonna e nel confronto.`}` : (GK === "stim" && anQ.stimSec ? ` Serie con stimolo principale <b>${esc(CF)}</b>, più (tratteggiate, sopra) quelle in cui era concomitante.` : ` Solo le serie con ${SPL_L[GK].toLowerCase()} <b>${esc(CF)}</b>.`)) : SPL && GK === "sch" ? " Ogni colonna è divisa per schema o pattern dominante del mezzo: ogni serie conta una volta sola." : SPL && GK === "stim" ? " Ogni colonna è divisa per stimolo (capacità), quello scelto o proposto sulle serie del programma." : SPL && GK === "mov" ? " Ogni colonna è divisa per abilità motoria dell'esercizio." : SPL && GK === "role" ? " Ogni colonna è divisa per ruolo delle serie nella seduta." : SPL ? (GK === "lat" ? " Ogni colonna è divisa tra esercizi bilaterali e unilaterali (Esecuzione nella scheda dell'esercizio)." : " Ogni colonna è divisa per categoria dell'esercizio (quella della libreria).") : anQ.metric === "srpe" || (anQ.metric !== "int" && anQ.metric !== "ten" && !kFilt(anQ.metric)) ? " Ogni colonna è divisa per tipo di seduta." : ""}</div>
+      <div class="kfilt anf" role="group" aria-label="Vista"><span class="lbl">Vista</span>${[["week","Settimane"],["day","Giorni"]].map(([k,l]) => `<button class="${anQ.gran === k ? "on" : ""}" data-act="an-gran" data-v="${k}" aria-pressed="${anQ.gran === k}">${l}</button>`).join("")}
         ${byDay ? `<span class="wkn"><button class="btn sm ghost icon" data-act="an-dws" data-d="-1" aria-label="Settimana precedente" ${anQ.dws <= minWs ? "disabled" : ""}>‹</button><b>Sett. ${weekNo(anQ.dws)} · ${esc(fmtRange(anQ.dws))}</b><button class="btn sm ghost icon" data-act="an-dws" data-d="1" aria-label="Settimana successiva" ${anQ.dws >= maxWs ? "disabled" : ""}>›</button></span>` : ""}</div>
-      ${anQ.metric === "volume" ? `<div class="kfilt" role="group" aria-label="Tipo di volume"><span class="lbl">Volume</span>${VOL_KEYS.map(q => `<button class="${anQ.vk === q ? "on" : ""} ${volHas[q] ? "" : "nodata"}" data-act="an-vk" data-v="${q}" aria-pressed="${anQ.vk === q}" ${volHas[q] ? "" : `title="Nessun dato nel periodo: questo stimolo non è stato allenato"`}>${VOLK[q].l}${VOLK[q].u ? ` (${VOLK[q].u})` : ""}</button>`).join("")}</div>` : ""}
-      ${anQ.metric === "int" ? `<div class="kfilt" role="group" aria-label="Tipo di intensità"><span class="lbl">Intensità</span>${INT_KEYS.map(q => { const has = ser.some(o => o.intR?.[q]);
+      ${anQ.metric === "volume" ? `<div class="kfilt anf" role="group" aria-label="Tipo di volume"><span class="lbl">Volume</span>${VOL_KEYS.map(q => `<button class="${anQ.vk === q ? "on" : ""} ${volHas[q] ? "" : "nodata"}" data-act="an-vk" data-v="${q}" aria-pressed="${anQ.vk === q}" ${volHas[q] ? "" : `title="Nessun dato nel periodo: questo stimolo non è stato allenato"`}>${VOLK[q].l}${VOLK[q].u ? ` (${VOLK[q].u})` : ""}</button>`).join("")}</div>` : ""}
+      ${anQ.metric === "int" ? `<div class="kfilt anf" role="group" aria-label="Tipo di intensità"><span class="lbl">Intensità</span>${INT_KEYS.map(q => { const has = ser.some(o => o.intR?.[q]);
         return `<button class="${anQ.ik === q ? "on" : ""} ${has ? "" : "nodata"}" data-act="an-ik" data-v="${q}" aria-pressed="${anQ.ik === q}" ${has ? "" : `title="Nessun dato nel periodo"`}>${INTK[q].l} (${INTK[q].m})</button>`; }).join("")}</div>` : ""}
-      ${["volume", "sets", "hard"].includes(anQ.metric) ? `<div class="kfilt" role="group" aria-label="Dividi le colonne per"><span class="lbl">Dividi per</span>${[["stim", "Stimolo"], ["sch", "Schemi e pattern"], ["mov", "Abilità"], ["role", "Ruolo"], ["lat", "Esecuzione"]].map(([k, l]) => `<button class="${anQ.split === k ? "on" : ""}" data-act="an-split" data-v="${k}" aria-pressed="${anQ.split === k}">${l}</button>`).join("")}</div>` : ""}
-      ${SPL ? `<div class="kfilt" role="group" aria-label="${SPL_L[GK]}"><span class="lbl">${SPL_L[GK]}</span>${["all", ...catsP].map(c => `<button class="${(anQ.cf || "all") === c ? "on" : ""} ${c === "all" || catsD.has(c) ? "" : "nodata"}" data-act="an-cf" data-v="${esc(c)}" aria-pressed="${(anQ.cf || "all") === c}" ${c === "all" || catsD.has(c) ? "" : `title="Nessun dato nel periodo${GK === "lat" ? "" : ": non è stata allenata"}"`}>${c === "all" ? "Tutte" : esc(c)}</button>`).join("")}</div>${GK === "sch" && CF ? `<div class="kfilt" role="group" aria-label="Conta"><span class="lbl">Conta</span>${[[0, "Solo dominante"], [1, "Con coinvolti"]].map(([v, l]) => `<button class="${!!anQ.schSec === !!v ? "on" : ""}" data-act="an-schsec" data-v="${v}" aria-pressed="${!!anQ.schSec === !!v}">${l}</button>`).join("")}</div>` : ""}`
+      ${["volume", "sets", "hard"].includes(anQ.metric) ? `<div class="kfilt anf" role="group" aria-label="Dividi le colonne per"><span class="lbl">Dividi per</span>${[["stim", "Stimolo"], ["sch", "Schemi e pattern"], ["mov", "Abilità"], ["role", "Ruolo"], ["lat", "Esecuzione"]].map(([k, l]) => `<button class="${anQ.split === k ? "on" : ""}" data-act="an-split" data-v="${k}" aria-pressed="${anQ.split === k}">${l}</button>`).join("")}</div>` : ""}
+      ${SPL ? (chip => `<div class="kfilt anf" role="group" aria-label="${SPL_L[GK]}"><span class="lbl">${SPL_L[GK]}</span>${chip("all")}${GK === "sch"
+        ? movData().fams.map(f => (L => L.length ? `<span class="kbr"></span><span class="kfam">${esc(f.name)}</span>${L.map(chip).join("")}` : "")(catsP.filter(c => f.items.some(it => it.name === c)))).join("") + (catsP.includes(SCH_NONE) ? `<span class="kbr"></span>${chip(SCH_NONE)}` : "")
+        : catsP.map(chip).join("")}</div>${(GK === "sch" || GK === "stim") && CF ? (k => `<div class="kfilt anf" role="group" aria-label="Conta"><span class="lbl">Conta</span>${(GK === "sch" ? [[0, "Solo dominante"], [1, "Con coinvolti"]] : [[0, "Solo principale"], [1, "Con concomitanti"]]).map(([v, l]) => `<button class="${!!anQ[k] === !!v ? "on" : ""}" data-act="an-schsec" data-k="${k}" data-v="${v}" aria-pressed="${!!anQ[k] === !!v}">${l}</button>`).join("")}</div>`)(GK === "sch" ? "schSec" : "stimSec") : ""}`)(c => `<button class="${(anQ.cf || "all") === c ? "on" : ""} ${c === "all" || catsD.has(c) ? "" : "nodata"}" data-act="an-cf" data-v="${esc(c)}" aria-pressed="${(anQ.cf || "all") === c}" ${c === "all" || catsD.has(c) ? "" : `title="Nessun dato nel periodo${GK === "lat" ? "" : ": non è stata allenata"}"`}>${c === "all" ? "Tutte" : esc(c)}</button>`)
       : anQ.metric === "ten" ? (th => { const thb = (k, d, lab) => `<button class="arthb" data-act="ten-th" data-k="${k}" data-d="${d}" aria-label="${lab}">${d > 0 ? "+" : "−"}</button>`;
           return `<div class="kfilt tenth"><span class="lbl">Soglia</span><span>tempi ${thb("spr", -1, "Soglia tempi più stretta")}<b>± ${fmtN(th.spr, 2)} s</b>${thb("spr", 1, "Soglia tempi più larga")}</span>
             <span>salti ${thb("jmp", -1, "Soglia salti più stretta")}<b>${fmtN(th.jmp, 0)} cm</b>${thb("jmp", 1, "Soglia salti più larga")}</span>
             <span class="faint" style="font-size:12px">${th.spr === TEN_TH0.spr ? "0,15 s ≈ errore del cronometro a mano; con le fotocellule 0,03–0,05 s" : ""}</span></div>`; })(tenTh())
-      : anQ.metric === "srpe" || anQ.metric === "int" ? "" : `<div class="kfilt" role="group" aria-label="Tipo di seduta"><span class="lbl">Sedute</span>${["all", ...KIND_KEYS].map(k => { const on = (anQ.metric === "volume" ? anQ.kv : anQ.ks) === k;
+      : anQ.metric === "srpe" || anQ.metric === "int" ? "" : `<div class="kfilt anf" role="group" aria-label="Tipo di seduta"><span class="lbl">Sedute</span>${["all", ...KIND_KEYS].map(k => { const on = (anQ.metric === "volume" ? anQ.kv : anQ.ks) === k;
         return `<button class="${on ? "on" : ""}" data-act="an-kind" data-v="${k}" aria-pressed="${on}">${k === "all" ? "Tutte" : KINDS[k].l}</button>`; }).join("")}</div>`}
       <div class="chartwrap" id="an-chart"></div>
       ${byDay && anQ.metric === "srpe" ? `<div class="sstats"><span>carico della settimana: <b>${fmtN(mono.tot)}</b> UA</span><span>media al giorno: <b>${fmtN(mono.mean)}</b> UA</span>
@@ -4176,7 +4181,7 @@ const SPL_K = ["stim", "sch", "mov", "role", "cat", "lat"], SPL_L = {stim: "Stim
 function grpOrder(g, L){ const all = grpAll(g); return [...all.filter(c => L.includes(c)), ...L.filter(c => !all.includes(c)).sort((a, b) => a.localeCompare(b, "it"))]; }
 function grpAll(g){ if (g === "lat") return LAT_ORDER; if (g === "cat") return catOrder(optList("cat"));
   if (g === "stim") return [...stimData().caps.map(c => c.name), "Senza stimolo"]; if (g === "role") return [...stimData().roles.map(r => r.name), "Senza ruolo"];
-  if (g === "mov") return [...optList("pat"), "Senza pattern"];
+  if (g === "mov") return [...optList("pat"), MOV_SOLO, SCH_NONE];
   if (g === "sch") return [...movData().fams.flatMap(f => f.items.map(it => it.name)), SCH_NONE]; if (g === "schF") return [...movData().fams.map(f => f.name), SCH_NONE]; return []; }
 const catsFor = (ns, f) => { const l = catOrder([...new Set(ns.filter(Boolean).flatMap(n => Object.keys(n.cat).filter(c => f(n.cat[c]))))]); return l.length > 1 ? l : []; };
 const intCats = (ns, k) => { const l = catOrder([...new Set(ns.filter(Boolean).flatMap(n => Object.keys(n.intC?.[k] || {})))]); return l.length > 1 ? l : []; };
@@ -4348,7 +4353,7 @@ function weekCmpHtml(ser, key, a){
     ...keysOf("schF").filter(fm => L.some(it => famOf(it) === fm)).flatMap(fm => [[esc(fm), n => cell(n.schF?.[fm], totSch(n)), (x, y) => dAbs(sv(x.schF?.[fm]), sv(y.schF?.[fm])), 1],
       ...(fm === SCH_NONE ? [] : L.filter(it => famOf(it) === fm).map(it => [`↳ ${esc(it)}`, n => cell2(n.sch?.[it], n.sch2?.[it], 0, 1), (x, y) => dAbs(sv(x.sch?.[it]), sv(y.sch?.[it])), 1, 1]))]),
     ] : [])(keysOf("sch", "sch2"));
-  const secMov = (L => L.length ? [[`§Abilità`], ...L.map(c => [esc(c === "Senza pattern" ? "Senza abilità" : c), n => cell(n.mov?.[c]), (x, y) => dAbs(sv(x.mov?.[c]), sv(y.mov?.[c])), 1])] : [])(keysOf("mov"));
+  const secMov = (L => L.length ? [[`§Abilità`], ...L.map(c => [esc(c), n => cell(n.mov?.[c]), (x, y) => dAbs(sv(x.mov?.[c]), sv(y.mov?.[c])), 1])] : [])(keysOf("mov"));
   const totS = n => Object.values(n.stim || {}).reduce((t, q) => t + sv(q), 0);
   const secStim = [[`§Stimoli${HS ? ` <span class="honly">solo serie allenanti</span>` : ""}`], ...keysOf("stim", "stim2").flatMap(c => [
       [esc(c), n => cell2(n.stim?.[c], n.stim2?.[c], totS(n)), (x, y) => dAbs(sv(x.stim?.[c]), sv(y.stim?.[c])), 1],
@@ -4449,7 +4454,7 @@ function drawBarChart(el, ser, key, a){
   const W = Math.max(320, el.clientWidth || 700), H = 240, padL = 44, padR = 8, padT = 18, padB = 46;
   const iw = W - padL - padR, ih = H - padT - padB;
   /* stimolo scelto: la quota "come secondario" NON si disegna (Giuseppe, opzione A: il grafico resta sul principale), si legge nel riquadro della settimana e nel confronto */
-  const SECt = !!CFb && (GKc === "stim" || GKc === "sch") && ["volume", "sets", "hard"].includes(key), SEC = SECt && GKc === "sch" && !!anQ.schSec;   // schema scelto + "Con secondari": la quota secondaria si disegna sopra, più chiara
+  const SECt = !!CFb && (GKc === "stim" || GKc === "sch") && ["volume", "sets", "hard"].includes(key), SEC = SECt && (GKc === "sch" ? !!anQ.schSec : !!anQ.stimSec);   // schema scelto + "Con secondari": la quota secondaria si disegna sopra, più chiara
   let max = niceMax(Math.max(...ser.map(o => o[key] + (SEC ? o.sec || 0 : 0)), 0));
   if (key === "sets" || key === "hard" || (key === "volume" && anQ.vk === "serie")) max = Math.max(4, Math.ceil(max / 4) * 4);
   if (TEN) max = 100;   // numeri interi: righe del grafico su valori interi (niente 2,5 → "3")
@@ -4518,7 +4523,7 @@ function drawBarChart(el, ser, key, a){
     const t2 = document.createElement("div"); t2.className = "tl"; t2.textContent = o.day ? (o.list.length ? o.list.map(w => `${w.title || "Allenamento"} (${KINDS[kindOf(w)].l}${w.status === "done" ? "" : " · " + STATUS_TXT[statusOf(w)].toLowerCase()})`).join(" · ") : "Nessun allenamento") : `Sedute completate ${o.done}/${o.planned}`;
     tip.append(tv, tl, t2);
     if (CFb) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `Solo ${SPL_L[GKc]?.toLowerCase() || "categoria"}: ${CFb}`; tip.append(d); }
-    if (SECt && o.sec > 0) { const d = document.createElement("div"); d.className = "tl"; d.textContent = GKc === "sch" ? `+${compact(o.sec)} coinvolto (mezzi che lo contengono, non dominante)${SEC ? ` · esposizione totale ${compact(o[key] + o.sec)}` : " · non nel totale"}` : `+${compact(o.sec)} come stimolo concomitante (non nel totale)`; tip.append(d); }
+    if (SECt && o.sec > 0) { const d = document.createElement("div"); d.className = "tl"; d.textContent = GKc === "sch" ? `+${compact(o.sec)} coinvolto (mezzi che lo contengono, non dominante)${SEC ? ` · esposizione totale ${compact(o[key] + o.sec)}` : " · non nel totale"}` : `+${compact(o.sec)} come stimolo concomitante${SEC ? ` · insieme ${compact(o[key] + o.sec)}` : " (non nel totale)"}`; tip.append(d); }
     else if (CAT) { CATS.forEach(c => { const v = cv(NW[+g.dataset.k], c); if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${c}: ${fmtN(v)} ${METRICS[key].u}`.trim(); tip.append(d); } });
       if (kFilt0(key)) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `Solo sedute: ${KINDS[kFilt0(key)].l}`; tip.append(d); } }
     else if (stacked) kindKeysAll().forEach(kk => { const v = o.byK[kk]?.[key]; if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${KINDS[kk].l}: ${fmtN(v)} ${METRICS[key].u}`.trim() + ` (${o.byK[kk].n} sedut${o.byK[kk].n === 1 ? "a" : "e"})`; tip.append(d); } });
@@ -5530,7 +5535,7 @@ function stimMapOf(w){ const c = STIMC.get(w); if (c && c.v === STIMV) return c.
 const stimOfSet = (M, x, j) => M[x.id + ":" + Math.min(j, Math.max(0, (x.sets || []).length - 1))] || null;
 const ROLE_NOHARD = ["r_prep", "r_down"];   // serie preparatorie e defaticanti: non contano come allenanti (allenante è relativo allo stimolo)
 const hardOf = (r, sm) => { const h = isHard(r); return h && sm && ROLE_NOHARD.includes(sm.role) ? false : h; };
-const capName = id => exprById(id)?.cap.name || "Senza stimolo", roleName = id => stimData().roles.find(r => r.id === id)?.name || "Senza ruolo", movName = n => libByName(n)?.pattern?.trim() || "Senza pattern";
+const capName = id => exprById(id)?.cap.name || "Senza stimolo", roleName = id => stimData().roles.find(r => r.id === id)?.name || "Senza ruolo", movName = n => { const l = libByName(n); return l?.pattern?.trim() || (l && exSchemi(l).all.length ? MOV_SOLO : SCH_NONE); };   // senza abilità: coperto dagli schemi o non classificato
 /* scrive sulle serie della fase (bozza dell'editor) */
 function fzSets(str){ const w = S.editor?.w; if (!w) return []; return String(str || "").split(",").filter(Boolean).map(r => { const [xid, j] = r.split(":"); return w.exercises.find(x => x.id === xid)?.sets?.[+j]; }).filter(Boolean); }
 /* il TIPO della serie (R/W/B/D) eredita il RUOLO scelto nella Struttura degli stimoli: Attivazione → R, Target → W, Back-off → B, Defaticante → D,
@@ -5915,7 +5920,7 @@ function exMainStim(w, x){ const M = stimMapOf(w), L = (x.sets || []).map((_, j)
 /* seduta più recente in cui lo stesso MOVIMENTO è stato allenato con lo stesso STIMOLO: solo quelle serie, qualunque fosse il mezzo */
 function stimHistory(email, x, cur, eid, limit = 1){
   const mov = movName(x.name), out = [];
-  const match = n => mov === "Senza pattern" ? sameName(n, x.name) : movName(n) === mov;
+  const match = n => mov === MOV_SOLO || mov === SCH_NONE ? sameName(n, x.name) : movName(n) === mov;
   const ws = Object.values(S.cache[email] || {}).filter(w => w.id !== cur.id && w.results && effDate(w) < (cur.date || TODAY())).sort((a, b) => effDate(b).localeCompare(effDate(a)));
   for (const w of ws) { if (out.length >= limit) break; const M = stimMapOf(w);
     const items = (w.exercises || []).filter(y => match(exName(w, y))).map(y => ({y, name: exName(w, y), sw: swapOf(w, y),
@@ -7665,7 +7670,7 @@ const ACT = {
   "an-svk"(t){ anQ.svk = t.dataset.v; anQ.sess = $("#an-sess select")?.value || anQ.sess; redrawSess(); },
   "an-split"(t){ const was = anQ.split; anQ.split = t.dataset.v; if (anQ.split !== "kind") { anQ.kv = "all"; anQ.ks = "all"; } if (was !== anQ.split) anQ.cf = "all"; renderView(); },   // un solo filtro alla volta: per tipo di seduta o per categoria
   "an-cf"(t){ anQ.cf = t.dataset.v; renderView(); },
-  "an-schsec"(t){ anQ.schSec = t.dataset.v === "1"; renderView(); },
+  "an-schsec"(t){ anQ[t.dataset.k || "schSec"] = t.dataset.v === "1"; renderView(); },
   "an-ik"(t){ anQ.ik = t.dataset.v; renderView(); },
   "ps-sessview"(t){ const G = S.prog; if (!G) return; const w = progW(G, G.wid) || S.cache[G.email]?.[G.wid]; const {KS, OS} = w ? kindRefOf(G, w) : {KS: [], OS: []}; openSessDlg(G.email, t.dataset.id, [...KS, ...OS].sort((x, y) => effDate(y).localeCompare(effDate(x))).map(q => q.id)); },
   "sd-close"(){ closeSessDlg(); },

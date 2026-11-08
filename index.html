@@ -288,6 +288,7 @@ table.list{width:100%;border-collapse:collapse}
 .list tr.grprow th{background:var(--surface2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 12px}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--surface2);font-size:12px;font-weight:600;color:var(--muted)}
 .two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.two.exl{grid-template-columns:minmax(0,1.2fr) minmax(380px,1fr)}   /* Esercizi: elenco un po' più stretto, Parametri / Movimenti / Capacità più larghi */
 /* il riquadro a destra (scheda esercizio / atleta) segue lo scorrimento della pagina */
 @media (min-width:861px){.two > .panel:last-child{position:sticky;top:16px;max-height:calc(100dvh - 32px);overflow-y:auto}}
 .lnk.libed{font-size:12px;font-weight:600;color:var(--muted)}.lnk.libed:hover{color:var(--accent)}
@@ -1375,7 +1376,7 @@ table.nt{width:100%;border-collapse:collapse;font-size:13px}
   .side .who{display:none}.navtog{display:none}
   .nav.mob{display:flex}
   .nav{white-space:nowrap}
-  .two{grid-template-columns:1fr}
+  .two,.two.exl{grid-template-columns:1fr}
   .back{padding:0}
   .modal{border-radius:0;height:100dvh;max-height:100dvh}
   .demobar .dtxt{display:none}
@@ -3548,7 +3549,7 @@ function viewExercises(m){
   const cats = [...new Set(list.map(grpOfX))].sort((a, b) => (a === NONE) - (b === NONE) || (a[0] === "§") - (b[0] === "§") || a.replace("§", "").localeCompare(b.replace("§", ""), "it"));
   const e = S.exEdit;
   m.innerHTML = `<div class="pagehead"><div><h1>Esercizi</h1><div class="sub">I tuoi mezzi, raggruppati per movimento: stimolo di partenza e parametri già pronti quando li inserisci in un allenamento.</div></div><div class="toolbar">${S.exercises.length ? "" : `<button class="btn" data-act="ex-base">Aggiungi esercizi di base</button>`}<button class="btn pri" data-act="ex-new">+ Nuovo esercizio</button></div></div>
-  <div class="two"><div class="panel"><div style="padding:12px;border-bottom:1px solid var(--line)"><input class="in" id="ex-q" placeholder="Cerca esercizio…" value="${esc(S.exQuery)}" data-input="ex-q"></div>
+  <div class="two exl"><div class="panel"><div style="padding:12px;border-bottom:1px solid var(--line)"><input class="in" id="ex-q" placeholder="Cerca esercizio…" value="${esc(S.exQuery)}" data-input="ex-q"></div>
     ${FS ? `<div class="exfilt">Esercizi che allenano <b>${esc(movItem(FS).it.name)}</b> <span class="faint">(${esc(movItem(FS).fam.name.toLowerCase())})</span><button class="btn sm ghost" data-act="sch-clear" aria-label="Togli il filtro">✕ Tutti</button></div>` : ""}
     <div class="scroll-x"><table class="list"><tbody>${cats.map(c => `<tr><th colspan="3" style="background:var(--surface2)">${c[0] === "§" ? `${esc(c.slice(1))} <span class="faint" style="font-weight:500">· schema / pattern, senza abilità</span>` : esc(c)}</th></tr>` + list.filter(x => grpOfX(x) === c).map(x => `<tr>
       <td><b>${esc(x.name)}</b><div class="faint" style="font-size:12px">${esc([exprLbl(stim0Of(x)) || "", (Z => !x.pattern && Z.all.length ? Z.all.map(id => movItem(id).it.name).join(" · ") : Z.own.length ? "anche " + Z.own.map(id => movItem(id).it.name).join(", ") : "")(exSchemi(x)), latLbl(x.lat)].filter(Boolean).join(" · "))}</div></td>

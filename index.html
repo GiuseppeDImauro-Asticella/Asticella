@@ -880,6 +880,13 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .spk .kprow button.kpm:hover{background:var(--surface2)}.kprow.on button.kpm{color:var(--accent);font-weight:600}
 .spk .kprow button.kps{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:11.5px;font-weight:600;border-radius:99px;padding:2px 9px;cursor:pointer;opacity:.85}
 .spk .kprow button.kps:hover{border-color:var(--accent);color:var(--accent);opacity:1}.spk .kprow button.kps.on{border-color:var(--accent);color:var(--accent);opacity:1}
+/* seduta prevista nel microciclo: testo intero (va a capo) con il menu standard invisibile sopra */
+.mcpick{position:relative;display:flex;text-align:left;align-items:flex-start;gap:6px;width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:4px 7px;cursor:pointer}
+.mcpick .mcpl{flex:1;min-width:0;font-size:12.5px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}.mcpick .spcv{color:var(--faint);font-size:11px;margin-top:2px}
+.mcpick.mct .mcpl{font-size:11.5px;font-weight:600;color:var(--muted)}.mcpick.mct.empty{border-style:dashed;background:none;padding:2px 7px}.mcpick.mct.empty .mcpl{color:var(--faint);font-weight:500;font-size:11px}.mcpick.mct.empty .spcv{display:none}
+.mcr .mcpick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;margin:0;border:0}
+.mcpick:focus-within{border-color:var(--accent)}
+.wcard .kpl.dif{color:var(--warn);font-weight:500;line-height:1.3;white-space:normal}.wcard .kpl.dif b{color:var(--warn)}
 .kphint{font-size:12px;color:var(--muted);padding:6px 8px 2px}.kptg{color:var(--accent);font-weight:600}
 .kpft{position:sticky;bottom:-6px;background:var(--surface);display:flex;justify-content:flex-end;padding:8px 4px 4px;border-top:1px solid var(--line);margin-top:6px}
 /* elenco a comparsa delle sedute (Progressione → Riferimento, Analisi → Confronta con) */
@@ -1995,7 +2002,7 @@ const SET_TYPES_BASE = {P:{l:"Preparatory set", s:"Prep"}, R:{l:"Ramping set", s
 const SET_TYPES = {...SET_TYPES_BASE};
 const TYPE_ORDER = ["", "P", "R", "W", "B", "D"];
 /* lettere create dal coach sui suoi ruoli (Esercizi → Ruoli): diventano tipi di serie come R / W / B / D, con il nome del ruolo */
-function setTypesSync(){ Object.keys(SET_TYPES).forEach(k => { if (!(k in SET_TYPES_BASE)) delete SET_TYPES[k]; });
+function setTypesSync(){ kindsSync(); Object.keys(SET_TYPES).forEach(k => { if (!(k in SET_TYPES_BASE)) delete SET_TYPES[k]; });
   TYPE_ORDER.splice(0, TYPE_ORDER.length, "", ...Object.keys(SET_TYPES_BASE));
   (S.stim?.roles || []).forEach(r => { const t = String(r.type || ""); if (t && !(t in SET_TYPES)) { SET_TYPES[t] = {l: r.name, s: r.name, c: TYPE_COLORS[r.tc] ? r.tc : "g"}; TYPE_ORDER.push(t); } }); }
 /* tipo di seduta: lo sceglie il coach nell'allenamento; se non l'ha indicato lo deduco dagli esercizi */
@@ -2006,8 +2013,11 @@ const KIND_DEF_L = {forza: "Forza", struttura: "Struttura", velocita: "Velocità
 const KINDS_BASE = Object.fromEntries(Object.keys(KIND_DEF_L).map(k => [k, {get l(){ return (KIND_CAP[k] && typeof S !== "undefined" && S?.stim?.caps?.find(c => c.id === KIND_CAP[k])?.name) || KIND_DEF_L[k]; }}]));
 /* tipi vecchi: "Pesi" (prima di v115) e "Potenza" diventano Forza, "Correttivi - Prevenzione" diventa Struttura */
 const LEGACY_KIND = {pesi: "forza", potenza: "forza", correttivi: "struttura"};
-const KINDS = new Proxy(KINDS_BASE, {get: (t, k) => t[k] ?? t[LEGACY_KIND[k]]});
-const kindRaw = w => KINDS_BASE[w?.kind] ? w.kind : LEGACY_KIND[w?.kind] || "";
+const KINDS = new Proxy(KINDS_BASE, {get: (t, k) => t[k] ?? (typeof k === "string" ? t[kindNorm(k)] : undefined)});
+/* nome di tipo vecchio o non più valido → tipo attuale: prima per nome tra le capacità dell'albero (es. "correttivi" = la tua capacità Correttivi), poi la tabella dei vecchi tipi */
+const kindNorm = k => { if (!k) return ""; if (KINDS_BASE[k]) return k; const c = stimData().caps.find(q => optKey(q.name) === optKey(k)); const kk = c && Object.keys(KIND_CAP).find(z => KIND_CAP[z] === c.id);
+  return kk || LEGACY_KIND[k] || ""; };
+const kindRaw = w => kindNorm(w?.kind);
 /* tipo scelto dal coach ("" = automatico dagli stimoli): vale se l'ha scelto a mano dopo v222 (kindMan), se è Partita / Gara (eventi) o se la seduta non ha ancora esercizi.
    I tipi salvati prima restano nei dati ma non contano più: le sedute vecchie diventano automatiche */
 const kindSet = w => { const k = kindRaw(w); if (!k) return "";
@@ -2019,8 +2029,19 @@ const kindPresentN = w => { if (!(w?.exercises || []).length) return []; let M; 
   return Object.entries(n).sort((a, b) => b[1] - a[1]); };
 const kindPresent = w => kindPresentN(w).map(([e]) => e);
 const hasKind = w => !!kindSet(w);
-const KIND_KEYS = Object.keys(KINDS_BASE);
-const kindColor = k => `var(--s${KIND_KEYS.indexOf(LEGACY_KIND[k] || k) % 8 + 1})`;
+/* TIPI DI SEDUTA = le capacità del tuo albero degli stimoli (nello stesso ordine, anche quelle create da te) + Partita e Gara.
+   KIND_KEYS = quelli attivi (si aggiorna con kindsSync quando cambi le capacità); i tipi di capacità eliminate restano leggibili nei dati vecchi */
+const KIND_BASE_ORDER = Object.keys(KIND_DEF_L), KIND_KEYS = [...KIND_BASE_ORDER], KIND_LAST = {};
+function kindsSync(){ const caps = stimData().caps, keyOf = c => Object.keys(KIND_CAP).find(z => KIND_CAP[z] === c.id) || c.id;
+  caps.forEach(c => { const k = keyOf(c); KIND_LAST[k] = c.name; if (!KIND_CAP[k]) KIND_CAP[k] = c.id;
+    if (!KINDS_BASE[k]) KINDS_BASE[k] = {get l(){ return stimData().caps.find(q => q.id === KIND_CAP[k])?.name || KIND_LAST[k] || "Capacità eliminata"; }}; });
+  KIND_KEYS.splice(0, KIND_KEYS.length, ...caps.map(keyOf), "partita", "gara"); }
+const kindActive = k => KIND_KEYS.includes(k);
+const kindKeysAll = () => [...KIND_KEYS, ...Object.keys(KINDS_BASE).filter(k => !KIND_KEYS.includes(k))];   // per i grafici: anche i tipi di capacità eliminate presenti nei dati
+/* colori: le capacità di base tengono sempre il loro colore; quelle create da te prendono i colori liberi */
+const kindColor = k => { k = kindNorm(k) || k; const b = KIND_BASE_ORDER.indexOf(k); if (b >= 0) return `var(--s${b % 8 + 1})`;
+  const used = new Set(KIND_KEYS.map(z => KIND_BASE_ORDER.indexOf(z)).filter(i => i >= 0).map(i => i % 8 + 1)), free = [1, 2, 3, 4, 5, 6, 7, 8].filter(n => !used.has(n)), c = KIND_KEYS.filter(z => !KIND_BASE_ORDER.includes(z)).indexOf(k);
+  return c >= 0 ? `var(--s${(free.length ? free[c % free.length] : c % 8 + 1)})` : "var(--faint)"; };
 function guessKind(w){
   const n = {forza:0, potenza:0, velocita:0, resistenza:0, tecnica:0, correttivi:0};
   (w.exercises || []).forEach(x => { const lib = libByName(x.name) || {}; const c = (lib.category || "").toLowerCase(), cols = x.cols || [];
@@ -2056,7 +2077,7 @@ function kindStim(w){ if (!(w?.exercises || []).length) return null; let M; try 
   const ne = {}; Object.values(M).forEach(q => { if (q.e) ne[q.e] = (ne[q.e] || 0) + 1; }); const E = Object.entries(ne).sort((a, b) => b[1] - a[1]);
   const mixK = L[1] && L[1][1] >= L[0][1] * .6 ? L[1][0] : null, eOf = k => E.find(([e]) => exprById(e)?.cap.id === KIND_CAP[k])?.[0] || null;
   return {k: L[0][0], e: eOf(L[0][0]), mix: mixK, mixE: mixK ? eOf(mixK) : null}; }   // capacità (colore, sRPE, microciclo) ed espressione principale (dettaglio, confronti)
-const kindOf = w => kindSet(w) || kindStim(w)?.k || LEGACY_KIND[guessKind(w || {})] || guessKind(w || {});
+const kindOf = w => kindSet(w) || kindStim(w)?.k || kindNorm(guessKind(w || {})) || guessKind(w || {});
 /* tipo scelto a mano: capacità (w.kind) + espressione facoltativa (w.kindE) + seconda capacità facoltativa (w.kind2, w.kindE2), come l'automatico */
 /* campi del tipo da portare in una copia della seduta (con kindMan, se no con gli esercizi il tipo scelto si perderebbe) */
 const kindFields = c => { const k = kindSet(c); if (!k) return {}; const f = {kind: k}; if (c.kindMan) f.kindMan = true; ["kindE", "kind2", "kindE2"].forEach(z => { if (c[z]) f[z] = c[z]; }); return f; };
@@ -3071,6 +3092,12 @@ const MC_DAYS = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "S
 const MC_COLS = ["#C08BFF", "#8E6CF0", "#5E8CFF", "#F0844C", "#3CC3CE", "#E87BA4"];
 const mcEmpty = () => Array.from({length: 7}, () => []);
 const kShort = k => KINDS[k]?.l || "?";
+/* seduta prevista nel microciclo: {k: capacità, e: espressione (facoltativa), t: target (facoltativo), rpe} */
+const slotK = it => kindNorm(it?.k) || it?.k;
+const slotE = it => it?.e && exprById(it.e)?.cap.id === KIND_CAP[slotK(it)] ? it.e : null;
+const slotT = it => it?.t && exprById(it.t) && KIND_CAP[slotK(it)] ? it.t : null;
+const slotLbl = it => { const k = slotK(it), e = slotE(it), t = slotT(it), tq = t && exprById(t);
+  return (KINDS[k]?.l || "?") + (e ? " · " + exprById(e).expr.name : "") + (t && t !== e ? " → " + (tq.cap.id === KIND_CAP[k] ? tq.expr.name : exprLbl(t)) : "") + (kindActive(k) ? "" : " (non più tra le capacità)"); };
 function mcCol(p, m){ const n = m?.name || "";
   if (/scaric/i.test(n)) return "#3DC88B"; if (/gar/i.test(n)) return "#E6AA3C"; if (/transiz|recuper/i.test(n)) return "#8A93A3";
   const others = (p?.models || []).filter(x => !/scaric|gar|transiz|recuper/i.test(x.name)); return MC_COLS[Math.max(0, others.indexOf(m)) % MC_COLS.length]; }
@@ -3094,7 +3121,7 @@ const rpeClamp = v => Math.max(1, Math.min(10, Math.round(v * 2) / 2));
 const mcWeekDays = (p, i, m) => { const A = p.wadj?.[i] || {}; return m.days.map((items, d) => items.map((it, j) => { const o = +A[`${d}-${j}`] || 0; return o ? {...it, rpe: rpeClamp(it.rpe + o), base: it.rpe} : it; })); };
 /* abbina le sedute del giorno a quelle previste (stesso tipo, in ordine); quelle che avanzano sono "fuori piano" */
 function mcPair(items, list){ const used = new Set();
-  const pair = (items || []).map(it => { const w = list.find(w => !used.has(w) && kindOf(w) === it.k) || null; if (w) used.add(w); return w; });
+  const pair = (items || []).map(it => { const w = list.find(w => !used.has(w) && kindOf(w) === kindNorm(it.k)) || null; if (w) used.add(w); return w; });
   return {pair, rest: list.filter(w => !used.has(w))}; }
 const mcCmp = (plan, r) => { const df = r - plan; return Math.abs(df) <= 1 ? ["ok", "✓", "come previsto (±1)"] : df > 0 ? ["hi", "▲", "più duro del previsto"] : ["lo", "▼", "più leggero del previsto"]; };
 const doneRpe = w => w && statusOf(w) === "done" ? +w.sessionRpe || null : null;
@@ -3102,7 +3129,7 @@ const doneRpe = w => w && statusOf(w) === "done" ? +w.sessionRpe || null : null;
 function mcCellHtml(a, d, items, list){
   /* le sedute vere nell'ordine del giorno (quello che sceglie il coach trascinando), ognuna con la sua seduta prevista se c'è; poi le caselle previste ancora vuote */
   const {pair, rest} = mcPair(items, list), itOf = new Map(); pair.forEach((w, j) => { if (w) itOf.set(w, items[j]); });
-  const out = list.map(w => cardHtml(a.email, w, itOf.get(w) || "off")).concat((items || []).flatMap((it, j) => pair[j] ? [] : [`<button class="mslot" style="--kc:${kindColor(it.k)}" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" data-k="${it.k}" title="Seduta prevista: ${esc(KINDS[it.k]?.l || "")}, RPE ${fmt1(it.rpe)}${it.base != null ? ` (modello ${fmt1(it.base)}, ${it.rpe > it.base ? "+" : ""}${fmt1(it.rpe - it.base)} questa settimana)` : ""} · clicca per crearla"><span class="pp">+</span><b>${kShort(it.k)}</b><span class="v">${fmt1(it.rpe)}</span></button>`]));
+  const out = list.map(w => cardHtml(a.email, w, itOf.get(w) || "off")).concat((items || []).flatMap((it, j) => pair[j] ? [] : [`<button class="mslot" style="--kc:${kindColor(it.k)}" data-act="new-w" data-e="${esc(a.email)}" data-d="${d}" data-k="${slotK(it)}" data-ke="${slotE(it) || ""}" title="Seduta prevista: ${esc(slotLbl(it))}, RPE ${fmt1(it.rpe)}${it.base != null ? ` (modello ${fmt1(it.base)}, ${it.rpe > it.base ? "+" : ""}${fmt1(it.rpe - it.base)} questa settimana)` : ""} · clicca per crearla"><span class="pp">+</span><b>${esc(slotLbl(it))}</b><span class="v">${fmt1(it.rpe)}</span></button>`]));
   if (!items?.length && !list.length) out.push(`<div class="mrest2">Riposo</div>`);
   return out.join("");
 }
@@ -3110,7 +3137,7 @@ function mcCellHtml(a, d, items, list){
 function mcBarsHtml(items, list){
   if (!items?.length) return `<span class="dbars"></span>`; const H = 22, {pair} = mcPair(items, list);
   return `<span class="dbars">${items.map((it, j) => { const r = doneRpe(pair[j]);
-    return `<span class="bw" title="${esc(KINDS[it.k]?.l || "")}: RPE previsto ${fmt1(it.rpe)}${r ? " · fatto " + fmt1(r) : ""}"><span class="bar" style="height:${Math.max(3, it.rpe / 10 * H)}px;background:${kindColor(it.k)}"></span>${r ? `<span class="dot" style="bottom:${Math.min(10, r) / 10 * H}px"></span>` : ""}</span>`; }).join("")}</span>`;
+    return `<span class="bw" title="${esc(slotLbl(it))}: RPE previsto ${fmt1(it.rpe)}${r ? " · fatto " + fmt1(r) : ""}"><span class="bar" style="height:${Math.max(3, it.rpe / 10 * H)}px;background:${kindColor(it.k)}"></span>${r ? `<span class="dot" style="bottom:${Math.min(10, r) / 10 * H}px"></span>` : ""}</span>`; }).join("")}</span>`;
 }
 const MC_LEGEND = `<div class="mclegend"><span class="t">Piano della settimana</span><span><i class="b"></i>barretta nel giorno = RPE previsto (colore = tipo)</span><span><i class="d"></i>RPE dato dall'atleta</span><span><i class="s"></i>seduta prevista da creare</span><span class="ok">✓ come previsto (±1)</span><span class="hi">▲ più duro</span><span class="lo">▼ più leggero</span></div>`;
 function mcBandHtml(a, ws, mc){
@@ -3121,21 +3148,30 @@ function mcBandHtml(a, ws, mc){
     <span class="mci">${info}</span><span class="mca">${ov ? `<button class="btn sm ghost" data-act="mc-reset" data-ws="${ws}" title="Togli la personalizzazione e torna al modello del piano">↺ Modello</button>` : ""}<button class="btn sm ghost" data-act="mc-ov" data-ws="${ws}" title="${days ? `Cambia questa settimana solo per ${first}` : `Scrivi il piano di questa settimana per ${first}`}">✎ ${days ? "Personalizza" : "Scrivi il piano"}</button></span></div>${I.length || AM.length ? `<div class="mcideas ${op ? "open" : ""}"><span class="mcl">Idee / metodi</span><span class="mcil">${I.map(b => `<span class="mcidea ${b.done ? "done" : ""} ${ideaTxt(b).length > 48 ? "lg" : ""}" title="${esc((b.done ? "✓ Fatta · " : "Da fare · ") + ideaTxt(b))}">${b.done ? "✓ " : ""}💡 <b>${esc(b.goal)}</b>${b.how ? ` <span class="how">→ ${esc(b.how)}</span>` : ""}</span>`).join("")}${AM.map(m => `<span class="mcidea ab ${m.ab.length + m.name.length + m.t.length > 48 ? "lg" : ""}" style="--ac:${m.col}" title="${esc(`${m.ab} · ${m.name} → ${m.t}`)}"><i class="adot" style="background:${m.col}"></i><span class="an">${esc(m.ab)}:</span> <b>${esc(m.name)}</b> <span class="how">→ ${esc(m.t)}</span></span>`).join("")}</span>
       <button type="button" class="btn sm ghost mcit" data-act="mc-ideas" data-ws="${ws}">${op ? "Riduci ▴" : "Mostra tutto ▾"}</button></div>` : ""}</div></div>`;
 }
-/* editor dei giorni (modello o settimana personalizzata): D = 7 liste di {k, rpe} */
+/* menu della seduta prevista: capacità (in generale) o capacità · espressione, poi Partita / Gara; sotto il target facoltativo */
+function mcSlotSel(it, i, j){ const k = slotK(it), e = slotE(it), t = slotT(it), v = k + (e ? "|" + e : ""), isCap = !!KIND_CAP[k];
+  const capOpts = (sel, pre) => stimData().caps.map(c => { const kk = Object.keys(KIND_CAP).find(z => KIND_CAP[z] === c.id); if (!kk) return "";
+    return `<optgroup label="${esc(c.name)}">${pre ? "" : `<option value="${kk}" ${sel === kk ? "selected" : ""}>${esc(c.name)} · in generale</option>`}${c.expr.map(q => `<option value="${pre ? q.id : kk + "|" + q.id}" ${sel === (pre ? q.id : kk + "|" + q.id) ? "selected" : ""}>${esc(c.name)} · ${esc(q.name)}</option>`).join("")}</optgroup>`; }).join("");
+  const tq = t && exprById(t), tl = t ? "→ target: " + (tq.cap.id === KIND_CAP[k] ? tq.expr.name : exprLbl(t)) : "+ target";
+  return `<label class="mcpick"><span class="mcpl">${esc((KINDS[k]?.l || "?") + (e ? " · " + exprById(e).expr.name : "") + (kindActive(k) ? "" : " · non più tra le capacità"))}</span><span class="spcv" aria-hidden="true">▾</span><select class="in" data-mc="k" data-d="${i}" data-j="${j}" aria-label="Seduta prevista">${kindActive(k) ? "" : `<option value="${esc(it.k)}" selected>${esc(KINDS[k]?.l || it.k)} · non più tra le capacità</option>`}${capOpts(v)}<optgroup label="Eventi">${KIND_KEYS.filter(z => !KIND_CAP[z]).map(z => `<option value="${z}" ${k === z ? "selected" : ""}>${esc(KINDS[z].l)}</option>`).join("")}</optgroup></select></label>
+    ${isCap ? `<label class="mcpick mct${t ? "" : " empty"}"><span class="mcpl">${esc(tl)}</span><span class="spcv" aria-hidden="true">▾</span><select class="in" data-mc="t" data-d="${i}" data-j="${j}" aria-label="Target della seduta (facoltativo)"><option value="">nessun target (facoltativo)</option>${capOpts(t || "", true).replace(/(<option value="[^"]*"[^>]*>)/g, "$1→ ")}</select></label>` : ""}`; }
+/* editor dei giorni (modello o settimana personalizzata): D = 7 liste di {k, e?, t?, rpe} */
 function mcDaysHtml(D){
   return `<div class="mgrid">${D.map((items, i) => `<div class="mday"><div class="dn">${MC_DAYS[i]}</div>${items.length ? "" : `<div class="mrest">Riposo</div>`}
-    ${items.map((it, j) => `<div class="mcr" style="--bc:${kindColor(it.k)}"><select class="in" data-mc="k" data-d="${i}" data-j="${j}" aria-label="Tipo di seduta">${KIND_KEYS.map(k => `<option value="${k}" ${(LEGACY_KIND[it.k] || it.k) === k ? "selected" : ""}>${KINDS[k].l}</option>`).join("")}</select>
+    ${items.map((it, j) => `<div class="mcr" style="--bc:${kindColor(it.k)}">${mcSlotSel(it, i, j)}
       <div class="mrr"><label>RPE</label><span class="nstep"><button type="button" data-step="-1" aria-label="Meno">−</button><input class="in" type="number" inputmode="decimal" min="1" max="10" step="0.5" value="${it.rpe}" data-mc="rpe" data-d="${i}" data-j="${j}" aria-label="RPE previsto"><button type="button" data-step="1" aria-label="Più">+</button></span><button type="button" class="btn sm ghost" data-mc="del" data-d="${i}" data-j="${j}" aria-label="Togli la seduta" title="Togli la seduta">✕</button></div></div>`).join("")}
     <button type="button" class="madd" data-mc="add" data-d="${i}">+ seduta</button></div>`).join("")}</div>`;
 }
-const mcShpHtml = D => `<div class="shl">Forma del microciclo <span class="faint">· altezza = RPE previsto</span></div><div class="shp">${D.map((items, i) => `<div class="c" title="${MC_DAYS[i]}">${items.length ? items.map(it => `<div style="height:${Math.max(3, it.rpe / 10 * 56)}px;background:${kindColor(it.k)}" title="${esc(KINDS[it.k].l)} · RPE ${fmt1(it.rpe)}"></div>`).join("") : `<div class="z"></div>`}</div>`).join("")}</div>
+const mcShpHtml = D => `<div class="shl">Forma del microciclo <span class="faint">· altezza = RPE previsto</span></div><div class="shp">${D.map((items, i) => `<div class="c" title="${MC_DAYS[i]}">${items.length ? items.map(it => `<div style="height:${Math.max(3, it.rpe / 10 * 56)}px;background:${kindColor(it.k)}" title="${esc(slotLbl(it))} · RPE ${fmt1(it.rpe)}"></div>`).join("") : `<div class="z"></div>`}</div>`).join("")}</div>
   <div class="shd">${MC_DAYS.map(d => `<span>${d.slice(0, 3)}</span>`).join("")}</div>`;
 /* collega gli input dell'editor dei giorni a D; redraw() ridisegna tutto, shape() solo la forma */
 function mcBind(root, getD, redraw, shape){
   root.addEventListener("click", e => { const b = e.target.closest("[data-mc]"); if (!b || b.tagName === "SELECT" || b.tagName === "INPUT") return; const D = getD(); if (!D) return; const d = +b.dataset.d, j = +b.dataset.j;
-    if (b.dataset.mc === "add") { const prev = D[d][D[d].length - 1]; D[d].push({k: prev ? prev.k : "forza", rpe: prev ? prev.rpe : 5}); redraw(); }
+    if (b.dataset.mc === "add") { const prev = D[d][D[d].length - 1]; D[d].push(prev ? {...prev} : {k: KIND_KEYS[0] || "forza", rpe: 5}); redraw(); }
     else if (b.dataset.mc === "del") { D[d].splice(j, 1); redraw(); } });
-  root.addEventListener("change", e => { const b = e.target.closest("select[data-mc=k]"); if (!b) return; const D = getD(); D[+b.dataset.d][+b.dataset.j].k = b.value; redraw(); });
+  root.addEventListener("change", e => { const b = e.target.closest("select[data-mc=k], select[data-mc=t]"); if (!b) return; const D = getD(), it = D[+b.dataset.d][+b.dataset.j];
+    if (b.dataset.mc === "t") { if (b.value) it.t = b.value; else delete it.t; return redraw(); }
+    const [k, q] = b.value.split("|"); it.k = k; if (q) it.e = q; else delete it.e; if (!KIND_CAP[kindNorm(k) || k]) delete it.t; redraw(); });
   root.addEventListener("input", e => { const b = e.target.closest("input[data-mc=rpe]"); if (!b) return; const D = getD(), v = parseFloat(String(b.value).replace(",", "."));
     if (v >= 1 && v <= 10) { D[+b.dataset.d][+b.dataset.j].rpe = Math.round(v * 2) / 2; shape(); } });
 }
@@ -3269,7 +3305,7 @@ function mcIntDialog(mid, a, z){
 }
 /* Calendario: personalizza la settimana per un atleta */
 function mcOvDialog(a, ws){
-  const mc = mcFor(a, ws) || {}, D = (mc.days || mcEmpty()).map(items => items.map(({k, rpe}) => ({k, rpe}))), first = a.name.split(" ")[0];
+  const mc = mcFor(a, ws) || {}, D = (mc.days || mcEmpty()).map(items => items.map(({k, e, t, rpe}) => ({k, ...(e ? {e} : {}), ...(t ? {t} : {}), rpe}))), first = a.name.split(" ")[0];
   $("#confirm").innerHTML = `<div class="back" style="z-index:70"><div class="modal mcdlg" role="dialog" aria-label="Piano della settimana"><header><h2>Piano della settimana</h2><span class="faint" style="font-size:12.5px">${esc(a.name)} · ${esc(fmtRange(ws))}</span><span class="grow"></span><button type="button" class="btn ghost icon" id="mo-x" aria-label="Chiudi">✕</button></header>
     <div class="body"><div class="faint" style="font-size:12.5px;margin-bottom:10px">${mc.m ? `Parti dal modello <b>${esc(mc.m.name)}</b> del piano: le modifiche valgono solo per ${esc(first)} e solo in questa settimana.` : `Questa settimana non ha un modello nel piano: quello che scrivi vale solo per ${esc(first)}.`} Ogni riga è una seduta: tipo + RPE di seduta previsto (1–10).</div>
       <div id="mo-days">${mcDaysHtml(D)}</div><div id="mo-shape">${mcShpHtml(D)}</div></div>
@@ -3501,10 +3537,15 @@ let mcFitT; addEventListener("resize", () => { clearTimeout(mcFitT); mcFitT = se
 const ST_ICON = (() => { const sv = d => `<svg viewBox="0 0 12 12" aria-hidden="true">${d}</svg>`, ln = 'fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"';
   return {done: sv(`<path d="M2.6 6.3l2.2 2.2 4.6-4.8" ${ln}/>`), progress: sv(`<circle cx="6" cy="6" r="3.7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 2.3a3.7 3.7 0 0 1 0 7.4z" fill="currentColor"/>`),
     missed: sv(`<path d="M3.4 3.4l5.2 5.2M8.6 3.4l-5.2 5.2" ${ln}/>`), skipped: sv(`<path d="M3.4 3.4l5.2 5.2M8.6 3.4l-5.2 5.2" ${ln}/>`)}; })();
+/* piano e seduta: se nel microciclo hai indicato l'espressione o il target e la seduta dice altro, un avviso (non blocca niente) */
+function slotDiff(pl, w){ if (!pl || pl === "off" || !kindPresent(w).length) return ""; const e = slotE(pl), t = slotT(pl), we = kindExpr(w), wt = kindTargetRaw(w), out = [];
+  if (e && we && e !== we) out.push(`piano: <b>${esc(exprById(e).expr.name)}</b>`);
+  if (t && t !== (wt || null)) out.push(`target piano: <b>${esc(exprById(t).expr.name)}</b>${wt ? "" : " (nessuna serie Target)"}`);
+  return out.length ? `<div class="kpl dif" title="Il microciclo prevedeva altro: la seduta programmata è quella scritta sopra">≠ ${out.join(" · ")}</div>` : ""; }
 function cardHtml(email, w, pl){
   const st = statusOf(w), r = st === "done" ? +w.sessionRpe || null : null, c = pl && pl !== "off" && r ? mcCmp(pl.rpe, r) : null;
   const plh = !pl ? "" : pl === "off" ? `<div class="kpl off" title="Seduta non prevista dal piano della settimana">fuori piano</div>`
-    : `<div class="kpl" title="RPE di seduta previsto${c ? " → dato dall'atleta: " + c[2] : ""}">prev. <b>${fmt1(pl.rpe)}</b>${c ? ` → <span class="${c[0]}">${fmt1(r)} ${c[1]}</span>` : ""}</div>`;
+    : `<div class="kpl" title="RPE di seduta previsto${c ? " → dato dall'atleta: " + c[2] : ""}">prev. <b>${fmt1(pl.rpe)}</b>${c ? ` → <span class="${c[0]}">${fmt1(r)} ${c[1]}</span>` : ""}</div>${slotDiff(pl, w)}`;
   return `<div class="wcard st-${st} ${pl ? "mk" : ""} ${S.calSel.has(w.id) ? "sel" : ""} ${w.hidden ? "hid" : ""}" ${pl ? `style="--kc:${kindColor(kindOf(w))}"` : ""} draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <span class="tr">${ST_ICON[st] ? `<span class="stb st-${st}" title="${STATUS_TXT[st]}" aria-label="${STATUS_TXT[st]}">${ST_ICON[st]}</span>` : ""}<button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></span><div class="t"><span class="dot st-${st}"></span><span class="tt">${esc(w.title||"Senza titolo")}</span></div>
     ${w.hidden ? `<div class="hidl">Nascosto all'atleta</div>` : ""}
@@ -4199,7 +4240,7 @@ function weekCmpHtml(ser, key, a){
         return ["Bilaterale", "Unilaterale"].map(c => { const a1 = pc(x, c), b1 = pc(y, c); return a1 == null || b1 == null ? "" : `<span class="faint">${c === "Bilaterale" ? "bi" : "uni"}</span> ${dPts({avg: a1}, {avg: b1})}`; }).filter(Boolean).join("<br>"); }, 1],
     ...LAT_ORDER.filter(c => [nA, nB].some(n => latV(n, c, q))).map(c => [`↳ ${c}`, n => latV(n, c, q) ? fmtN(latV(n, c, q)) : `<span class="faint">–</span>`, (x, y) => q === "serie" ? dAbs(latV(x, c, q), latV(y, c, q)) : dPct(latV(x, c, q), latV(y, c, q)), 1, 1])])];
   /* --- dettaglio "Carico sRPE": totale e come è stato distribuito --- */
-  const kindsS = KIND_KEYS.filter(k => nA.srpeK[k] || nB?.srpeK[k]);
+  const kindsS = kindKeysAll().filter(k => nA.srpeK[k] || nB?.srpeK[k]);
   const dayUA = n => DAYS.map((_, i) => n.sess.filter(q => q.done && dayIdx(q.d) === i).reduce((t, q) => t + q.srpe, 0));
   const monoOf = n => { const L = dayUA(n), tot = L.reduce((t, v) => t + v, 0), mean = tot / 7, sd = Math.sqrt(L.reduce((t, v) => t + (v - mean) ** 2, 0) / 7); return sd > 0 ? {m: mean / sd, s: tot * mean / sd} : null; };
   const durOf = n => { const L = n.sess.filter(q => q.done && q.min); return {tot: L.reduce((t, q) => t + q.min, 0), n: L.length}; };
@@ -4373,7 +4414,7 @@ function drawBarChart(el, ser, key, a){
     const pick = o.ws === anQ[ka] ? "A" : o.ws === anQ[kb] ? "B" : "";
     /* sRPE: colonna divisa per tipo di seduta (pesi in basso, poi campo, tecnica, partita), 2px di stacco tra i pezzi */
     let stack = "";
-    if (stacked && h > 0) { let cum = 0; const segs = (CAT ? CATS.map(c => [c, cv(NW[k], c)]) : KIND_KEYS.map(kk => [kk, o.byK[kk]?.[key] || 0])).filter(([,v]) => v > 0);
+    if (stacked && h > 0) { let cum = 0; const segs = (CAT ? CATS.map(c => [c, cv(NW[k], c)]) : kindKeysAll().map(kk => [kk, o.byK[kk]?.[key] || 0])).filter(([,v]) => v > 0);
       segs.forEach(([kk, v], i) => { const y0 = y(cum), y1 = y(cum + v), isTop = i === segs.length - 1; cum += v;
         const yt = isTop ? y1 : y1 + 2, hh = y0 - yt; if (hh <= 0) return;
         const rr = isTop ? Math.min(4, hh, bw/2) : 0;
@@ -4396,7 +4437,7 @@ function drawBarChart(el, ser, key, a){
   svg += `</svg><div class="ctip" hidden></div>`;
   if (TEN) svg += `<div class="clegend"><span style="--c:var(--accent)"><i style="height:10px;width:10px"></i>vicine al migliore del giorno</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--ink)"></i>vicine al migliore personale</span><span><b style="color:var(--warn)">▼</b>cali dopo il picco</span></div>`;
   if (CAT && !CFb && CATS.length) svg += `<div class="clegend">${CATS.map(c => `<span style="--c:${catCol(c)}"><i style="height:10px;width:10px"></i>${esc(c)}</span>`).join("")}</div>`;
-  else if (stacked) { const used = KIND_KEYS.filter(kk => ser.some(o => o.byK[kk]?.[key]));
+  else if (stacked) { const used = kindKeysAll().filter(kk => ser.some(o => o.byK[kk]?.[key]));
     if (used.length) svg += `<div class="clegend">${used.map(kk => `<span style="--c:${kindColor(kk)}"><i style="height:10px;width:10px"></i>${KINDS[kk].l}</span>`).join("")}</div>`; }
   const mz = Object.values(mesoUsed);
   if (mz.length) svg += `<div class="clegend">${mz.map(m => `<span style="--c:${mcol(m.color)}"><i></i>${esc(m.name)}${m.goal ? " · " + esc(m.goal) : ""}</span>`).join("")}</div>`;
@@ -4419,7 +4460,7 @@ function drawBarChart(el, ser, key, a){
     if (SECt && o.sec > 0) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `+${compact(o.sec)} come stimolo secondario (non nel totale)`; tip.append(d); }
     else if (CAT) { CATS.forEach(c => { const v = cv(NW[+g.dataset.k], c); if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${c}: ${fmtN(v)} ${METRICS[key].u}`.trim(); tip.append(d); } });
       if (kFilt0(key)) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `Solo sedute: ${KINDS[kFilt0(key)].l}`; tip.append(d); } }
-    else if (stacked) KIND_KEYS.forEach(kk => { const v = o.byK[kk]?.[key]; if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${KINDS[kk].l}: ${fmtN(v)} ${METRICS[key].u}`.trim() + ` (${o.byK[kk].n} sedut${o.byK[kk].n === 1 ? "a" : "e"})`; tip.append(d); } });
+    else if (stacked) kindKeysAll().forEach(kk => { const v = o.byK[kk]?.[key]; if (v) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `${KINDS[kk].l}: ${fmtN(v)} ${METRICS[key].u}`.trim() + ` (${o.byK[kk].n} sedut${o.byK[kk].n === 1 ? "a" : "e"})`; tip.append(d); } });
     else if (kFilt0(key)) { const d = document.createElement("div"); d.className = "tl"; d.textContent = `Solo sedute: ${KINDS[kFilt0(key)].l}`; tip.append(d); }
     const mm = mesoAt(a, o.ws); if (mm) { const t3 = document.createElement("div"); t3.className = "tl"; t3.textContent = `${mm.name} · settimana ${mm.idx} di ${mm.weeks}`; tip.append(t3); }
     tip.hidden = false;
@@ -7527,7 +7568,7 @@ const ACT = {
     if (!(await confirmBox(`Eliminare ${list.length} allenament${list.length === 1 ? "o" : "i"} di ${a.name}?${withRes ? ` ${withRes} ${withRes === 1 ? "ha" : "hanno"} già dati registrati dall'atleta: si perdono anche quelli.` : ""}`, "Elimina"))) return;
     let err = 0; for (const w of list) { try { await DB.deleteWorkout(a.email, w.id); delete S.cache[a.email][w.id]; } catch(e) { console.error(e); err++; } }
     S.calSel.clear(); S.calPick = false; toast(err ? `Eliminati ${list.length - err}, ${err} non riusciti` : `Eliminati ${list.length} allenamenti`); refreshCoach(); },
-  "new-w"(t, ev){ ev.stopPropagation(); const w = {id: uid(), date: t.dataset.d, title:"", notes:"", ...(KINDS[t.dataset.k] ? {kind: t.dataset.k} : {}), exercises:[{...newExercise(), block:"A"}], status:"todo", results:{}}; openEditor(t.dataset.e, w, true); setTimeout(()=>$("#ed-title")?.focus(), 30); },
+  "new-w"(t, ev){ ev.stopPropagation(); const w = {id: uid(), date: t.dataset.d, title:"", notes:"", ...(KINDS[t.dataset.k] ? {kind: t.dataset.k, ...(t.dataset.ke ? {kindE: t.dataset.ke} : {})} : {}), exercises:[{...newExercise(), block:"A"}], status:"todo", results:{}}; openEditor(t.dataset.e, w, true); setTimeout(()=>$("#ed-title")?.focus(), 30); },
   "copy-week"(t){ const ws = t.dataset.ws; const a = athByEmail(S.calAthlete);
     const list = wIn(a.email, ws, addDays(ws,6));
     copyDialog({title:`Copia settimana ${weekNo(ws)} (${list.length} allenamenti)`, date: addDays(ws,7), dateLabel:"Incolla nella settimana che inizia lunedì", preselect:[a.email],

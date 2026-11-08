@@ -5447,7 +5447,7 @@ function firmaSeq(email, w){
   const ex = namedEx(w), out = []; let pos = 0;
   ssGroups(ex).forEach((g, gi) => { const len = Math.max(0, ...g.map(i => (ex[i].sets || []).length));
     for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], st = (x.sets || [])[j]; if (!st) return; pos++;
-      const name = exName(w, x), pat = pcOf(name), src = archPlan(st);
+      const name = exName(w, x), pat = (pa => pa || (sp => sp !== SCH_NONE ? sp : "")(schOfName(name).p))(pcOf(name)), src = archPlan(st);   // movimento: l'abilità, se no lo schema/pattern dominante
       let rpe = setRpe(src)?.v ?? null; const ra = arRng(st.rpe), rb = arRng(st.rir); if (ra) rpe = (ra[0] + ra[1]) / 2; else if (rb && !String(st.rpe ?? "").trim()) rpe = 10 - (rb[0] + rb[1]) / 2;
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
       const pct = oneNum(st.pct) ?? oneNum(st.pbest) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
@@ -5488,7 +5488,7 @@ function firmaOf(email, w){
     const fm = z => m === "pct" ? Math.round(z) + "%" : m === "rpe" ? fmtN(z, Number.isInteger(z) ? 0 : 1) : fmtN(z, 1) + " kg";
     const iTxt = !vv.length ? "" : (lo => lo === mx ? (m === "rpe" ? "RPE " : "") + fm(mx) : `${m === "rpe" ? "RPE " : ""}${fm(lo)}–${fm(mx)}`)(Math.min(...vv)) + (m === "pct" && L.some(o => oneNum(o.st.pct) == null) ? " e1RM" : "");
     const uniq = q => [...new Set(L.map(o => o[q]).filter(Boolean))];
-    return {key: L[0].key, pat, names, L, n, m, v, shape, ip, ramp, back, peakW, hard, reps, totR, iTxt, rest: uniq("rest"), tut: uniq("tut"), cl: L.filter(o => o.cl).length, first: L[0].pos, last: L[n - 1].pos}; })}; }
+    return {key: L[0].key, pat, sch: !!pat && !pcOf(L[0].name), names, L, n, m, v, shape, ip, ramp, back, peakW, hard, reps, totR, iTxt, rest: uniq("rest"), tut: uniq("tut"), cl: L.filter(o => o.cl).length, first: L[0].pos, last: L[n - 1].pos}; })}; }
 /* ===== FASI DELLO STIMOLO (passo 2) =====
    Le serie di un movimento si dividono in FASI (gruppi di serie con lo stesso scopo). A ogni fase: espressione principale (capacità → espressione),
    eventuali secondarie e ruolo. Si salvano sulle serie (st.stim, st.stim2, st.role); se il coach non sceglie vale la PROPOSTA dell'app
@@ -5646,7 +5646,7 @@ function firmaHtml(email, w){
       f.rest.length ? "rec. " + esc(f.rest.join(" / ")) : "",
       f.tut.length ? "tempo " + esc(f.tut.join(" / ")) : "",
       f.cl ? `${f.cl} cluster` : ""].filter(Boolean);
-    return `<div class="frow" style="--fc:${c}"><div class="fh"><span class="fpat">${esc(f.pat || f.names[0])}</span>${!f.pat ? `<span class="faint" title="Esercizio senza pattern nella libreria: aggiungilo nella scheda dell'esercizio per raggrupparlo con gli altri dello stesso movimento"> · senza pattern</span>` : ""}<span class="fmez">mezzi: ${esc(f.names.join(", "))}</span></div>
+    return `<div class="frow" style="--fc:${c}"><div class="fh"><span class="fpat">${esc(f.pat || f.names[0])}</span>${!f.pat ? `<span class="faint" title="Esercizio senza abilità né schemi e pattern nella libreria: aggiungili nella scheda dell'esercizio per raggrupparlo con gli altri dello stesso movimento"> · non classificato</span>` : f.sch ? `<span class="faint" title="Esercizio senza abilità: il riquadro prende il nome dallo schema o pattern dominante"> · dominante</span>` : ""}<span class="fmez">mezzi: ${esc(f.names.join(", "))}</span></div>
       <div class="fb"><div class="ftxt">${parts.join(" · ")}</div><div class="fpos">${spark}<small>serie ${f.first === f.last ? f.first : `${f.first}–${f.last}`} di ${F.N} della seduta</small></div></div>${fasiHtml(f, w)}</div>`; }).join("");
   return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Struttura degli stimoli</b> <span class="faint">· in ordine di programma</span></summary>
     <div class="fdesc">In alto la <b>seduta</b> intera: come lo stimolo sale, tocca i picchi e scende passando da un movimento all'altro. Sotto, nell'ordine del programma, un riquadro per ogni blocco dello stesso movimento (esercizi di seguito; se il movimento torna più avanti è un riquadro nuovo): forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del blocco, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app. Tipo di serie e ruolo vanno insieme: cambiando l'uno cambia l'altro.</div>${S.editor?.aligned && S.editor.w === w ? `<div class="faint" style="font-size:12px;margin:2px 0 6px">↻ Aprendo la seduta ho allineato il tipo al ruolo in ${S.editor.aligned} serie: si salva con la prossima modifica.</div>` : ""}${sessStrip(F, KC)}${rows}</details>`; }

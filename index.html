@@ -745,7 +745,7 @@ details.mvg > summary{cursor:pointer;list-style:none}details.mvg > summary::-web
 .fzhd,.fz{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 112px;gap:6px;align-items:center}
 .fzhd{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 8px}
 .fz{border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--surface)}.fz.prop{border-style:dashed}
-.fzh{font-size:12.5px;line-height:1.3}.fzh .fzn{color:var(--muted)}.fzp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);margin-left:2px}
+.fzh{font-size:12.5px;line-height:1.3}.fzh .fzn{color:var(--muted)}.fzps{font-size:11px;color:var(--faint);margin-left:4px}.fzp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);margin-left:2px}
 .fzsel{height:30px;padding:2px 6px;font-size:12.5px;width:100%;min-width:0}.fz.prop .fzsel{color:var(--muted)}
 .fz2{display:flex;flex-wrap:wrap;align-items:center;gap:3px;min-width:0}.fz2 .altc{font-size:11px}
 .fzt{display:flex;align-items:center;justify-content:flex-end;gap:4px}.fzcut{width:44px;flex:none;padding:2px 4px}
@@ -1937,6 +1937,7 @@ async function ensureWeeks(email, ws, n, force=false){
   list.forEach(w => cache[w.id] = w);
   if (!wasSlow) need.forEach(w => set.add(w));
   INTM = null;   // nuove sedute in memoria: i riferimenti dell'intensità vanno ricalcolati
+  propFixPastSoon();   // coach: fissa le proposte delle sedute passate appena caricate
   return true;
 }
 const effDate = w => w.doneDate || w.date;     // giorno in cui è stato svolto davvero (se diverso da quello previsto)
@@ -5231,13 +5232,24 @@ function exAgg(){ if (EXA && EXA.ok && EXA.v === STIMV) return EXA;   // già co
   for (const c of Object.values(S.cache || {})) for (const w of Object.values(c || {})) { n++; if (same && !EXA.o.has(w)) same = false; }
   const tick = () => setTimeout(() => { if (EXA) EXA.ok = false; }, 0);
   if (same && EXA.n === n) { EXA.ok = true; tick(); return EXA; }
-  const u = {}, co = {}, o = new WeakSet();
-  Object.values(S.cache || {}).forEach(ws => Object.values(ws || {}).forEach(w => { if (!w) return; o.add(w); (w.exercises || []).forEach(x => { const by = {};
+  const u = {}, co = {}, o = new WeakSet(), ctx = {};
+  Object.entries(S.cache || {}).forEach(([em, ws]) => Object.values(ws || {}).forEach(w => { if (!w) return; o.add(w); (w.exercises || []).forEach(x => { const by = {};
+    const cs = (x.sets || []).filter(st => stimOk(st.stim)).map(st => ({t: st.type || "", e: st.stim, e2: (st.stim2 || []).filter(id => stimOk(id) && id !== st.stim)}));
+    if (cs.length) (((ctx[em] ??= {})[optKey(exName(w, x))] ??= [])).push({d: effDate(w), id: w.id, L: cs});
     (x.sets || []).forEach(st => { if (!stimOk(st.stim)) return; const b = (by[st.stim] ??= new Set()); (st.stim2 || []).filter(id => stimOk(id) && id !== st.stim).forEach(id => b.add(id)); });
     const es = Object.keys(by); if (!es.length) return; const nk = optKey(exName(w, x));
     const t = (u[nk] ??= {}); es.forEach(e => t[e] = (t[e] || 0) + 1);
     const tc = (co[nk] ??= {}); Object.entries(by).forEach(([e, B]) => { const q = (tc[e] ??= {n: 0, co: {}}); q.n++; B.forEach(id => q.co[id] = (q.co[id] || 0) + 1); }); }); }));
-  EXA = {v: STIMV, n, o, u, co, ok: true}; tick(); return EXA; }
+  Object.values(ctx).forEach(m => Object.values(m).forEach(L => L.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0)));
+  EXA = {v: STIMV, n, o, u, co, ctx, ok: true}; tick(); return EXA; }
+/* CONTESTO: cosa hai scelto per quell'esercizio con quell'atleta nell'ultima seduta prima di questa (entro 8 settimane).
+   Si prende l'ultima serie dello stesso tipo (R, W, B…) scelta da te (✓, non le proposte) */
+const CTX_DAYS = 56;
+function ctxProp(o){ if (!o?.em || !o.d) return null; const L = exAgg().ctx[o.em]?.[optKey(o.name)]; if (!L) return null; const lo = addDays(o.d, -CTX_DAYS);
+  for (let i = L.length - 1; i >= 0; i--) { const q = L[i]; if (q.d >= o.d || q.id === o.wid) continue; if (q.d < lo) break;
+    const pk = q.L.filter(z => z.t === (o.type || "")).pop(); if (!pk) continue;   // serie dello stesso tipo scelte da te; se in quella seduta no, guardo quelle prima
+    return {e: pk.e, e2: pk.e2, d: q.d}; }
+  return null; }
 function exUses(name){ return exAgg().u[optKey(name)] || {}; }
 const usesList = name => Object.entries(exUses(name)).sort((a, b) => b[1] - a[1]);
 /* CONCOMITANTI abituali: per ogni stimolo principale confermato su un esercizio, con quali concomitanti l'hai accompagnato (una volta per seduta) */
@@ -5616,7 +5628,7 @@ function firmaSeq(email, w){
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
       const pct = oneNum(st.pct) ?? oneNum(st.pbest) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
       const r = (w.results?.[x.id] || [])[j], did = !!r && !emptyRes(r), rpeA = did ? setRpe(r)?.v ?? null : null, rpeF = phaseRpe(w, x, j), pctA = did ? setInt(email, w, x, name, r, st)?.pct ?? null : null;
-      out.push({pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+      out.push({em: email, d: effDate(w), wid: w.id, pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: libByName(name)?.stim0 || "", dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
   return out; }
 const FIRMA_EPS = {pct: 1.5, rpe: 0.25};
 function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
@@ -5669,11 +5681,16 @@ function stimPropose(o, k, ip){
   const long = o.tutS != null && o.tutS >= TUT_LONG, c = ck(o.cat), hiInt = (o.rpe != null && o.rpe >= 8) || (o.pct != null && o.pct >= 85);
   let role = o.type ? roleByType(o.type) : null;
   if (!role) role = long && (ip < 0 || k < ip) ? "r_prep" : /riscald|attivaz/.test(c) ? "r_prep" : ip >= 0 && k < ip ? "r_ramp" : "r_work";
-  let e = null, e2 = [];
-  if (long) { e = "e_tec_appr"; if (hiInt || (o.reps != null && o.reps >= 6)) e2.push("e_strutt_iper"); }
-  else if (o.s0 !== "none" && exprById(o.s0)) { e = o.s0; if (exprById(e).cap.id === "c_vel" && ["e_vel_acc", "e_vel_max"].includes(e) && o.dist != null) e = o.dist <= 30 ? "e_vel_acc" : "e_vel_max"; }
-  /* nessuno stimolo proposto dal coach: l'uso prevalente; se gli usi sono alla pari, nessuna scelta (pulsanti rapidi nella fase); senza usi, la vecchia categoria */
-  else if (usesMain(o.name)) e = usesMain(o.name);
+  let e = null, e2 = [], src = "", sd = "";
+  /* 1) proposta fissata al salvataggio della seduta (resta quella che vedevi programmando, anche se poi cambi la scheda o le abitudini) */
+  const pf = o.st?.pf; if (pf && pf.n === optKey(o.name)) return {e: stimOk(pf.e) ? pf.e : null, e2: (pf.e2 || []).filter(stimOk), role: roleOk(role) ? role : null, src: "pf", sd: ""};
+  /* 2) il contesto: l'ultima volta con questo atleta; 3) tempo sotto tensione lungo; 4) l'uso prevalente; 5) la scheda dell'esercizio; 6) la categoria */
+  const cx = ctxProp(o);
+  if (cx && stimOk(cx.e)) { e = cx.e; e2 = [...cx.e2]; src = "ctx"; sd = cx.d; }
+  else if (long) { e = "e_tec_appr"; src = "tut"; if (hiInt || (o.reps != null && o.reps >= 6)) e2.push("e_strutt_iper"); }
+  else if (usesMain(o.name)) { e = usesMain(o.name); src = "uses"; }
+  else if (o.s0 !== "none" && exprById(o.s0)) { e = o.s0; src = "card"; if (exprById(e).cap.id === "c_vel" && ["e_vel_acc", "e_vel_max"].includes(e) && o.dist != null) e = o.dist <= 30 ? "e_vel_acc" : "e_vel_max"; }
+  /* usi alla pari: nessuna scelta (pulsanti rapidi nella fase); senza usi né scheda, la vecchia categoria */
   else if (o.s0 === "none" || usesList(o.name).length) e = null;
   else if (/potenz|olimp/.test(c)) e = "e_forza_espl";
   else if (/pliometr|balz|rimbalz/.test(c)) e = "e_forza_reat";
@@ -5683,8 +5700,10 @@ function stimPropose(o, k, ip){
   else if (/prevenz|corrett|core/.test(c)) e = "e_strutt_anat";
   else if (/condizion|resist/.test(c)) e = "e_res_aerc";
   else if (/forza/.test(c)) e = o.reps != null && o.reps >= 8 && !hiInt ? "e_strutt_iper" : "e_forza_max";
-  if (stimOk(e) && !long) coMain(o.name, e).forEach(id => { if (id !== e && !e2.includes(id)) e2.push(id); });   // concomitanti abituali con quel principale (imparati dagli usi)
-  return {e: stimOk(e) ? e : null, e2: e2.filter(stimOk), role: roleOk(role) ? role : null}; }
+  if (!src && stimOk(e)) src = "cat";
+  if (stimOk(e) && src !== "ctx" && src !== "tut") coMain(o.name, e).forEach(id => { if (id !== e && !e2.includes(id)) e2.push(id); });   // concomitanti abituali con quel principale (imparati dagli usi)
+  return {e: stimOk(e) ? e : null, e2: e2.filter(stimOk), role: roleOk(role) ? role : null, src: stimOk(e) ? src : "", sd}; }
+const PROP_SRC = {pf: d => "fissata", ctx: d => "come il " + fmtD(d), tut: () => "dal tempo sotto tensione", uses: () => "dagli usi", card: () => "dalla scheda", cat: () => "dalla categoria"};
 /* fasi di un movimento: nuova fase quando cambia l'esercizio, quando cambia la scelta del coach, quando c'è un taglio voluto (st.fb)
    o, finché il coach non ha scelto, quando cambia il tipo di serie o il tempo sotto tensione */
 function stimFasi(f){
@@ -5705,7 +5724,7 @@ function fasiHtml(f, w){
     const join = i > 0 && F[i - 1].L[0].x.id === o0.x.id;
     const ovr = ROLE_NOHARD.includes(z.role) ? z.L.filter(o => isHard((w?.results || {})[o.x.id]?.[o.j])).length : 0;
     return `<div class="fz ${z.asg ? "asg" : "prop"}">
-      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${(U => `<label class="fzi" title="Intenzione della fase: scrive l'RPE programmato su tutte le serie della fase"><span>intenzione RPE</span><input class="in fzin" type="text" inputmode="decimal" value="${U.length === 1 ? esc(U[0]) : ""}" placeholder="${U.length > 1 ? esc(fzVals(z)) : "–"}"${U.length > 1 ? ` style="width:${Math.min(92, 24 + fzVals(z).length * 7)}px" title="RPE diversi nelle serie della fase: ${esc(fzVals(z, true))}. Scrivendo un numero li sostituisci tutti (puoi annullare)"` : ""} data-change="fz-int" data-sets="${refs(z)}" aria-label="Intenzione RPE della fase"></label>`)([...new Set(z.L.map(o => String(o.st.rpe ?? "").trim()))])}${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app (dalla categoria dell'esercizio e dalla struttura delle serie). Cambiala o confermala.">proposta</span>`}</div>
+      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${(U => `<label class="fzi" title="Intenzione della fase: scrive l'RPE programmato su tutte le serie della fase"><span>intenzione RPE</span><input class="in fzin" type="text" inputmode="decimal" value="${U.length === 1 ? esc(U[0]) : ""}" placeholder="${U.length > 1 ? esc(fzVals(z)) : "–"}"${U.length > 1 ? ` style="width:${Math.min(92, 24 + fzVals(z).length * 7)}px" title="RPE diversi nelle serie della fase: ${esc(fzVals(z, true))}. Scrivendo un numero li sostituisci tutti (puoi annullare)"` : ""} data-change="fz-int" data-sets="${refs(z)}" aria-label="Intenzione RPE della fase"></label>`)([...new Set(z.L.map(o => String(o.st.rpe ?? "").trim()))])}${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app. Ordine: la tua scelta per questo esercizio nell'ultima seduta di questo atleta (8 settimane), poi il tempo sotto tensione, gli usi, la scheda dell'esercizio, la categoria. Quando la seduta è passata (o la salvi da quel giorno in poi) la proposta si fissa e non cambia più. Cambiala o confermala.">proposta</span>${z.p?.src && PROP_SRC[z.p.src] ? ` <span class="fzps">${esc(PROP_SRC[z.p.src](z.p.sd))}</span>` : ""}`}</div>
       <span class="fzes">${exprSel(z, z.e, "fz-e", "— stimolo —")}${!z.asg ? (U => U.length > 1 || (U.length && !z.e) ? `<span class="fzq"><span class="faint">usato come</span>${U.slice(0, 3).map(([e, n]) => `<button type="button" class="fzqb ${e === z.e ? "on" : ""}" data-act="fz-quick" data-sets="${refs(z)}" data-e="${e}" data-co="${coMain(o0.name, e).join(",")}" title="Usato ${n} volt${n === 1 ? "a" : "e"} come ${esc(exprLbl(e))}${coMain(o0.name, e).length ? ` (di solito con ${esc(coMain(o0.name, e).map(exprLbl).join(", "))})` : ""}">${esc(exprById(e)?.expr.name || "")} <span>${n}</span></button>`).join("")}</span>` : "")(usesList(o0.name)) : ""}</span>
       <select class="in fzsel" data-change="fz-r" data-sets="${refs(z)}" aria-label="Ruolo"><option value="">— ruolo —</option>${D.roles.map(r => `<option value="${r.id}" ${r.id === z.role ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>
       <span class="fz2">${z.e2.map(id => `<span class="altc">${esc(exprLbl(id))}<button type="button" data-act="fz-e2rm" data-sets="${refs(z)}" data-id="${id}" aria-label="Togli">×</button></span>`).join("")}${exprSel(z, "", "fz-e2", "+ concomitante")}</span>
@@ -7150,6 +7169,25 @@ async function closeEditor(force=false){
   if (!force && S.editor.dirty && !(await confirmBox("Chiudere senza salvare le modifiche?", "Chiudi senza salvare"))) return;
   S.editor = null; $("#modal").innerHTML = "";
 }
+/* PROPOSTE FISSATE: al salvataggio di una seduta di oggi o passata, sulle serie senza la tua scelta si scrive la proposta di quel momento (st.pf = {n: esercizio, e, e2}).
+   Non è una conferma (resta "proposta", non conta negli usi): serve solo a non far cambiare il passato se cambi scheda o abitudini */
+function propFix(email, w){ try { firmaOf(email, w).mv.forEach(f => stimFasi(f).forEach(z => { if (z.asg) return;
+  z.L.forEach(o => { if (o.j >= (o.x.sets || []).length || o.st.stim) return; o.st.pf = {n: optKey(o.name), e: z.e || "", e2: [...(z.e2 || [])]}; }); })); } catch(e) { console.warn(e); } }
+/* sedute PASSATE ancora "vive" (mai salvate da quel giorno in poi, o salvate prima di questa regola): il coach le fissa da solo
+   la prima volta che le carica. Scrive solo il programma (exercises), mai i risultati dell'atleta. Un po' alla volta, senza bloccare l'app */
+let PFP = null; const PFP_DONE = new Set();
+const pfNeeds = w => (w.exercises || []).some(x => (x.sets || []).some(st => !st.stim && !st.role && !(st.pf && st.pf.n === optKey(exName(w, x)))));
+function propFixPastSoon(){ if (S.user?.role !== "coach" || PFP) return; PFP = setTimeout(propFixPast, 1500); }
+async function propFixPast(){ const today = TODAY(), todo = [];
+  Object.entries(S.cache || {}).forEach(([em, ws]) => Object.values(ws || {}).forEach(w => { if (w && w.id && !PFP_DONE.has(w.id) && effDate(w) < today && (w.exercises || []).length && S.editor?.w?.id !== w.id && pfNeeds(w)) todo.push([em, w]); }));
+  const upd = [];
+  for (let i = 0; i < todo.length; i++) { const [em, w] = todo[i]; PFP_DONE.add(w.id);
+    const c = clone(w), before = JSON.stringify(c.exercises); propFix(em, c);
+    if (S.cache[em]?.[w.id] !== w || S.editor?.w?.id === w.id) continue;   // nel frattempo l'hai aperta o salvata tu: non tocco niente
+    if (JSON.stringify(c.exercises) !== before) { try { await DB.saveWorkout(em, {id: w.id, exercises: c.exercises}); upd.push([em, w, c.exercises]); } catch(e) { console.warn(e); PFP_DONE.delete(w.id); } }
+    if (i % 8 === 7) await new Promise(r => setTimeout(r, 30)); }   // respiro: l'app resta reattiva
+  upd.forEach(([em, w, ex]) => { if (S.cache[em]?.[w.id] === w) S.cache[em][w.id] = {...w, exercises: ex}; });   // in memoria tutte insieme alla fine (gli usi si ricalcolano una volta)
+  PFP = null; if (upd.length) console.info(`Proposte fissate su ${upd.length} sedute passate`); }
 async function saveEditor(){
   const E = S.editor; const w = E.w;
   w.title = (w.title||"").trim() || "Allenamento";
@@ -7162,6 +7200,7 @@ async function saveEditor(){
     S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
     S.editor = null; $("#modal").innerHTML = ""; toast("Allenamento salvato"); refreshCoach(); return t;
   }
+  if (effDate(w) <= TODAY()) propFix(E.email, w);   // sedute di oggi o passate: le proposte non confermate si fissano (il passato non cambia più); quelle future restano "vive" e seguono le tue scelte
   if (E.isNew) { w.status = "todo"; w.results = {}; w.createdAt = w.updatedAt; await DB.createWorkout(E.email, w); }
   else await DB.saveWorkout(E.email, w);
   (S.cache[E.email] ??= {})[w.id] = {...(S.cache[E.email][w.id]||{}), ...clone(w)};

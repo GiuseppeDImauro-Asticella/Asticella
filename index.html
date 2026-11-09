@@ -5917,15 +5917,24 @@ function movDialog(){
   const viaSch = x => { if (own(x)) return null; const c = exSchemi(x).all.filter(id => mvS.includes(id)); return c.length ? c : null; };
   /* senza movimento ma con lo stimolo: tutti i mezzi con quello stimolo di partenza (poi stessa capacità), con accanto il loro movimento */
   const movOf = x => x.pattern || (id => id ? movItem(id).it.name : "")(exSchemi(x).all[0]);
-  /* uno stimolo vale per un mezzo se è il suo stimolo proposto o se l'hai già usato così (usi confermati) */
-  const uOf = x => exUses(x.name), hasE = (x, s0) => s0 === M.e || !!uOf(x)[M.e], hasCap = (x, s0) => [s0, ...Object.keys(uOf(x))].some(id => exprById(id)?.cap.id === cap);
-  const usedTxt = x => { const n = uOf(x)[M.e]; return n ? `usato ${n} volt${n === 1 ? "a" : "e"} così` : ""; };
+  /* uno stimolo vale per un mezzo se l'hai scelto così (✓) con questo atleta o con gli altri, SOLO nelle sedute prima di questa, o se lo propone la scheda.
+     Dentro ogni gruppo prima i mezzi usati con questo atleta (il più recente in cima) */
+  const em = S.editor?.email, d0 = S.editor ? effDate(S.editor.w) : TODAY(), wid = S.editor?.w?.id, who = (athByEmail(em)?.name || "").split(" ")[0] || "l'atleta";
+  const UH = exAgg().uh, uOf = x => { const n = {}; (UH[optKey(x.name)] || []).forEach(q => { if (q.d >= d0) return; new Set(q.L.map(z => z.e)).forEach(e => n[e] = (n[e] || 0) + 1); }); return n; };
+  const AH = {}; Object.values(S.cache[em] || {}).forEach(ww => { if (!ww || ww.id === wid) return; const d = effDate(ww); if (d > d0) return;
+    (ww.exercises || []).forEach(y => { const k = optKey(exName(ww, y)), h = (AH[k] ??= {n: {}, last: "", lastE: "", lastEd: ""}), es = d < d0 ? [...new Set((y.sets || []).map(st => st.stim).filter(stimOk))] : [];   /* le scelte contano solo se prima di questa seduta */
+      es.forEach(e => h.n[e] = (h.n[e] || 0) + 1); if (d > h.last) h.last = d; if (es.length && d > h.lastEd) { h.lastEd = d; h.lastE = es[0]; } }); });   /* lastE = l'ultimo stimolo scelto da te con quel mezzo */
+  const ah = x => AH[optKey(x.name)] || {n: {}, last: "", lastE: ""};
+  const hasE = (x, s0) => s0 === M.e || !!ah(x).n[M.e] || !!uOf(x)[M.e], hasCap = (x, s0) => [s0, ...Object.keys(ah(x).n), ...Object.keys(uOf(x))].some(id => exprById(id)?.cap.id === cap);
+  const usedTxt = x => { const a = ah(x).n[M.e], n = uOf(x)[M.e]; return a ? `con ${who}: ${a} volt${a === 1 ? "a" : "e"}` : n ? `usato ${n} volt${n === 1 ? "a" : "e"} così (altri atleti)` : ""; };
+  const tier = x => !M.e ? 0 : ah(x).n[M.e] ? 0 : uOf(x)[M.e] ? 1 : 2;   // stesso stimolo: prima scelto con questo atleta, poi con gli altri, poi solo dalla scheda
+  const byAth = (a, b) => tier(a.x) - tier(b.x) || (ah(b.x).last > ah(a.x).last ? 1 : ah(b.x).last < ah(a.x).last ? -1 : 0);
   const byStim = !M.mov && M.e ? S.exercises.map(x => { const s0 = stim0Of(x); return {x, s0, nv: 0, rank: hasE(x, s0) ? 0 : hasCap(x, s0) ? 1 : -1, via: [movOf(x), usedTxt(x)].filter(Boolean).join(" · ")}; })
-    .filter(q => q.rank >= 0).sort((a, b) => a.rank - b.rank || a.via.localeCompare(b.via, "it") || a.x.name.localeCompare(b.x.name, "it")) : null;
+    .filter(q => q.rank >= 0).sort((a, b) => a.rank - b.rank || byAth(a, b) || a.via.localeCompare(b.via, "it") || a.x.name.localeCompare(b.x.name, "it")) : null;
   const mezzi = byStim ? byStim : !M.mov ? [] : S.exercises.filter(x => own(x) || viaSch(x))
     .map(x => { const s0 = stim0Of(x), vs = viaSch(x), pr = exSchemi(x).all[0]; return {x, s0, nv: vs ? vs.length : 0, rank: vs ? 3 : !M.e ? 2 : hasE(x, s0) ? 0 : hasCap(x, s0) ? 1 : 2,
       via: [M.e ? usedTxt(x) : "", !vs ? "" : SCH ? `anche ${movLbl}${pr && movItem(pr) ? ` · principale: ${movItem(pr).it.name}` : ""}` : "in comune: " + vs.map(id => movItem(id).it.name).join(", ")].filter(Boolean).join(" · ")}; })
-    .sort((a, b) => a.rank - b.rank || b.nv - a.nv || a.x.name.localeCompare(b.x.name, "it"));
+    .sort((a, b) => a.rank - b.rank || byAth(a, b) || b.nv - a.nv || a.x.name.localeCompare(b.x.name, "it"));
   const capL = (n => n ? `Stessa capacità (${esc(n)})` : "Stessa capacità")(exprById(M.e)?.cap.name);
   const grpL = !M.mov && M.e ? ["Stesso stimolo · tutti i movimenti", `${capL} · tutti i movimenti`, "", ""] : ["Stesso stimolo", capL, M.e ? "Altri mezzi del movimento" : "Mezzi del movimento", M.mov.startsWith("§") ? "Lo contengono (coinvolto)" : "Altri mezzi con schemi in comune"];
   const last = name => { const em = S.editor?.email; const L = Object.values(S.cache[em] || {}).filter(w => (w.exercises || []).some(x => sameName(x.name, name)) && w.date < (S.editor?.w.date || TODAY())).sort((a, b) => b.date.localeCompare(a.date)); return L[0] ? fmtD(L[0].date) : ""; };
@@ -5937,8 +5946,8 @@ function movDialog(){
       <div class="field" style="width:110px"><label class="lbl" for="mv-n">Serie</label><input class="in" id="mv-n" type="number" min="1" max="20" value="${M.n}" data-change="mv-set" data-k="n"></div></div>
     <div class="field"><span class="lbl">Mezzi</span>${!M.mov && !M.e ? `<div class="faint" style="font-size:13px">Scegli il movimento, lo stimolo o tutti e due.</div>` : !M.mov && !mezzi.length ? `<div class="faint" style="font-size:13px">Nessun esercizio ha questo stimolo di partenza.</div>` : !mezzi.length ? `<div class="faint" style="font-size:13px">Nessun esercizio della libreria ha questo movimento. Aggiungine uno da Esercizi (o usa "+ Esercizio").</div>`
       : [0, 1, 2, 3].map(rk => { const L = mezzi.filter(q => q.rank === rk); const fold = !M.mov && rk === 1;   // solo stimolo: la stessa capacità (lista lunga) parte chiusa
-      return L.length ? `<${fold ? "details" : "div"} class="mvg">${fold ? `<summary><small>${grpL[rk]} <span class="mvgn">${L.length}</span></small></summary>` : `<small>${grpL[rk]} <span class="mvgn">${L.length}</span></small>`}<div class="mvxl">${L.map(q => { const lv = last(q.x.name);
-        return `<button type="button" class="mvx ${rk === 0 ? "best" : ""}" data-act="mv-pick" data-name="${esc(q.x.name)}" title="Aggiungi ${esc(q.x.name)}"><span class="mvxn"><b>${esc(q.x.name)}</b><span class="faint">${esc([q.s0 ? exprLbl(q.s0) : (U => U.length ? "usato come " + U.slice(0, 2).map(([id, n]) => `${exprById(id)?.expr.name} ${n}`).join(", ") : "")(usesList(q.x.name)), q.via].filter(Boolean).join(" · "))}</span></span><span class="mvxd faint">${lv ? `ultima volta<br><b>${esc(lv)}</b>` : "mai fatto"}</span><span class="mvxp" aria-hidden="true">+</span></button>`; }).join("")}</div></${fold ? "details" : "div"}>` : ""; }).join("")}</div>
+      return L.length ? `<${fold ? "details" : "div"} class="mvg">${fold ? `<summary><small>${grpL[rk]} <span class="mvgn">${L.length}</span></small></summary>` : `<small>${grpL[rk]} <span class="mvgn">${L.length}</span></small>`}<div class="mvxl">${L.map(q => { const lv = ah(q.x).last ? fmtD(ah(q.x).last) : "";
+        return `<button type="button" class="mvx ${rk === 0 ? "best" : ""}" data-act="mv-pick" data-name="${esc(q.x.name)}" title="Aggiungi ${esc(q.x.name)}"><span class="mvxn"><b>${esc(q.x.name)}</b><span class="faint">${esc([!M.e && ah(q.x).lastE ? `ultima scelta con ${who}: ${exprLbl(ah(q.x).lastE)} (${fmtD(ah(q.x).lastEd)})` : "", q.s0 ? "scheda: " + exprLbl(q.s0) : (U => U.length ? "usato come " + U.slice(0, 2).map(([id, n]) => `${exprById(id)?.expr.name} ${n}`).join(", ") : "")(Object.entries(uOf(q.x)).sort((a, b) => b[1] - a[1])), q.via].filter(Boolean).join(" · "))}</span></span><span class="mvxd faint">${lv ? `ultima volta<br><b>${esc(lv)}</b>` : "mai fatto"}</span><span class="mvxp" aria-hidden="true">+</span></button>`; }).join("")}</div></${fold ? "details" : "div"}>` : ""; }).join("")}</div>
     </div><footer><span class="faint" style="font-size:12px">L'esercizio entra con ${M.n} serie, stimolo e ruolo già scritti (li cambi poi nelle fasi).</span><span class="grow"></span><button class="btn" data-act="mv-close">Chiudi</button></footer></div></div>`; }
 function movPick(name){
   const M = S.mvDlg, w = S.editor.w, x = newExercise(name); x.block = nextBlock(w.exercises);

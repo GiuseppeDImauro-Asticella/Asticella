@@ -745,7 +745,7 @@ details.mvg > summary{cursor:pointer;list-style:none}details.mvg > summary::-web
 .fzhd,.fz{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 112px;gap:6px;align-items:center}
 .fzhd{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 8px}
 .fz{border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--surface)}.fz.prop{border-style:dashed}
-.fzh{font-size:12.5px;line-height:1.3}.fzh .fzn{color:var(--muted)}.fzps{font-size:11px;color:var(--faint);margin-left:4px}.fzp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);margin-left:2px}
+.fzh{font-size:12.5px;line-height:1.3}.fzh .fzn{color:var(--muted)}.fzh .fzm{background:none;border:0;padding:1px 4px;margin:0 0 0 -4px;font:inherit;cursor:pointer;border-radius:6px;color:var(--muted);text-decoration:underline dotted;text-underline-offset:3px}.fzh .fzm:hover{background:var(--surface2);color:var(--ink)}.fzmi-ic{font-size:11px;margin-left:4px;opacity:.6}.fzmdlg .fzml{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:6px}.fzmdlg .fzmg{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 12px 4px;background:var(--surface2);position:sticky;top:0}.fzmdlg .fzmr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:9px 12px;font:inherit;color:var(--ink);cursor:pointer}.fzmdlg .fzmr:hover{background:var(--surface2)}.fzmdlg .fzmr small{color:var(--faint);font-size:12px;text-align:right}.fzmdlg .fzmn{font-size:13px;color:var(--muted);margin:2px 0 8px}.fzmdlg .fzme{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 8px}.fzps{font-size:11px;color:var(--faint);margin-left:4px}.fzp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);margin-left:2px}
 .fzsel{height:30px;padding:2px 6px;font-size:12.5px;width:100%;min-width:0}.fz.prop .fzsel{color:var(--muted)}
 .fz2{display:flex;flex-wrap:wrap;align-items:center;gap:3px;min-width:0}.fz2 .altc{font-size:11px}
 .fzt{display:flex;align-items:center;justify-content:flex-end;gap:4px}.fzcut{width:44px;flex:none;padding:2px 4px}
@@ -5683,7 +5683,7 @@ function stimPropose(o, k, ip){
   if (!role) role = long && (ip < 0 || k < ip) ? "r_prep" : /riscald|attivaz/.test(c) ? "r_prep" : ip >= 0 && k < ip ? "r_ramp" : "r_work";
   let e = null, e2 = [], src = "", sd = "";
   /* 1) proposta fissata al salvataggio della seduta (resta quella che vedevi programmando, anche se poi cambi la scheda o le abitudini) */
-  const pf = o.st?.pf; if (pf && pf.n === optKey(o.name)) return {e: stimOk(pf.e) ? pf.e : null, e2: (pf.e2 || []).filter(stimOk), role: roleOk(role) ? role : null, src: "pf", sd: ""};
+  const pf = o.st?.pf; if (pf && pf.n === optKey(o.name) && pf.w === o.wid && (!o.d || o.d < TODAY())) return {e: stimOk(pf.e) ? pf.e : null, e2: (pf.e2 || []).filter(stimOk), role: roleOk(role) ? role : null, src: "pf", sd: ""};
   /* 2) il contesto: l'ultima volta con questo atleta; 3) tempo sotto tensione lungo; 4) l'uso prevalente; 5) la scheda dell'esercizio; 6) la categoria */
   const cx = ctxProp(o);
   if (cx && stimOk(cx.e)) { e = cx.e; e2 = [...cx.e2]; src = "ctx"; sd = cx.d; }
@@ -5724,7 +5724,7 @@ function fasiHtml(f, w){
     const join = i > 0 && F[i - 1].L[0].x.id === o0.x.id;
     const ovr = ROLE_NOHARD.includes(z.role) ? z.L.filter(o => isHard((w?.results || {})[o.x.id]?.[o.j])).length : 0;
     return `<div class="fz ${z.asg ? "asg" : "prop"}">
-      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${(U => `<label class="fzi" title="Intenzione della fase: scrive l'RPE programmato su tutte le serie della fase"><span>intenzione RPE</span><input class="in fzin" type="text" inputmode="decimal" value="${U.length === 1 ? esc(U[0]) : ""}" placeholder="${U.length > 1 ? esc(fzVals(z)) : "–"}"${U.length > 1 ? ` style="width:${Math.min(92, 24 + fzVals(z).length * 7)}px" title="RPE diversi nelle serie della fase: ${esc(fzVals(z, true))}. Scrivendo un numero li sostituisci tutti (puoi annullare)"` : ""} data-change="fz-int" data-sets="${refs(z)}" aria-label="Intenzione RPE della fase"></label>`)([...new Set(z.L.map(o => String(o.st.rpe ?? "").trim()))])}${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app. Ordine: la tua scelta per questo esercizio nell'ultima seduta di questo atleta (8 settimane), poi il tempo sotto tensione, gli usi, la scheda dell'esercizio, la categoria. Quando la seduta è passata (o la salvi da quel giorno in poi) la proposta si fissa e non cambia più. Cambiala o confermala.">proposta</span>${z.p?.src && PROP_SRC[z.p.src] ? ` <span class="fzps">${esc(PROP_SRC[z.p.src](z.p.sd))}</span>` : ""}`}</div>
+      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <button type="button" class="fzn fzm" data-act="fzm-open" data-sets="${refs(z)}" data-f="${z.from}" title="Cambia il mezzo di queste serie (nel programma l'esercizio si divide)">${esc(o0.name)}<span class="fzmi-ic" aria-hidden="true">⇄</span></button>${(U => `<label class="fzi" title="Intenzione della fase: scrive l'RPE programmato su tutte le serie della fase"><span>intenzione RPE</span><input class="in fzin" type="text" inputmode="decimal" value="${U.length === 1 ? esc(U[0]) : ""}" placeholder="${U.length > 1 ? esc(fzVals(z)) : "–"}"${U.length > 1 ? ` style="width:${Math.min(92, 24 + fzVals(z).length * 7)}px" title="RPE diversi nelle serie della fase: ${esc(fzVals(z, true))}. Scrivendo un numero li sostituisci tutti (puoi annullare)"` : ""} data-change="fz-int" data-sets="${refs(z)}" aria-label="Intenzione RPE della fase"></label>`)([...new Set(z.L.map(o => String(o.st.rpe ?? "").trim()))])}${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app. Ordine: la tua scelta per questo esercizio nell'ultima seduta di questo atleta (8 settimane), poi il tempo sotto tensione, gli usi, la scheda dell'esercizio, la categoria. Quando il giorno della seduta è passato la proposta si fissa e non cambia più. Cambiala o confermala.">proposta</span>${z.p?.src && PROP_SRC[z.p.src] ? ` <span class="fzps">${esc(PROP_SRC[z.p.src](z.p.sd))}</span>` : ""}`}</div>
       <span class="fzes">${exprSel(z, z.e, "fz-e", "— stimolo —")}${!z.asg ? (U => U.length > 1 || (U.length && !z.e) ? `<span class="fzq"><span class="faint">usato come</span>${U.slice(0, 3).map(([e, n]) => `<button type="button" class="fzqb ${e === z.e ? "on" : ""}" data-act="fz-quick" data-sets="${refs(z)}" data-e="${e}" data-co="${coMain(o0.name, e).join(",")}" title="Usato ${n} volt${n === 1 ? "a" : "e"} come ${esc(exprLbl(e))}${coMain(o0.name, e).length ? ` (di solito con ${esc(coMain(o0.name, e).map(exprLbl).join(", "))})` : ""}">${esc(exprById(e)?.expr.name || "")} <span>${n}</span></button>`).join("")}</span>` : "")(usesList(o0.name)) : ""}</span>
       <select class="in fzsel" data-change="fz-r" data-sets="${refs(z)}" aria-label="Ruolo"><option value="">— ruolo —</option>${D.roles.map(r => `<option value="${r.id}" ${r.id === z.role ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>
       <span class="fz2">${z.e2.map(id => `<span class="altc">${esc(exprLbl(id))}<button type="button" data-act="fz-e2rm" data-sets="${refs(z)}" data-id="${id}" aria-label="Togli">×</button></span>`).join("")}${exprSel(z, "", "fz-e2", "+ concomitante")}</span>
@@ -5741,6 +5741,48 @@ const ROLE_NOHARD = ["r_prep", "r_down"];   // serie preparatorie e defaticanti:
 const hardOf = (r, sm) => { const h = isHard(r); return h && sm && ROLE_NOHARD.includes(sm.role) ? false : h; };
 const capName = id => exprById(id)?.cap.name || "Senza stimolo", roleName = id => stimData().roles.find(r => r.id === id)?.name || "Senza ruolo", movName = n => { const l = libByName(n); return l?.pattern?.trim() || (l && exSchemi(l).all.length ? MOV_SOLO : SCH_NONE); };   // senza abilità: coperto dagli schemi o non classificato
 /* scrive sulle serie della fase (bozza dell'editor) */
+/* ===== CAMBIA MEZZO DA UNA FASE =====
+   Dalla Struttura: le serie di quella fase (e, se vuoi, quelle dopo) passano a un altro esercizio. Nel programma l'esercizio si divide in righe
+   (es. Box squat 1–4 · Back squat 5 · Box squat 6–9), con gli stessi valori, stimoli, ruoli e risultati; righe vicine con lo stesso mezzo si riuniscono.
+   In superserie / circuito si cambia l'esercizio intero (dividerlo cambierebbe l'alternanza) */
+const movKeyOf = n => pcOf(n) || (sp => sp !== SCH_NONE ? sp : "")(schOfName(n).p);
+function fzmOpen(refs, f){ const w = S.editor?.w; if (!w) return; const R0 = String(refs || "").split(",").filter(Boolean).map(r => r.split(":")); if (!R0.length) return;
+  const x = w.exercises.find(q => q.id === R0[0][0]); if (!x) return; const js = R0.map(r => +r[1]).sort((a, b) => a - b);
+  S.fzm = {xid: x.id, a: js[0], b: js[js.length - 1], toEnd: false, q: "", off: f ? f - 1 - js[0] : 0}; fzmDraw(); }   // off: numerazione come nella Struttura (serie del movimento)
+function fzmDraw(){ const M = S.fzm, w = S.editor?.w, a = w?.exercises || [], x = a.find(q => q.id === M?.xid); if (!x) { $("#confirm").innerHTML = ""; return; }
+  const i = a.indexOf(x), n = (x.sets || []).length, grp = !!(x.ss || a[i + 1]?.ss || x.circ), B = grp ? n - 1 : M.toEnd ? n - 1 : M.b, A = grp ? 0 : M.a;
+  const o = M.off || 0, rng = (p, q) => p === q ? `serie ${p + 1 + o}` : `serie ${p + 1 + o}–${q + 1 + o}`, mk = movKeyOf(x.name);
+  const lib = S.exercises.filter(l => !sameName(l.name, x.name)), same = mk ? lib.filter(l => movKeyOf(l.name) === mk) : [], rest = lib.filter(l => !same.includes(l));
+  const sub = l => esc(movKeyOf(l.name) || l.category || "");
+  const row = l => `<button type="button" class="fzmr" data-act="fzm-pick" data-n="${esc(l.name)}" data-k="${esc(optKey(l.name))}"><span>${esc(l.name)}</span><small>${sub(l)}</small></button>`;
+  $("#confirm").innerHTML = `<div class="back" style="z-index:75"><div class="modal sm fzmdlg" role="dialog" aria-label="Cambia mezzo"><header><h2>Cambia mezzo · ${rng(A, B)}</h2><button class="btn ghost icon" data-act="fzm-close" aria-label="Chiudi">✕</button></header>
+    <div class="body"><div class="fzmn">ora: <b>${esc(x.name)}</b>${mk ? ` · movimento: ${esc(mk)}` : ""}${grp ? ` · <span class="faint">in superserie/circuito si cambia l'esercizio intero</span>` : A === 0 && B === n - 1 ? ` · <span class="faint">tutte le serie: si sostituisce l'esercizio</span>` : ` · <span class="faint">nel programma l'esercizio si divide</span>`}</div>
+      ${!grp && M.b < n - 1 ? `<label class="fzme"><input type="checkbox" data-change="fzm-end" ${M.toEnd ? "checked" : ""}> anche le serie dopo (${rng(M.b + 1, n - 1)})</label>` : ""}
+      <input class="in" id="fzm-q" type="search" placeholder="Cerca un esercizio…" value="${esc(M.q)}" autocomplete="off">
+      <div class="fzml">${same.length ? `<div class="fzmg">Stesso movimento${mk ? ` (${esc(mk)})` : ""}</div>${same.map(row).join("")}` : ""}<div class="fzmg">${same.length ? "Altri esercizi" : "Esercizi"}</div>${rest.map(row).join("")}</div></div></div></div>`;
+  const q = $("#fzm-q"), filt = () => { const v = optKey(q.value); M.q = q.value; document.querySelectorAll(".fzmdlg .fzmr").forEach(b => b.hidden = !!v && !b.dataset.k.includes(v)); };
+  q.oninput = filt; filt(); if (matchMedia("(pointer:fine)").matches) q.focus(); }
+function fzmApply(name){ const M = S.fzm, E = S.editor, w = E?.w, a = w?.exercises || [], x = a.find(q => q.id === M?.xid); if (!x || !name) return;
+  const snap = clone({ex: w.exercises, res: w.results ?? null}), i = a.indexOf(x), n = x.sets.length, grp = !!(x.ss || a[i + 1]?.ss || x.circ), old = x.name;
+  const A = grp ? 0 : M.a, B = grp || M.toEnd ? n - 1 : M.b, o = M.off || 0;
+  $("#confirm").innerHTML = ""; S.fzm = null;
+  if (A === 0 && B === n - 1) x.name = name;
+  else { const parts = [...(A > 0 ? [[0, A, old]] : []), [A, B + 1, name], ...(B < n - 1 ? [[B + 1, n, old]] : [])], res = w.results, keys = res ? [x.id, x.id + "~f"] : [], src = {};
+    keys.forEach(k => { if (Array.isArray(res[k])) { src[k] = res[k]; delete res[k]; } });
+    const all = x.sets, rows = parts.map(([p, q, nm], k) => { const y = k === 0 ? x : {...clone({...x, sets: []}), id: uid(), ss: false}; if (k > 0) delete y.circ; y.name = nm; y.sets = all.slice(p, q);
+      keys.forEach((kk, t) => { const S0 = src[kk]; if (!S0) return; const sl = k === parts.length - 1 ? S0.slice(p) : S0.slice(p, q); if (sl.some(v => v && Object.keys(v).length)) res[y.id + (t ? "~f" : "")] = sl; });
+      return y; });
+    a.splice(i, 1, ...rows); }
+  fzmMergeAdj(w); relabel(a); markDirty(); drawEditor();
+  undoBar(`Mezzo cambiato: ${A === B ? "serie " + (A + 1 + o) : `serie ${A + 1 + o}–${B + 1 + o}`} ${old} → ${name}`, () => { if (S.editor !== E) return; w.exercises = snap.ex; if (snap.res) w.results = snap.res; else delete w.results; markDirty(); drawEditor(); }); }
+/* righe vicine con lo stesso mezzo (stesse colonne, non in superserie, senza serie extra dell'atleta in mezzo) tornano una riga sola */
+function fzmMergeAdj(w){ const a = w.exercises, res = w.results;
+  for (let k = 0; k < a.length - 1; k++) { const x = a[k], y = a[k + 1];
+    if (!sameName(x.name, y.name) || y.ss || x.circ || y.circ || a[k + 2]?.ss || x.ss || JSON.stringify(x.cols || []) !== JSON.stringify(y.cols || [])) continue;
+    if (res && ((res[x.id] || []).length > x.sets.length || (res[x.id + "~f"] || []).length > x.sets.length)) continue;
+    const off = x.sets.length;
+    if (res) ["", "~f"].forEach(t => { const R2 = res[y.id + t]; if (!R2) return; const R1 = (res[x.id + t] ??= []); while (R1.length < off) R1.push(t ? {} : {}); R2.forEach((v, j) => R1[off + j] = v); delete res[y.id + t]; });
+    x.sets = [...x.sets, ...y.sets]; a.splice(k + 1, 1); k--; } }
 function fzSets(str){ const w = S.editor?.w; if (!w) return []; return String(str || "").split(",").filter(Boolean).map(r => { const [xid, j] = r.split(":"); return w.exercises.find(x => x.id === xid)?.sets?.[+j]; }).filter(Boolean); }
 /* il TIPO della serie (R/W/B/D) eredita il RUOLO scelto nella Struttura degli stimoli: Attivazione → R, Target → W, Back-off → B, Defaticante → D,
    Preparatorio → nessun tipo. Ruoli creati dal coach senza tipo: il tipo non si tocca. Ritorna true se qualcosa è cambiato (per ridisegnare la tabella) */
@@ -7169,14 +7211,16 @@ async function closeEditor(force=false){
   if (!force && S.editor.dirty && !(await confirmBox("Chiudere senza salvare le modifiche?", "Chiudi senza salvare"))) return;
   S.editor = null; $("#modal").innerHTML = "";
 }
-/* PROPOSTE FISSATE: al salvataggio di una seduta di oggi o passata, sulle serie senza la tua scelta si scrive la proposta di quel momento (st.pf = {n: esercizio, e, e2}).
-   Non è una conferma (resta "proposta", non conta negli usi): serve solo a non far cambiare il passato se cambi scheda o abitudini */
+/* PROPOSTE FISSATE: al salvataggio di una seduta passata, sulle serie senza la tua scelta si scrive la proposta di quel momento (st.pf = {n: esercizio, e, e2}).
+   Non è una conferma (resta "proposta", non conta negli usi): serve solo a non far cambiare il passato se cambi scheda o abitudini.
+   Vale solo per le sedute passate (prima di oggi) e solo per la seduta dove è stata fissata (pf.w): nelle copie e nelle sedute di oggi/future la proposta è viva */
 function propFix(email, w){ try { firmaOf(email, w).mv.forEach(f => stimFasi(f).forEach(z => { if (z.asg) return;
-  z.L.forEach(o => { if (o.j >= (o.x.sets || []).length || o.st.stim) return; o.st.pf = {n: optKey(o.name), e: z.e || "", e2: [...(z.e2 || [])]}; }); })); } catch(e) { console.warn(e); } }
+  z.L.forEach(o => { if (o.j >= (o.x.sets || []).length || o.st.stim) return; o.st.pf = {n: optKey(o.name), w: w.id, e: z.e || "", e2: [...(z.e2 || [])]}; }); })); } catch(e) { console.warn(e); } }
+const pfStrip = w => (w.exercises || []).forEach(x => (x.sets || []).forEach(st => { delete st.pf; }));   // seduta di oggi o futura: le proposte restano vive (anche nelle copie)
 /* sedute PASSATE ancora "vive" (mai salvate da quel giorno in poi, o salvate prima di questa regola): il coach le fissa da solo
    la prima volta che le carica. Scrive solo il programma (exercises), mai i risultati dell'atleta. Un po' alla volta, senza bloccare l'app */
 let PFP = null; const PFP_DONE = new Set();
-const pfNeeds = w => (w.exercises || []).some(x => (x.sets || []).some(st => !st.stim && !st.role && !(st.pf && st.pf.n === optKey(exName(w, x)))));
+const pfNeeds = w => (w.exercises || []).some(x => (x.sets || []).some(st => !st.stim && !st.role && !(st.pf && st.pf.n === optKey(exName(w, x)) && st.pf.w === w.id)));   // pf senza seduta (v263): si rifissa una volta, legata alla sua seduta
 function propFixPastSoon(){ if (S.user?.role !== "coach" || PFP) return; PFP = setTimeout(propFixPast, 1500); }
 async function propFixPast(){ const today = TODAY(), todo = [];
   Object.entries(S.cache || {}).forEach(([em, ws]) => Object.values(ws || {}).forEach(w => { if (w && w.id && !PFP_DONE.has(w.id) && effDate(w) < today && (w.exercises || []).length && S.editor?.w?.id !== w.id && pfNeeds(w)) todo.push([em, w]); }));
@@ -7200,7 +7244,7 @@ async function saveEditor(){
     S.templates.sort((a,b) => (a.title||"").localeCompare(b.title||""));
     S.editor = null; $("#modal").innerHTML = ""; toast("Allenamento salvato"); refreshCoach(); return t;
   }
-  if (effDate(w) <= TODAY()) propFix(E.email, w);   // sedute di oggi o passate: le proposte non confermate si fissano (il passato non cambia più); quelle future restano "vive" e seguono le tue scelte
+  if (effDate(w) < TODAY()) propFix(E.email, w); else pfStrip(w);   // sedute di oggi o passate: le proposte non confermate si fissano (il passato non cambia più); quelle future restano "vive" e seguono le tue scelte
   if (E.isNew) { w.status = "todo"; w.results = {}; w.createdAt = w.updatedAt; await DB.createWorkout(E.email, w); }
   else await DB.saveWorkout(E.email, w);
   (S.cache[E.email] ??= {})[w.id] = {...(S.cache[E.email][w.id]||{}), ...clone(w)};
@@ -8021,6 +8065,9 @@ const ACT = {
   "ex-cancel"(){ S.exEdit = null; renderView(); },
   "sess-scale"(t){ S.sessScale = t.dataset.v; const E = S.editor, box = $("#ed-firma"); if (E && box) box.innerHTML = firmaHtml(E.email, E.w); },
   "fz-quick"(t){ const L = fzSets(t.dataset.sets); const ch = fzFix(L), co = (t.dataset.co || "").split(",").filter(stimOk); L.forEach(st => { st.stim = t.dataset.e; st.stim2 = co.filter(id => id !== st.stim); }); fzDone(ch); },   // "come le altre volte": principale + concomitanti abituali
+  "fzm-open"(t){ fzmOpen(t.dataset.sets, +t.dataset.f); },
+  "fzm-pick"(t){ fzmApply(t.dataset.n); },
+  "fzm-close"(){ $("#confirm").innerHTML = ""; S.fzm = null; },
   "fz-ok"(t){ const L = fzSets(t.dataset.sets); fzDone(fzFix(L)); },
   "fz-e2rm"(t){ const L = fzSets(t.dataset.sets), ch = fzFix(L); L.forEach(st => st.stim2 = (st.stim2 || []).filter(id => id !== t.dataset.id)); fzDone(ch); },
   "fz-join"(t){ const P = fzSets(t.dataset.prev), L = fzSets(t.dataset.sets); fzFix(P); const s0 = P[0];
@@ -8323,6 +8370,7 @@ document.addEventListener("change", async e => {
   if (k === "fz-e" || k === "fz-r" || k === "fz-e2") { const L = fzSets(t.dataset.sets); if (!L.length) return; let ch = fzFix(L);
     L.forEach(st => { if (k === "fz-e") st.stim = t.value; else if (k === "fz-r") st.role = t.value; else if (t.value && !(st.stim2 || []).includes(t.value)) st.stim2 = [...(st.stim2 || []), t.value]; });
     if (k === "fz-r") ch = roleTypeSync(L) || ch; fzDone(ch); return; }
+  if (k === "fzm-end") { if (S.fzm) { S.fzm.toEnd = t.checked; fzmDraw(); } return; }
   if (k === "fz-cut") { const [st] = fzSets(t.value); if (st) { const E = S.editor, F = firmaOf(E.email, E.w).mv.flatMap(stimFasi), z = F.find(q => q.L.some(o => o.st === st));
       let ch = false; if (z && !z.asg) { z.L.forEach(o => { o.st.stim = z.e || ""; o.st.stim2 = [...z.e2]; o.st.role = z.role || ""; }); ch = roleTypeSync(z.L.map(o => o.st)); } st.fb = 1; fzDone(ch); return; } markDirty(); return; }
   if (k === "xsch-add") { const e = keepExForm(), v = t.value; if (v) e.sch = [...new Set([...exOwnSch(e), v])]; redrawEx(); return; }

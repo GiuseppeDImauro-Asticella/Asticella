@@ -5657,6 +5657,9 @@ function firmaOf(email, w){
    Le serie di un movimento si dividono in FASI (gruppi di serie con lo stesso scopo). A ogni fase: espressione principale (capacità → espressione),
    eventuali secondarie e ruolo. Si salvano sulle serie (st.stim, st.stim2, st.role); se il coach non sceglie vale la PROPOSTA dell'app
    (dalla categoria dell'esercizio e dalla firma: tipo di serie, tempo sotto tensione, posizione rispetto al picco, intensità, distanza). */
+/* RPE programmati delle serie di una fase, in ordine ("6 · 7 · 8"); con molte serie solo dal più basso al più alto */
+const fzVals = (z, full) => { const V = z.L.map(o => String(o.st.rpe ?? "").trim() || "–"); if (full || V.length <= 3) return V.join(full ? " · " : "·");
+  const N = V.map(v => rpeNum(v)).filter(v => v != null); return N.length ? `${fmtN(Math.min(...N), 1)}–${fmtN(Math.max(...N), 1)}${N.length < V.length ? "·–" : ""}` : "–"; };
 const tutSec = v => { const n = String(v ?? "").match(/\d+/g); return n && n.length >= 3 ? n.reduce((t, z) => t + +z, 0) : null; };   // 3-1-1-0 → 5 s a ripetizione
 const TUT_LONG = 6;
 const stimOk = id => !!(id && exprById(id)), roleOk = id => !!(id && stimData().roles.some(r => r.id === id));
@@ -5702,7 +5705,7 @@ function fasiHtml(f, w){
     const join = i > 0 && F[i - 1].L[0].x.id === o0.x.id;
     const ovr = ROLE_NOHARD.includes(z.role) ? z.L.filter(o => isHard((w?.results || {})[o.x.id]?.[o.j])).length : 0;
     return `<div class="fz ${z.asg ? "asg" : "prop"}">
-      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${(U => `<label class="fzi" title="Intenzione della fase: scrive l'RPE programmato su tutte le serie della fase"><span>intenzione RPE</span><input class="in fzin" type="text" inputmode="decimal" value="${U.length === 1 ? esc(U[0]) : ""}" placeholder="${U.length > 1 ? "varie" : "–"}" data-change="fz-int" data-sets="${refs(z)}" aria-label="Intenzione RPE della fase"></label>`)([...new Set(z.L.map(o => String(o.st.rpe ?? "").trim()))])}${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app (dalla categoria dell'esercizio e dalla struttura delle serie). Cambiala o confermala.">proposta</span>`}</div>
+      <div class="fzh"><b>${z.from === z.to ? `serie ${z.from}` : `serie ${z.from}–${z.to}`}</b> <span class="fzn">${esc(o0.name)}</span>${(U => `<label class="fzi" title="Intenzione della fase: scrive l'RPE programmato su tutte le serie della fase"><span>intenzione RPE</span><input class="in fzin" type="text" inputmode="decimal" value="${U.length === 1 ? esc(U[0]) : ""}" placeholder="${U.length > 1 ? esc(fzVals(z)) : "–"}"${U.length > 1 ? ` style="width:${Math.min(92, 24 + fzVals(z).length * 7)}px" title="RPE diversi nelle serie della fase: ${esc(fzVals(z, true))}. Scrivendo un numero li sostituisci tutti (puoi annullare)"` : ""} data-change="fz-int" data-sets="${refs(z)}" aria-label="Intenzione RPE della fase"></label>`)([...new Set(z.L.map(o => String(o.st.rpe ?? "").trim()))])}${tt.length ? " " + tt.map(typeBadge).join("") : ""}${tl ? ` <span class="faint">TUT ${esc(o0.st.tut)}</span>` : ""}${ovr ? ` <span class="fzo" title="Eseguite con RPE ≥ 7: lo stimolo è stato più alto del ruolo programmato">${ovr} più dur${ovr === 1 ? "a" : "e"} del previsto</span>` : ""}${z.asg ? "" : ` <span class="fzp" title="Non hai ancora scelto: è la proposta dell'app (dalla categoria dell'esercizio e dalla struttura delle serie). Cambiala o confermala.">proposta</span>`}</div>
       <span class="fzes">${exprSel(z, z.e, "fz-e", "— stimolo —")}${!z.asg ? (U => U.length > 1 || (U.length && !z.e) ? `<span class="fzq"><span class="faint">usato come</span>${U.slice(0, 3).map(([e, n]) => `<button type="button" class="fzqb ${e === z.e ? "on" : ""}" data-act="fz-quick" data-sets="${refs(z)}" data-e="${e}" data-co="${coMain(o0.name, e).join(",")}" title="Usato ${n} volt${n === 1 ? "a" : "e"} come ${esc(exprLbl(e))}${coMain(o0.name, e).length ? ` (di solito con ${esc(coMain(o0.name, e).map(exprLbl).join(", "))})` : ""}">${esc(exprById(e)?.expr.name || "")} <span>${n}</span></button>`).join("")}</span>` : "")(usesList(o0.name)) : ""}</span>
       <select class="in fzsel" data-change="fz-r" data-sets="${refs(z)}" aria-label="Ruolo"><option value="">— ruolo —</option>${D.roles.map(r => `<option value="${r.id}" ${r.id === z.role ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select>
       <span class="fz2">${z.e2.map(id => `<span class="altc">${esc(exprLbl(id))}<button type="button" data-act="fz-e2rm" data-sets="${refs(z)}" data-id="${id}" aria-label="Togli">×</button></span>`).join("")}${exprSel(z, "", "fz-e2", "+ concomitante")}</span>
@@ -8237,10 +8240,16 @@ document.addEventListener("toggle", e => { const d = e.target; if (!d.classList?
 document.addEventListener("toggle", e => { const d = e.target; if (!d.classList?.contains("mvdet")) return; S.mvOpen ??= new Set(); if (d.open) S.mvOpen.add(d.dataset.k); else S.mvOpen.delete(d.dataset.k); }, true);   // Movimenti: dettagli aperti restano aperti
 document.addEventListener("change", async e => {
   const t = e.target, k = t.dataset.change; if (!k) return;
-  if (k === "fz-int" && S.editor) { const w = S.editor.w, v = String(t.value || "").trim().replace(".", ",");   // intenzione della fase → RPE programmato di tutte le serie della fase
+  if (k === "fz-int" && S.editor) { const E = S.editor, w = E.w, v = String(t.value || "").trim().replace(".", ",");   // intenzione della fase → RPE programmato di tutte le serie della fase
+    const prev = [], cols = new Map();
     String(t.dataset.sets || "").split(",").filter(Boolean).forEach(r => { const [xid, j] = r.split(":"), x = w.exercises.find(q => q.id === xid), st = x?.sets?.[+j]; if (!st) return;
+      prev.push([st, st.rpe]); if (!cols.has(x)) cols.set(x, x.cols);
       if (v && !(x.cols || []).includes("rpe")) x.cols = [...(x.cols || []), "rpe"]; if (v) st.rpe = v; else delete st.rpe; });
-    setTimeout(() => { markDirty(); drawEditor(); }, 0); return; }   // dopo l'evento: il campo sta ancora perdendo il fuoco
+    /* se si perdono valori (RPE diversi sostituiti, o RPE cancellato) si può annullare per qualche secondo */
+    const old = prev.map(([, r]) => String(r ?? "").trim()), lost = new Set(old).size > 1 || (!v && old.some(Boolean));
+    setTimeout(() => { markDirty(); drawEditor();
+      if (lost) undoBar(`RPE della fase ${v ? "cambiato in " + v : "cancellato"} (prima: ${old.map(q => q || "–").join(" · ")})`, () => { if (S.editor !== E) return;
+        prev.forEach(([st, r]) => { if (r == null) delete st.rpe; else st.rpe = r; }); cols.forEach((c, x) => { if (c === undefined) delete x.cols; else x.cols = c; }); markDirty(); drawEditor(); }); }, 0); return; }   // dopo l'evento: il campo sta ancora perdendo il fuoco
   if (k === "demo-role") return setDemoRole(t.value);
   if (k === "per-key") { S.per.key = t.value; S.per.pid = null; return renderView(); }
   if (k === "per-plan") { S.per.pid = t.value; return renderView(); }

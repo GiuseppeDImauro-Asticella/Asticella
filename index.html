@@ -745,7 +745,7 @@ details.mvg > summary{cursor:pointer;list-style:none}details.mvg > summary::-web
 .fzhd,.fz{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 112px;gap:6px;align-items:center}
 .fzhd{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:0 8px}
 .fz{border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--surface)}.fz.prop{border-style:dashed}
-.fzh{font-size:12.5px;line-height:1.3}.fzh .fzn{color:var(--muted)}.fzh .fzm{background:none;border:0;padding:1px 4px;margin:0 0 0 -4px;font:inherit;cursor:pointer;border-radius:6px;color:var(--muted);text-decoration:underline dotted;text-underline-offset:3px}.fzh .fzm:hover{background:var(--surface2);color:var(--ink)}.fzmi-ic{font-size:11px;margin-left:4px;opacity:.6}.fzmdlg .fzml{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:6px}.fzmdlg .fzmg{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 12px 4px;background:var(--surface2);position:sticky;top:0}.fzmdlg .fzmr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:9px 12px;font:inherit;color:var(--ink);cursor:pointer}.fzmdlg .fzmr:hover{background:var(--surface2)}.fzmdlg .fzmr small{color:var(--faint);font-size:12px;text-align:right}.fzmdlg .fzmn{font-size:13px;color:var(--muted);margin:2px 0 8px}.fzmdlg .fzme{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 8px}.fzps{font-size:11px;color:var(--faint);margin-left:4px}.fzp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);margin-left:2px}
+.fzh{font-size:12.5px;line-height:1.3}.fzrc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 2px 2px;font-size:12px}.fzh .fzn{color:var(--muted)}.fzh .fzm{background:none;border:0;padding:1px 4px;margin:0 0 0 -4px;font:inherit;cursor:pointer;border-radius:6px;color:var(--muted);text-decoration:underline dotted;text-underline-offset:3px}.fzh .fzm:hover{background:var(--surface2);color:var(--ink)}.fzmi-ic{font-size:11px;margin-left:4px;opacity:.6}.fzmdlg .fzml{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:6px}.fzmdlg .fzmg{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 12px 4px;background:var(--surface2);position:sticky;top:0}.fzmdlg .fzmr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:9px 12px;font:inherit;color:var(--ink);cursor:pointer}.fzmdlg .fzmr:hover{background:var(--surface2)}.fzmdlg .fzmr small{color:var(--faint);font-size:12px;text-align:right}.fzmdlg .fzmr > span{display:flex;flex-direction:column;gap:1px}.fzmdlg details.fzmd > summary{cursor:pointer;list-style:none;border-top:1px solid var(--line)}.fzmdlg details.fzmd > summary::-webkit-details-marker{display:none}.fzmdlg details.fzmd > summary::before{content:'▸ ';}.fzmdlg details.fzmd[open] > summary::before{content:'▾ ';}.fzmdlg .fzmsec:first-child .fzmg{border-top:0}.fzmdlg .fzmr small.fzml-d{text-align:left;color:var(--muted);font-size:11.5px}.fzmdlg .fzmn{font-size:13px;color:var(--muted);margin:2px 0 8px}.fzmdlg .fzme{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 8px}.fzps{font-size:11px;color:var(--faint);margin-left:4px}.fzp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn);margin-left:2px}
 .fzsel{height:30px;padding:2px 6px;font-size:12.5px;width:100%;min-width:0}.fz.prop .fzsel{color:var(--muted)}
 .fz2{display:flex;flex-wrap:wrap;align-items:center;gap:3px;min-width:0}.fz2 .altc{font-size:11px}
 .fzt{display:flex;align-items:center;justify-content:flex-end;gap:4px}.fzcut{width:44px;flex:none;padding:2px 4px}
@@ -1976,18 +1976,35 @@ const swapWhy = sw => sw ? [SWAP_REASONS[sw.reason] || "", sw.note || ""].filter
 const sameName = (a, b) => String(a||"").trim().toLowerCase() === String(b||"").trim().toLowerCase();
 /* alternative: quelle scritte nell'allenamento (se il coach le ha cambiate lì), altrimenti quelle della libreria */
 const altsOf = x => Array.isArray(x.alts) ? x.alts : (libByName(x.name)?.alts || []);
+/* VICINANZA DEI MEZZI (una logica per coach e atleta). Gruppi:
+   alt = le alternative scritte dal coach · mov = stesso movimento (abilità+categoria, o schema/pattern dominante se senza abilità) · dom = stesso schema/pattern dominante
+   abil = stessa abilità, altra categoria · co = schemi/pattern in comune (coinvolti) · fam = stessa famiglia · all = gli altri.
+   Dentro ogni gruppo: prima quelli già usati con quell'atleta (fino a questa seduta, il più recente in cima), poi in ordine alfabetico */
+function mezziNear(x, em, d0, wid){
+  const me = libByName(x.name) || {}, mk = movKeyOf(x.name), mine = exSchemi(me).all, dom = mine[0] || "", fams = new Set(mine.map(id => movItem(id)?.fam.id).filter(Boolean)), nm = id => movItem(id)?.it.name || "";
+  const last = {}; Object.values((em && S.cache[em]) || {}).forEach(ww => { if (!ww || ww.id === wid) return; const d = effDate(ww); if (d0 && d > d0) return; (ww.exercises || []).forEach(y => { const k = optKey(exName(ww, y)); if (!last[k] || last[k] < d) last[k] = d; }); });
+  const alts = altsOf(x).filter(n => n && !sameName(n, x.name)), G = {alt: [], mov: [], dom: [], abil: [], co: [], fam: [], all: []};
+  alts.forEach(n => G.alt.push({l: libByName(n) || {name: n}, ld: last[optKey(n)] || "", sub: "tua alternativa"}));
+  S.exercises.filter(l => !sameName(l.name, x.name) && !alts.some(n => sameName(n, l.name))).forEach(l => { const A2 = exSchemi(l).all, sh = A2.filter(id => mine.includes(id)), q = {l, ld: last[optKey(l.name)] || "", sub: ""};
+    if (mk && movKeyOf(l.name) === mk) { q.sub = mk; G.mov.push(q); }
+    else if (dom && A2[0] === dom) { q.sub = `schema dominante: ${nm(dom)}`; G.dom.push(q); }
+    else if (me.pattern && optKey(l.pattern) === optKey(me.pattern)) { q.sub = movKeyOf(l.name); G.abil.push(q); }
+    else if (sh.length) { q.sub = `in comune: ${sh.map(nm).join(", ")}`; G.co.push(q); }
+    else if (A2.some(id => fams.has(movItem(id)?.fam.id))) { q.sub = movItem(A2.find(id => fams.has(movItem(id)?.fam.id))).fam.name; G.fam.push(q); }
+    else { q.sub = movKeyOf(l.name) || l.category || ""; G.all.push(q); } });
+  const ord = (a, b) => (b.ld > a.ld ? 1 : b.ld < a.ld ? -1 : 0) || String(a.l.name).localeCompare(b.l.name, "it");
+  Object.entries(G).forEach(([k, L]) => { if (k !== "alt") L.sort(ord); });
+  return {me, mk, dom, G}; }
+/* sostituzione dell'ATLETA: le alternative del coach, poi (riserva) solo i mezzi che danno lo stesso stimolo: stesso movimento, poi stesso dominante;
+   preferendo la stessa esecuzione (uni/bilaterale) e quelli che l'atleta ha già fatto. Massimo 8 */
 function swapOptions(x){
-  const own = altsOf(x).filter(n => n && !sameName(n, x.name));
-  /* prima le alternative del coach, poi (come riserva) gli esercizi con lo stesso pattern motorio */
-  const lib = libByName(x.name);
-  const pc = !lib?.pattern ? [] : S.exercises.filter(e => e.id !== lib.id && samePC(lib, e) && !own.some(n => sameName(n, e.name)))
-    .sort((a,b) => (b.category === lib.category) - (a.category === lib.category) || a.name.localeCompare(b.name, "it"));
-  /* stesso pattern + categoria + esecuzione; se non ce n'è nessuno, come ripiego quelli con esecuzione diversa (segnalati) */
-  let same = pc.filter(e => sameLat(lib, e)), diff = false;
-  if (!same.length && pc.length) { same = pc; diff = true; }
-  same = same.slice(0, 8).map(e => e.name);
-  const list = [...own, ...same];
-  return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: lib?.pattern || "", category: lib?.category || "", lat: lib?.lat || "", diff, nCoach: own.length, list};
+  const w = typeof athleteWorkout === "function" ? athleteWorkout() : null, em = S.user?.email || (w && wEmail(w)), N = mezziNear(x, em, w ? effDate(w) : "", w?.id);
+  const own = N.G.alt.map(q => q.l.name), lib = N.me, pool = [...N.G.mov, ...N.G.dom];
+  let same = pool.filter(q => sameLat(lib, q.l)), diff = false;
+  if (!same.length && pool.length) { same = pool; diff = true; }
+  same = same.slice(0, 8); const subs = {}; same.forEach(q => subs[q.l.name] = [q.ld ? "già fatto" : "", q.sub].filter(Boolean).join(" · "));
+  const list = [...own, ...same.map(q => q.l.name)];
+  return {kind: list.length ? (own.length ? "coach" : "pattern") : "none", pattern: N.mk || "", category: "", lat: lib?.lat || "", diff, nCoach: own.length, list, subs};
 }
 
 function statusOf(w){
@@ -5232,22 +5249,32 @@ function exAgg(){ if (EXA && EXA.ok && EXA.v === STIMV) return EXA;   // già co
   for (const c of Object.values(S.cache || {})) for (const w of Object.values(c || {})) { n++; if (same && !EXA.o.has(w)) same = false; }
   const tick = () => setTimeout(() => { if (EXA) EXA.ok = false; }, 0);
   if (same && EXA.n === n) { EXA.ok = true; tick(); return EXA; }
-  const u = {}, co = {}, o = new WeakSet(), ctx = {};
+  const u = {}, co = {}, o = new WeakSet(), ctx = {}, uh = {};
   Object.entries(S.cache || {}).forEach(([em, ws]) => Object.values(ws || {}).forEach(w => { if (!w) return; o.add(w); (w.exercises || []).forEach(x => { const by = {};
-    const cs = (x.sets || []).filter(st => stimOk(st.stim)).map(st => ({t: st.type || "", e: st.stim, e2: (st.stim2 || []).filter(id => stimOk(id) && id !== st.stim)}));
-    if (cs.length) (((ctx[em] ??= {})[optKey(exName(w, x))] ??= [])).push({d: effDate(w), id: w.id, L: cs});
+    const tr = {}, cs = (x.sets || []).map(st => ({st, r: (tr[st.type || ""] = (tr[st.type || ""] ?? -1) + 1)})).filter(q => stimOk(q.st.stim))
+      .map(({st, r}) => ({t: st.type || "", r, e: st.stim, e2: (st.stim2 || []).filter(id => stimOk(id) && id !== st.stim)}));   // r = posizione tra le serie dello stesso tipo
+    if (cs.length) { const nk0 = optKey(exName(w, x)); ((ctx[em] ??= {})[nk0] ??= []).push({d: effDate(w), id: w.id, L: cs}); (uh[nk0] ??= []).push({d: effDate(w), L: cs}); }
     (x.sets || []).forEach(st => { if (!stimOk(st.stim)) return; const b = (by[st.stim] ??= new Set()); (st.stim2 || []).filter(id => stimOk(id) && id !== st.stim).forEach(id => b.add(id)); });
     const es = Object.keys(by); if (!es.length) return; const nk = optKey(exName(w, x));
     const t = (u[nk] ??= {}); es.forEach(e => t[e] = (t[e] || 0) + 1);
     const tc = (co[nk] ??= {}); Object.entries(by).forEach(([e, B]) => { const q = (tc[e] ??= {n: 0, co: {}}); q.n++; B.forEach(id => q.co[id] = (q.co[id] || 0) + 1); }); }); }));
   Object.values(ctx).forEach(m => Object.values(m).forEach(L => L.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0)));
-  EXA = {v: STIMV, n, o, u, co, ctx, ok: true}; tick(); return EXA; }
+  EXA = {v: STIMV, n, o, u, co, ctx, uh, ubc: new Map(), ok: true}; tick(); return EXA; }
+/* USI PRECEDENTI: le tue scelte (✓) per quell'esercizio, tutti gli atleti, solo nelle sedute PRIMA della data d (una volta per seduta).
+   Prevalente se usato almeno 2 volte e almeno 2 volte su 3; concomitanti abituali con quel principale (2 su 3) */
+function usesBefore(name, d, want){ const A = exAgg(), nk = optKey(name), key = nk + "|" + (d || "") + "|" + (want || ""); if (A.ubc.has(key)) return A.ubc.get(key);
+  const n = {}, coN = {}; (A.uh[nk] || []).forEach(q => { if (d && q.d >= d) return; const by = {}; q.L.forEach(z => { (by[z.e] ??= new Set()); z.e2.forEach(id => by[z.e].add(id)); });
+    Object.entries(by).forEach(([e, B]) => { n[e] = (n[e] || 0) + 1; const c = (coN[e] ??= {}); B.forEach(id => c[id] = (c[id] || 0) + 1); }); });
+  const L = Object.entries(n).sort((a, b) => b[1] - a[1]), tot = L.reduce((t, q) => t + q[1], 0), coOf = e => Object.entries(coN[e] || {}).filter(([, k]) => k >= 2 && k / n[e] >= 2 / 3).sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  const r = want ? {coBy: {[want]: n[want] ? coOf(want) : []}} : L.length && L[0][1] >= 2 && L[0][1] / tot >= 2 / 3 ? {e: L[0][0], co: coOf(L[0][0])} : null;
+  A.ubc.set(key, r); return r; }
 /* CONTESTO: cosa hai scelto per quell'esercizio con quell'atleta nell'ultima seduta prima di questa (entro 8 settimane).
-   Si prende l'ultima serie dello stesso tipo (R, W, B…) scelta da te (✓, non le proposte) */
+   Si prende la serie dello stesso tipo (R, W, B…) nella stessa posizione, scelta da te (✓, non le proposte) */
 const CTX_DAYS = 56;
 function ctxProp(o){ if (!o?.em || !o.d) return null; const L = exAgg().ctx[o.em]?.[optKey(o.name)]; if (!L) return null; const lo = addDays(o.d, -CTX_DAYS);
   for (let i = L.length - 1; i >= 0; i--) { const q = L[i]; if (q.d >= o.d || q.id === o.wid) continue; if (q.d < lo) break;
-    const pk = q.L.filter(z => z.t === (o.type || "")).pop(); if (!pk) continue;   // serie dello stesso tipo scelte da te; se in quella seduta no, guardo quelle prima
+    const T = q.L.filter(z => z.t === (o.type || "")); if (!T.length) continue;   // serie dello stesso tipo scelte da te; se in quella seduta no, guardo quelle prima
+    const my = (o.x?.sets || []).slice(0, o.j).filter(st => (st.type || "") === (o.type || "")).length, pk = T.filter(z => z.r <= my).pop() || T[0];   // la serie nella stessa posizione (2ª rampa con 2ª rampa)
     return {e: pk.e, e2: pk.e2, d: q.d}; }
   return null; }
 function exUses(name){ return exAgg().u[optKey(name)] || {}; }
@@ -5674,6 +5701,7 @@ const fzVals = (z, full) => { const V = z.L.map(o => String(o.st.rpe ?? "").trim
   const N = V.map(v => rpeNum(v)).filter(v => v != null); return N.length ? `${fmtN(Math.min(...N), 1)}–${fmtN(Math.max(...N), 1)}${N.length < V.length ? "·–" : ""}` : "–"; };
 const tutSec = v => { const n = String(v ?? "").match(/\d+/g); return n && n.length >= 3 ? n.reduce((t, z) => t + +z, 0) : null; };   // 3-1-1-0 → 5 s a ripetizione
 const TUT_LONG = 6;
+const PF_V = 3;   // versione delle regole delle proposte: quelle fissate con regole vecchie si rifanno da sole
 const stimOk = id => !!(id && exprById(id)), roleOk = id => !!(id && stimData().roles.some(r => r.id === id));
 const roleByType = t => stimData().roles.find(r => r.type && r.type === t)?.id || null;
 /* proposta per una serie (dentro il suo movimento: k = posizione, ip = picco) */
@@ -5682,28 +5710,18 @@ function stimPropose(o, k, ip){
   let role = o.type ? roleByType(o.type) : null;
   if (!role) role = long && (ip < 0 || k < ip) ? "r_prep" : /riscald|attivaz/.test(c) ? "r_prep" : ip >= 0 && k < ip ? "r_ramp" : "r_work";
   let e = null, e2 = [], src = "", sd = "";
-  /* 1) proposta fissata al salvataggio della seduta (resta quella che vedevi programmando, anche se poi cambi la scheda o le abitudini) */
-  const pf = o.st?.pf; if (pf && pf.n === optKey(o.name) && pf.w === o.wid && (!o.d || o.d < TODAY())) return {e: stimOk(pf.e) ? pf.e : null, e2: (pf.e2 || []).filter(stimOk), role: roleOk(role) ? role : null, src: "pf", sd: ""};
-  /* 2) il contesto: l'ultima volta con questo atleta; 3) tempo sotto tensione lungo; 4) l'uso prevalente; 5) la scheda dell'esercizio; 6) la categoria */
-  const cx = ctxProp(o);
+  /* 0) proposta fissata (seduta passata): resta quella, anche se poi cambi la scheda o le abitudini */
+  const pf = o.st?.pf; if (pf && pf.v === PF_V && pf.n === optKey(o.name) && pf.w === o.wid && (!o.d || o.d < TODAY())) return {e: stimOk(pf.e) ? pf.e : null, e2: (pf.e2 || []).filter(stimOk), role: roleOk(role) ? role : null, src: "pf", sd: ""};
+  /* SOLO ALL'INDIETRO (le scelte fatte dopo questa seduta non la cambiano): 1) contesto = la tua scelta con questo atleta nelle sedute prima (8 sett., stesso tipo di serie);
+     2) usi = le tue scelte con tutti gli atleti nelle sedute prima di questa data (almeno 2 volte e 2 su 3); 3) lo Stimolo proposto della scheda; se no nessuno.
+     Niente più regole "indovinate" (tempo sotto tensione, categoria): lo stimolo dipende dal contesto e lo decidi tu */
+  const cx = ctxProp(o), ub = !cx && usesBefore(o.name, o.d);
   if (cx && stimOk(cx.e)) { e = cx.e; e2 = [...cx.e2]; src = "ctx"; sd = cx.d; }
-  else if (long) { e = "e_tec_appr"; src = "tut"; if (hiInt || (o.reps != null && o.reps >= 6)) e2.push("e_strutt_iper"); }
-  else if (usesMain(o.name)) { e = usesMain(o.name); src = "uses"; }
+  else if (ub) { e = ub.e; e2 = ub.co; src = "uses"; }
   else if (o.s0 !== "none" && exprById(o.s0)) { e = o.s0; src = "card"; if (exprById(e).cap.id === "c_vel" && ["e_vel_acc", "e_vel_max"].includes(e) && o.dist != null) e = o.dist <= 30 ? "e_vel_acc" : "e_vel_max"; }
-  /* usi alla pari: nessuna scelta (pulsanti rapidi nella fase); senza usi né scheda, la vecchia categoria */
-  else if (o.s0 === "none" || usesList(o.name).length) e = null;
-  else if (/potenz|olimp/.test(c)) e = "e_forza_espl";
-  else if (/pliometr|balz|rimbalz/.test(c)) e = "e_forza_reat";
-  else if (/velocit|sprint/.test(c)) e = o.dist != null && o.dist <= 30 ? "e_vel_acc" : "e_vel_max";
-  else if (/tecnica/.test(c)) e = "e_tec_cons";
-  else if (/mobil|stretch/.test(c)) e = "e_mob_art";
-  else if (/prevenz|corrett|core/.test(c)) e = "e_strutt_anat";
-  else if (/condizion|resist/.test(c)) e = "e_res_aerc";
-  else if (/forza/.test(c)) e = o.reps != null && o.reps >= 8 && !hiInt ? "e_strutt_iper" : "e_forza_max";
-  if (!src && stimOk(e)) src = "cat";
-  if (stimOk(e) && src !== "ctx" && src !== "tut") coMain(o.name, e).forEach(id => { if (id !== e && !e2.includes(id)) e2.push(id); });   // concomitanti abituali con quel principale (imparati dagli usi)
+  if (stimOk(e) && src === "card") (usesBefore(o.name, o.d, e)?.coBy?.[e] || []).forEach(id => { if (id !== e && !e2.includes(id)) e2.push(id); });   // scheda: i concomitanti abituali (solo usi passati)
   return {e: stimOk(e) ? e : null, e2: e2.filter(stimOk), role: roleOk(role) ? role : null, src: stimOk(e) ? src : "", sd}; }
-const PROP_SRC = {pf: d => "fissata", ctx: d => "come il " + fmtD(d), tut: () => "dal tempo sotto tensione", uses: () => "dagli usi", card: () => "dalla scheda", cat: () => "dalla categoria"};
+const PROP_SRC = {pf: d => "fissata", ctx: d => "come il " + fmtD(d), uses: () => "dagli usi precedenti", card: () => "dalla scheda"};
 /* fasi di un movimento: nuova fase quando cambia l'esercizio, quando cambia la scelta del coach, quando c'è un taglio voluto (st.fb)
    o, finché il coach non ha scelto, quando cambia il tipo di serie o il tempo sotto tensione */
 function stimFasi(f){
@@ -5752,15 +5770,19 @@ function fzmOpen(refs, f){ const w = S.editor?.w; if (!w) return; const R0 = Str
 function fzmDraw(){ const M = S.fzm, w = S.editor?.w, a = w?.exercises || [], x = a.find(q => q.id === M?.xid); if (!x) { $("#confirm").innerHTML = ""; return; }
   const i = a.indexOf(x), n = (x.sets || []).length, grp = !!(x.ss || a[i + 1]?.ss || x.circ), B = grp ? n - 1 : M.toEnd ? n - 1 : M.b, A = grp ? 0 : M.a;
   const o = M.off || 0, rng = (p, q) => p === q ? `serie ${p + 1 + o}` : `serie ${p + 1 + o}–${q + 1 + o}`, mk = movKeyOf(x.name);
-  const lib = S.exercises.filter(l => !sameName(l.name, x.name)), same = mk ? lib.filter(l => movKeyOf(l.name) === mk) : [], rest = lib.filter(l => !same.includes(l));
-  const sub = l => esc(movKeyOf(l.name) || l.category || "");
-  const row = l => `<button type="button" class="fzmr" data-act="fzm-pick" data-n="${esc(l.name)}" data-k="${esc(optKey(l.name))}"><span>${esc(l.name)}</span><small>${sub(l)}</small></button>`;
+  /* GRUPPI (come per l'atleta, più quelli larghi chiusi): aperti = le tue alternative, stesso movimento, stesso dominante;
+     chiusi (si aprono o si cercano) = stessa abilità altra categoria, schemi/pattern in comune (coinvolti), stessa famiglia, tutti gli altri */
+  const N = mezziNear(x, S.editor.email, effDate(w), w.id), G = N.G;
+  const OPEN = [["alt", "Le tue alternative"], ["mov", `Stesso movimento${mk ? ` (${esc(mk)})` : ""}`], ["dom", `Stesso schema dominante${N.dom ? ` (${esc(movItem(N.dom)?.it.name || "")})` : ""}`]];
+  const SHUT = [["abil", "Stessa abilità, altra categoria"], ["co", "Schemi e pattern in comune (coinvolti)"], ["fam", "Stessa famiglia di movimento"], ["all", "Tutti gli altri esercizi"]];
+  const row = q => `<button type="button" class="fzmr" data-act="fzm-pick" data-n="${esc(q.l.name)}" data-k="${esc(optKey(q.l.name))}"><span>${esc(q.l.name)}${q.ld ? `<small class="fzml-d">ultima volta ${esc(fmtD(q.ld))}</small>` : ""}</span><small>${esc(q.sub)}</small></button>`;
   $("#confirm").innerHTML = `<div class="back" style="z-index:75"><div class="modal sm fzmdlg" role="dialog" aria-label="Cambia mezzo"><header><h2>Cambia mezzo · ${rng(A, B)}</h2><button class="btn ghost icon" data-act="fzm-close" aria-label="Chiudi">✕</button></header>
     <div class="body"><div class="fzmn">ora: <b>${esc(x.name)}</b>${mk ? ` · movimento: ${esc(mk)}` : ""}${grp ? ` · <span class="faint">in superserie/circuito si cambia l'esercizio intero</span>` : A === 0 && B === n - 1 ? ` · <span class="faint">tutte le serie: si sostituisce l'esercizio</span>` : ` · <span class="faint">nel programma l'esercizio si divide</span>`}</div>
       ${!grp && M.b < n - 1 ? `<label class="fzme"><input type="checkbox" data-change="fzm-end" ${M.toEnd ? "checked" : ""}> anche le serie dopo (${rng(M.b + 1, n - 1)})</label>` : ""}
       <input class="in" id="fzm-q" type="search" placeholder="Cerca un esercizio…" value="${esc(M.q)}" autocomplete="off">
-      <div class="fzml">${same.length ? `<div class="fzmg">Stesso movimento${mk ? ` (${esc(mk)})` : ""}</div>${same.map(row).join("")}` : ""}<div class="fzmg">${same.length ? "Altri esercizi" : "Esercizi"}</div>${rest.map(row).join("")}</div></div></div></div>`;
-  const q = $("#fzm-q"), filt = () => { const v = optKey(q.value); M.q = q.value; document.querySelectorAll(".fzmdlg .fzmr").forEach(b => b.hidden = !!v && !b.dataset.k.includes(v)); };
+      <div class="fzml">${OPEN.map(([k, t]) => G[k].length ? `<div class="fzmsec"><div class="fzmg">${t}</div>${G[k].map(row).join("")}</div>` : "").join("")}${!OPEN.some(([k]) => G[k].length) ? `<div class="fzmn faint" style="padding:10px 12px;margin:0">Nessun mezzo vicino: aprili sotto o cercali.</div>` : ""}${SHUT.map(([k, t]) => G[k].length ? `<details class="fzmsec fzmd"><summary class="fzmg">${t} <span class="faint">· ${G[k].length}</span></summary>${G[k].map(row).join("")}</details>` : "").join("")}</div></div></div></div>`;
+  const q = $("#fzm-q"), filt = () => { const v = optKey(q.value); M.q = q.value; document.querySelectorAll(".fzmdlg .fzmr").forEach(b => b.hidden = !!v && !b.dataset.k.includes(v));
+    document.querySelectorAll(".fzmdlg .fzmsec").forEach(sec => { const n = [...sec.querySelectorAll(".fzmr")].filter(b => !b.hidden).length; sec.hidden = !!v && !n; if (sec.tagName === "DETAILS") sec.open = !!v && n > 0; }); };   // cercando si aprono i gruppi chiusi che contengono il nome
   q.oninput = filt; filt(); if (matchMedia("(pointer:fine)").matches) q.focus(); }
 function fzmApply(name){ const M = S.fzm, E = S.editor, w = E?.w, a = w?.exercises || [], x = a.find(q => q.id === M?.xid); if (!x || !name) return;
   const snap = clone({ex: w.exercises, res: w.results ?? null}), i = a.indexOf(x), n = x.sets.length, grp = !!(x.ss || a[i + 1]?.ss || x.circ), old = x.name;
@@ -5878,7 +5900,7 @@ function firmaHtml(email, w){
     return `<div class="frow" style="--fc:${c}"><div class="fh"><span class="fpat">${esc(f.pat || f.names[0])}</span>${!f.pat ? `<span class="faint" title="Esercizio senza abilità né schemi e pattern nella libreria: aggiungili nella scheda dell'esercizio per raggrupparlo con gli altri dello stesso movimento"> · non classificato</span>` : f.sch ? `<span class="faint" title="Esercizio senza abilità: il riquadro prende il nome dallo schema o pattern dominante"> · dominante</span>` : ""}<span class="fmez">mezzi: ${esc(f.names.join(", "))}</span></div>
       <div class="fb"><div class="ftxt">${parts.join(" · ")}</div><div class="fpos">${spark}<small>serie ${f.first === f.last ? f.first : `${f.first}–${f.last}`} di ${F.N} della seduta</small></div></div>${fasiHtml(f, w)}</div>`; }).join("");
   return `<details class="firma" ${S.firmaOpen === false ? "" : "open"}><summary><b>Struttura degli stimoli</b> <span class="faint">· in ordine di programma</span></summary>
-    <div class="fdesc">In alto la <b>seduta</b> intera: come lo stimolo sale, tocca i picchi e scende passando da un movimento all'altro. Sotto, nell'ordine del programma, un riquadro per ogni blocco dello stesso movimento (esercizi di seguito; se il movimento torna più avanti è un riquadro nuovo): forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del blocco, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app. Tipo di serie e ruolo vanno insieme: cambiando l'uno cambia l'altro.</div>${S.editor?.aligned && S.editor.w === w ? `<div class="faint" style="font-size:12px;margin:2px 0 6px">↻ Aprendo la seduta ho allineato il tipo al ruolo in ${S.editor.aligned} serie: si salva con la prossima modifica.</div>` : ""}${sessStrip(F, KC)}${rows}</details>`; }
+    <div class="fdesc">In alto la <b>seduta</b> intera: come lo stimolo sale, tocca i picchi e scende passando da un movimento all'altro. Sotto, nell'ordine del programma, un riquadro per ogni blocco dello stesso movimento (esercizi di seguito; se il movimento torna più avanti è un riquadro nuovo): forma delle serie, dose, intensità e dove sta nella seduta (puntini = serie del blocco, cerchiato il picco). Gli esercizi sono i mezzi. Sotto, le <b>fasi</b>: per ogni gruppo di serie scegli lo stimolo (capacità · espressione) e il ruolo; finché non scegli vale la proposta dell'app. Tipo di serie e ruolo vanno insieme: cambiando l'uno cambia l'altro.</div>${S.editor?.aligned && S.editor.w === w ? `<div class="faint" style="font-size:12px;margin:2px 0 6px">↻ Aprendo la seduta ho allineato il tipo al ruolo in ${S.editor.aligned} serie: si salva con la prossima modifica.</div>` : ""}${sessStrip(F, KC)}${rows}${S.editor?.w === w && effDate(w) < TODAY() && F.mv.some(f => f.L.some(o => !o.st.stim && !o.st.role)) ? `<div class="fzrc"><button type="button" class="btn ghost sm" data-act="fz-recalc" title="Le serie dove non hai scelto tu prendono di nuovo la proposta dalle tue scelte precedenti (con questo atleta, poi gli usi, poi la scheda). Le tue scelte (✓) non cambiano. Si fissa quando salvi.">↻ Ricalcola le proposte</button><span class="faint">solo dove non hai scelto tu · si fissa quando salvi</span></div>` : ""}</details>`; }
 let firmaT = null;
 const firmaRefresh = () => { clearTimeout(firmaT); firmaT = setTimeout(() => { const E = S.editor, box = $("#ed-firma"); if (!E || !box) return; box.innerHTML = firmaHtml(E.email, E.w); }, 350); };
 /* ===== PROGRAMMARE DALLO STIMOLO (passo 4) =====
@@ -7118,7 +7140,7 @@ function altsRowHtml(x, i, lib){
     ${!own && list.length ? `<span class="faint" style="font-size:11px">dalla libreria</span>` : ""}
     <input class="in altin" list="exlib" aria-label="Aggiungi alternativa" data-change="alt-add" data-i="${i}" placeholder="+ alternativa">
     ${own && lib ? `<button type="button" class="btn sm ghost" data-act="alt-reset" data-i="${i}" title="Usa le alternative scritte nella libreria">↺ come in libreria</button>` : ""}
-    ${list.length ? "" : `<span class="faint" style="font-size:11px">${pat ? `nessuna: gli proporrò gli esercizi con stesso pattern, categoria${lib.lat ? " ed esecuzione" : ""} (${esc([lib.pattern, lib.category, latLbl(lib.lat)].filter(Boolean).join(" · "))})${lib.lat && !patL ? ` · nessuno con la stessa esecuzione: vedrà quelli con esecuzione diversa` : ""}` : "nessuna: non potrà cambiarlo"}</span>`}</div>`;
+    ${list.length ? "" : (N => { const P = [...N.G.mov, ...N.G.dom], L = P.filter(q => sameLat(lib, q.l)); return `<span class="faint" style="font-size:11px">${P.length ? `nessuna: gli proporrò i mezzi dello stesso movimento o con lo stesso schema dominante (${(L.length ? L : P).slice(0, 8).map(q => esc(q.l.name)).join(", ")})${lib?.lat && !L.length ? ` · nessuno con la stessa esecuzione: vedrà quelli con esecuzione diversa` : ""}` : "nessuna: non potrà cambiarlo"}</span>`; })(mezziNear(x, S.editor?.email, S.editor ? effDate(S.editor.w) : "", S.editor?.w?.id))}</div>`;
 }
 /* ---------- correzione dei dati registrati (coach) ---------- */
 async function saveCoachFix(patch){
@@ -7215,12 +7237,13 @@ async function closeEditor(force=false){
    Non è una conferma (resta "proposta", non conta negli usi): serve solo a non far cambiare il passato se cambi scheda o abitudini.
    Vale solo per le sedute passate (prima di oggi) e solo per la seduta dove è stata fissata (pf.w): nelle copie e nelle sedute di oggi/future la proposta è viva */
 function propFix(email, w){ try { firmaOf(email, w).mv.forEach(f => stimFasi(f).forEach(z => { if (z.asg) return;
-  z.L.forEach(o => { if (o.j >= (o.x.sets || []).length || o.st.stim) return; o.st.pf = {n: optKey(o.name), w: w.id, e: z.e || "", e2: [...(z.e2 || [])]}; }); })); } catch(e) { console.warn(e); } }
+  z.L.forEach(o => { if (o.j >= (o.x.sets || []).length || o.st.stim) return; o.st.pf = {n: optKey(o.name), w: w.id, v: PF_V, e: z.e || "", e2: [...(z.e2 || [])]}; }); })); } catch(e) { console.warn(e); } }
 const pfStrip = w => (w.exercises || []).forEach(x => (x.sets || []).forEach(st => { delete st.pf; }));   // seduta di oggi o futura: le proposte restano vive (anche nelle copie)
 /* sedute PASSATE ancora "vive" (mai salvate da quel giorno in poi, o salvate prima di questa regola): il coach le fissa da solo
    la prima volta che le carica. Scrive solo il programma (exercises), mai i risultati dell'atleta. Un po' alla volta, senza bloccare l'app */
 let PFP = null; const PFP_DONE = new Set();
-const pfNeeds = w => (w.exercises || []).some(x => (x.sets || []).some(st => !st.stim && !st.role && !(st.pf && st.pf.n === optKey(exName(w, x)) && st.pf.w === w.id)));   // pf senza seduta (v263): si rifissa una volta, legata alla sua seduta
+const stableStr = v => JSON.stringify(v, (k, x) => x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map(q => [q, x[q]])) : x);
+const pfNeeds = w => (w.exercises || []).some(x => (x.sets || []).some(st => !st.stim && !st.role && !(st.pf && st.pf.n === optKey(exName(w, x)) && st.pf.w === w.id && st.pf.v === PF_V)));   // pf senza seduta (v263): si rifissa una volta, legata alla sua seduta
 function propFixPastSoon(){ if (S.user?.role !== "coach" || PFP) return; PFP = setTimeout(propFixPast, 1500); }
 async function propFixPast(){ const today = TODAY(), todo = [];
   Object.entries(S.cache || {}).forEach(([em, ws]) => Object.values(ws || {}).forEach(w => { if (w && w.id && !PFP_DONE.has(w.id) && effDate(w) < today && (w.exercises || []).length && S.editor?.w?.id !== w.id && pfNeeds(w)) todo.push([em, w]); }));
@@ -7228,6 +7251,9 @@ async function propFixPast(){ const today = TODAY(), todo = [];
   for (let i = 0; i < todo.length; i++) { const [em, w] = todo[i]; PFP_DONE.add(w.id);
     const c = clone(w), before = JSON.stringify(c.exercises); propFix(em, c);
     if (S.cache[em]?.[w.id] !== w || S.editor?.w?.id === w.id) continue;   // nel frattempo l'hai aperta o salvata tu: non tocco niente
+    /* prima di scrivere rileggo la seduta dal database: se è cambiata altrove (es. dall'iPad) non scrivo la mia copia vecchia */
+    let fresh = null; try { fresh = (await DB.listWorkouts(em, w.date, w.date)).find(q => q.id === w.id); } catch(e) { continue; }
+    if (!fresh || stableStr(fresh.exercises || []) !== stableStr(w.exercises || [])) { if (fresh && S.cache[em]?.[w.id] === w) S.cache[em][w.id] = fresh; continue; }
     if (JSON.stringify(c.exercises) !== before) { try { await DB.saveWorkout(em, {id: w.id, exercises: c.exercises}); upd.push([em, w, c.exercises]); } catch(e) { console.warn(e); PFP_DONE.delete(w.id); } }
     if (i % 8 === 7) await new Promise(r => setTimeout(r, 30)); }   // respiro: l'app resta reattiva
   upd.forEach(([em, w, ex]) => { if (S.cache[em]?.[w.id] === w) S.cache[em][w.id] = {...w, exercises: ex}; });   // in memoria tutte insieme alla fine (gli usi si ricalcolano una volta)
@@ -7740,10 +7766,10 @@ function swapSheet(xid){
       <div id="sw-o" style="display:flex;flex-direction:column;gap:14px">
       ${o.nCoach ? `<div class="field"><span class="lbl">Alternative indicate dal coach</span>
         <div class="wopts" role="radiogroup" aria-label="Alternative indicate dal coach">${o.list.slice(0, o.nCoach).map((n,k) => opt(k, n, "")).join("")}</div></div>` : ""}
-      ${o.list.length > o.nCoach ? `<div class="field"><span class="lbl">${o.nCoach ? "Altre possibilità" : "Esercizi simili"} · ${o.diff ? "stesso pattern e categoria, esecuzione diversa" : `stesso pattern${o.lat ? ", categoria ed esecuzione" : " e categoria"}`} (${esc([o.pattern, o.category, o.diff ? "" : latLbl(o.lat)].filter(Boolean).join(" · "))})</span>
+      ${o.list.length > o.nCoach ? `<div class="field"><span class="lbl">${o.nCoach ? "Altre possibilità" : "Esercizi simili"} · ${o.diff ? "stesso movimento, esecuzione diversa" : `stesso movimento${o.lat ? " ed esecuzione" : ""}`}${o.pattern ? ` (${esc([o.pattern, o.diff ? "" : latLbl(o.lat)].filter(Boolean).join(" · "))})` : ""}</span>
         ${o.diff ? `<span class="faint" style="font-size:12px;margin-top:-2px">Non ce ne sono ${o.lat === "uni" ? "a una gamba / un braccio" : "bilaterali"} come l'esercizio del coach: usali solo se serve.</span>` : ""}
         ${o.nCoach ? `<span class="faint" style="font-size:12px;margin-top:-2px">Solo se non riesci nemmeno con quelle del coach.</span>` : ""}
-        <div class="wopts" role="radiogroup" aria-label="Esercizi con stesso pattern motorio e stessa categoria">${o.list.slice(o.nCoach).map((n,k) => { const l = libByName(n); return opt(o.nCoach + k, n, [l?.category, o.diff && l?.lat ? `esecuzione diversa (${latLbl(l.lat).toLowerCase()})` : ""].filter(Boolean).join(" · ")); }).join("")}</div></div>` : ""}
+        <div class="wopts" role="radiogroup" aria-label="Esercizi con stesso pattern motorio e stessa categoria">${o.list.slice(o.nCoach).map((n,k) => { const l = libByName(n); return opt(o.nCoach + k, n, [o.subs?.[n] || l?.category, o.diff && l?.lat ? `esecuzione diversa (${latLbl(l.lat).toLowerCase()})` : ""].filter(Boolean).join(" · ")); }).join("")}</div></div>` : ""}
       </div>
       <div class="field"><span class="lbl">Perché lo cambi?</span><div class="rchips" id="sw-r">${Object.entries(SWAP_REASONS).map(([k,v]) => `<button type="button" data-r="${k}" aria-pressed="false">${v}</button>`).join("")}</div></div>
       <div class="field"><label class="lbl" for="sw-note">Dettagli <span class="faint" id="sw-req">(facoltativo)</span></label><input class="in" id="sw-note" placeholder="es. rack occupato da un'altra squadra" maxlength="140"></div>`}
@@ -8065,6 +8091,8 @@ const ACT = {
   "ex-cancel"(){ S.exEdit = null; renderView(); },
   "sess-scale"(t){ S.sessScale = t.dataset.v; const E = S.editor, box = $("#ed-firma"); if (E && box) box.innerHTML = firmaHtml(E.email, E.w); },
   "fz-quick"(t){ const L = fzSets(t.dataset.sets); const ch = fzFix(L), co = (t.dataset.co || "").split(",").filter(stimOk); L.forEach(st => { st.stim = t.dataset.e; st.stim2 = co.filter(id => id !== st.stim); }); fzDone(ch); },   // "come le altre volte": principale + concomitanti abituali
+  "fz-recalc"(){ const E = S.editor; if (!E) return; let n = 0; (E.w.exercises || []).forEach(x => (x.sets || []).forEach(st => { if (st.pf) { delete st.pf; n++; } }));
+    markDirty(); drawEditor(); toast(n ? "Proposte ricalcolate: salva per fissarle" : "Le proposte sono già aggiornate"); },
   "fzm-open"(t){ fzmOpen(t.dataset.sets, +t.dataset.f); },
   "fzm-pick"(t){ fzmApply(t.dataset.n); },
   "fzm-close"(){ $("#confirm").innerHTML = ""; S.fzm = null; },

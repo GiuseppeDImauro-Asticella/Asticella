@@ -1927,7 +1927,7 @@ async function ensureWeeks(email, ws, n, force=false){
   const cache = (S.cache[email] ??= {});
   const need = [];
   for (let i=0;i<n;i++){ const w = addDays(ws, i*7); if (force || !set.has(w)) need.push(w); }
-  if (!need.length) return;
+  if (!need.length) return false;
   const from = need[0], to = addDays(need[need.length-1], 6);
   const slowBefore = S.slow; S.slow = false;
   const list = await DB.listWorkouts(email, from, to);
@@ -1937,6 +1937,7 @@ async function ensureWeeks(email, ws, n, force=false){
   list.forEach(w => cache[w.id] = w);
   if (!wasSlow) need.forEach(w => set.add(w));
   INTM = null;   // nuove sedute in memoria: i riferimenti dell'intensità vanno ricalcolati
+  return true;
 }
 const effDate = w => w.doneDate || w.date;     // giorno in cui è stato svolto davvero (se diverso da quello previsto)
 const wOn = (email, date) => Object.values(S.cache[email] || {}).filter(w => effDate(w) === date)   // ordine nel giorno: quello scelto dal coach (order), poi data di creazione
@@ -1950,7 +1951,10 @@ function athByGroup(list){ const m = new Map(); (list || activeAthletes()).forEa
 const athOptions = (sel, label = a => esc(a.name)) => { const G = athByGroup(); return G.map(([g, l]) => { const o = l.map(a => `<option value="${esc(a.email)}" ${a.email === sel ? "selected" : ""}>${label(a)}</option>`).join("");
   return G.length > 1 || g ? `<optgroup label="${esc(g || "Senza gruppo")}">${o}</optgroup>` : o; }).join(""); };
 const athByEmail = e => S.athletes.find(a => a.email === e);
-const libByName = n => S.exercises.find(x => x.name.trim().toLowerCase() === String(n||"").trim().toLowerCase());
+let LIBM = null;
+const libByName = n => { const E = S.exercises || [];
+  if (!LIBM || LIBM.a !== E || LIBM.n !== E.length || LIBM.v !== STIMV) { const m = new Map(); E.forEach(x => { const k = String(x.name || "").trim().toLowerCase(); if (!m.has(k)) m.set(k, x); }); LIBM = {a: E, n: E.length, v: STIMV, m}; }
+  return LIBM.m.get(String(n || "").trim().toLowerCase()); };
 /* esercizi "intercambiabili" = stesso pattern motorio E stessa categoria (con il joint by joint lo stesso pattern, es. Hip movement,
    vale per forza, potenza e mobilità). Se a uno dei due manca la categoria conta solo il pattern. */
 const ck = v => String(v || "").trim().toLowerCase();
@@ -2090,8 +2094,8 @@ function guessKind(w){
 /* tipo ricavato dagli stimoli: conta tutte le serie (scelte o proposte) per capacità; quasi pari (≥ 60% della prima) = seduta mista */
 /* campo "Tipo di seduta" dell'editor: un solo elenco; automatico oppure capacità (o sua espressione) principale + "+ seconda" sulla stessa riga */
 function kindFieldHtml(w, open){ const k = kindSet(w), man = !!(k && KIND_CAP[k]), e1 = man ? w.kindE : null, k2 = kind2Of(w), e2 = k2 ? w.kindE2 : null;
-  const autoL = kindStim(w) ? kindLbl({...w, kind: ""}) : KINDS[kindOf({...w, kind: ""})].l, P = kindPresentN(w), tg = kindTarget(w), tgL = kindTgtLbl(w);
-  const tgAuto = (W => kindTgtLbl(W))({...w, kind: ""}), capOf = e => exprById(e)?.cap.id, kOf = e => Object.keys(KIND_CAP).find(z => KIND_CAP[z] === capOf(e));
+  const ks = kindStim(w), autoL = ks ? kindLblAuto(ks) : KINDS[kindNorm(guessKind(w || {})) || guessKind(w || {})].l, P = kindPresentN(w), tgL = kindTgtLbl(w);
+  const tgAuto = kindTgtAuto(w, ks), capOf = e => exprById(e)?.cap.id, kOf = e => Object.keys(KIND_CAP).find(z => KIND_CAP[z] === capOf(e));
   const row = (v, name, n, isMain, isSec, canSec, isT) => `<div class="kprow${isMain ? " on" : ""}${isSec ? " sec" : ""}"><button type="button" class="kpm" data-act="kp-main" data-v="${v}"><span>${esc(name)}${n ? ` <small class="faint">${n} serie</small>` : ""}${isT ? ` <small class="kptg">target</small>` : ""}</span>${isMain ? `<span class="sptag">principale</span>` : ""}${isSec ? `<span class="sptag">seconda</span>` : ""}</button>${
     isSec ? `<button type="button" class="kps on" data-act="kp-sec" data-v="" title="Togli la seconda capacità" aria-label="Togli la seconda capacità">×</button>` : canSec ? `<button type="button" class="kps" data-act="kp-sec" data-v="${v}" title="Aggiungi come seconda capacità">+ seconda</button>` : ""}</div>`;
   const tgRaw = kindTargetRaw(w), rows = P.map(([e, n]) => row(kOf(e) + "|" + e, exprLbl(e), n, e === e1, e === e2, man && capOf(e) !== KIND_CAP[k], e === tgRaw)).join("");
@@ -2127,6 +2131,9 @@ function kindTargetRaw(w){ if (!(w?.exercises || []).length) return null; let M;
   const n = {}; Object.values(M).forEach(q => { if (q.e && isTgtRole(q.role)) n[q.e] = (n[q.e] || 0) + 1; }); return Object.entries(n).sort((a, b) => b[1] - a[1])[0]?.[0] || null; }
 const kindTgtLbl = w => { const t = kindTarget(w); if (!t) return ""; const q = exprById(t); return q.cap.id === KIND_CAP[kindOf(w)] ? q.expr.name : exprLbl(t); };
 const kindExpr = w => kindSet(w) ? kindSE(kindSet(w), w.kindE) : kindStim(w)?.e || null;
+/* come sarebbe il tipo in automatico (senza la correzione del coach), senza rifare l'analisi */
+const kindLblAuto = (q, short) => (q.e ? exprLbl(q.e) : KINDS[q.k].l) + (q.mix ? " + " + (short || !q.mixE ? KINDS[q.mix].l : exprLbl(q.mixE)) : "");
+const kindTgtAuto = (w, ks) => { if (!ks || ["partita", "gara"].includes(ks.k)) return ""; const t = kindTargetRaw(w); if (!t || t === ks.e) return ""; const q = exprById(t); return !q ? "" : q.cap.id === KIND_CAP[ks.k] ? q.expr.name : exprLbl(t); };
 const kindLbl = (w, short) => { const one = (k, e) => e ? exprLbl(e) : KINDS[k].l;
   if (kindSet(w)) { const k = kindSet(w), k2 = kind2Of(w); return one(k, kindSE(k, w.kindE)) + (k2 ? " + " + (short ? KINDS[k2].l : one(k2, kindSE(k2, w.kindE2))) : ""); }
   const q = kindStim(w); if (!q) return KINDS[kindOf(w)].l;
@@ -2136,7 +2143,7 @@ const sessOptLbl = (q, dayName) => { const t = q.title || "Allenamento", k = kin
 /* elenco a comparsa delle sedute (al posto del menu standard): data in grigio in colonna, nome in evidenza, tipo sotto più piccolo.
    G = [{l: titolo del gruppo, items: [seduta]}]; k = azione (come data-change del vecchio menu); tag(q) = etichetta a destra (es. "più recente") */
 const spRow = (q, cls, attr) => { const t = q.title || "Allenamento", kk = kindLbl(q, true);
-  return `<span class="spd">${esc(DAYS[dayIdx(effDate(q))].slice(0, 3).toLowerCase())} ${esc(fmtD(effDate(q)))}</span><span class="spn"><b>${esc(t)}</b>${optKey(kk) === optKey(t) ? "" : `<small>${esc(kk)}${kindTgtLbl(q) ? ` → ${esc(kindTgtLbl(q))}` : ""}</small>`}</span>`; };
+  return `<span class="spd">${esc(DAYS[dayIdx(effDate(q))].slice(0, 3).toLowerCase())} ${esc(fmtD(effDate(q)))}</span><span class="spn"><b>${esc(t)}</b>${optKey(kk) === optKey(t) ? "" : `<small>${esc(kk)}${(tg => tg ? ` → ${esc(tg)}` : "")(kindTgtLbl(q))}</small>`}</span>`; };
 function spick(k, G, sel, ph, tag = () => ""){
   const cur = G.flatMap(g => g.items).find(q => q === sel);
   return `<details class="spk" data-k="${k}"><summary class="in spks" aria-label="${esc(ph)}">${cur ? `<span class="spi spcur">${spRow(cur)}</span>` : `<span class="spph">${esc(ph)}</span>`}<span class="spcv" aria-hidden="true">▾</span></summary>
@@ -2470,7 +2477,7 @@ async function loadCoachData(){
   if (!S.calAthlete || !athByEmail(S.calAthlete)) S.calAthlete = activeAthletes()[0]?.email || null;
   fillDatalist();
 }
-function fillDatalist(){ $("#exlib").innerHTML = S.exercises.map(x => `<option value="${esc(x.name)}"></option>`).join(""); }
+function fillDatalist(){ STIMV++; $("#exlib").innerHTML = S.exercises.map(x => `<option value="${esc(x.name)}"></option>`).join(""); }
 
 function authMsg(e){
   const m = {"auth/invalid-credential":"Email o password non corretti.","auth/wrong-password":"Password non corretta.","auth/user-not-found":"Nessun account con questa email.",
@@ -3583,7 +3590,7 @@ function cardHtml(email, w, pl){
   return `<div class="wcard st-${st} ${pl ? "mk" : ""} ${S.calSel.has(w.id) ? "sel" : ""} ${w.hidden ? "hid" : ""}" ${pl ? `style="--kc:${kindColor(kindOf(w))}"` : ""} draggable="true" data-drag="${w.id}" data-act="open-w" data-e="${esc(email)}" data-id="${w.id}" tabindex="0" title="${STATUS_TXT[st]}">
     <span class="tr">${ST_ICON[st] ? `<span class="stb st-${st}" title="${STATUS_TXT[st]}" aria-label="${STATUS_TXT[st]}">${ST_ICON[st]}</span>` : ""}<button type="button" class="vis" data-act="w-vis" data-e="${esc(email)}" data-id="${w.id}" title="${w.hidden ? "Nascosto all'atleta: clicca per renderlo visibile" : "Visibile all'atleta: clicca per nasconderlo"}" aria-label="${w.hidden ? "Rendi visibile all'atleta" : "Nascondi all'atleta"}">${w.hidden ? ICON.eyeoff : ICON.eye}</button></span><div class="t"><span class="dot st-${st}"></span><span class="tt">${esc(w.title||"Senza titolo")}</span></div>
     ${w.hidden ? `<div class="hidl">Nascosto all'atleta</div>` : ""}
-    <div class="kindt" title="Tipo di seduta${hasKind(w) ? " (corretto da te)" : " (ricavato dagli stimoli delle serie)"}${kindTgtLbl(w) ? " → target: " + esc(kindTgtLbl(w)) + " (serie Target)" : ""}"><span>${esc(kindLbl(w, true))}</span>${kindTgtLbl(w) ? `<span class="ktg"> → ${esc(kindTgtLbl(w))}</span>` : ""}<span class="nex"> · ${(w.exercises || []).length} eserc.</span></div>${plh}
+    ${(tgl => `<div class="kindt" title="Tipo di seduta${hasKind(w) ? " (corretto da te)" : " (ricavato dagli stimoli delle serie)"}${tgl ? " → target: " + esc(tgl) + " (serie Target)" : ""}"><span>${esc(kindLbl(w, true))}</span>${tgl ? `<span class="ktg"> → ${esc(tgl)}</span>` : ""}`)(kindTgtLbl(w))}<span class="nex"> · ${(w.exercises || []).length} eserc.</span></div>${plh}
     ${miniListHtml(w.exercises, w)}
     ${st==="done" ? `<div class="meta">✓ ${w.sessionRpe?`RPE ${w.sessionRpe}`:""}${w.durationMin?` · ${w.durationMin}′`:""}</div>` : ""}
     ${w.doneDate && w.doneDate !== w.date ? `<div class="moved">↷ previsto ${esc(DAYS[dayIdx(w.date)].toLowerCase())} ${parse(w.date).getDate()}</div>` : ""}</div>`;
@@ -4783,10 +4790,11 @@ function intIdx(email){ INTM ??= {}; if (INTM[email]) return INTM[email];
     (w.exercises || []).forEach(x => { const name = exName(w, x), k = intKind(x, name); if (!k) return;
       (res[x.id] || []).forEach((r, j) => { if (!r || emptyRes(r)) return; const v = intPerf(k, r);
         if (v) out.push({d, key: intKey(k, name, r, x.sets[j]), k, v, w, x, j, r, name}); }); }); });
+  out.by = new Map(); out.forEach(e => { const L = out.by.get(e.key); if (L) L.push(e); else out.by.set(e.key, [e]); });
   return INTM[email] = out; }
 /* il riferimento (record mobile) per quell'esercizio prima di "date" */
 function intRef(email, key, date){ if (!email) return null; const lo = addDays(date, -INT_DAYS); let best = null;
-  intIdx(email).forEach(e => { if (e.key !== key || e.d >= date || e.d < lo) return; if (!best || (e.k === "spr" ? e.v < best.v : e.v > best.v)) best = e; });
+  (intIdx(email).by.get(key) || []).forEach(e => { if (e.d >= date || e.d < lo) return; if (!best || (e.k === "spr" ? e.v < best.v : e.v > best.v)) best = e; });
   return best; }
 /* intensità di una serie: {k, cur, ref, pct, rec} (pct null se non c'è riferimento) */
 function setInt(email, w, x, name, r, s){ const k = intKind(x, name); if (!k || !r) return null; const cur = intCur(k, r); if (!cur) return null;
@@ -4807,13 +4815,15 @@ function pctKg(email, x, name, s, date){ const p = oneNum(s?.pct); if (!p || p <
    Il coach sceglie per esercizio (x.rpeMode: "set" per serie, "phase" a fine fase); vuoto = automatico (campo a fine fase, palestra per serie). */
 const isField = (x, name) => ["sprint", "corsa", "plio", "stacchi"].includes(volBucket(x, name));
 const exPhases = (email, w, x) => { try { return firmaOf(email, w).mv.flatMap(stimFasi).filter(z => z.L[0].x.id === x.id); } catch(e) { return []; } };
-let FRC = new WeakMap();
+let FRC = new WeakMap(); const FRB = new WeakSet();
 function phaseRpeMap(w){ const R = w.results || {}; if (!Object.keys(R).some(k => k.endsWith("~f"))) return null;
   const key = STIMV + "|" + JSON.stringify(Object.entries(R).filter(([k]) => k.endsWith("~f"))) + JSON.stringify((w.exercises || []).map(x => (x.sets || []).map(st => [st.stim, st.role, st.fb, st.type])));
   const c = FRC.get(w); if (c && c.key === key) return c.m;
+  if (FRB.has(w)) return null;   // le fasi non dipendono dall'RPE eseguito: mentre le leggo, niente RPE di fase (prima si richiamava all'infinito)
+  FRB.add(w); try {
   const m = {}, em = wEmail(w); (w.exercises || []).forEach(x => { const F = R[x.id + "~f"]; if (!F) return;
     exPhases(em, w, x).forEach(z => { const v = rpeNum(F[z.L[0].j]?.rpe); if (v != null && v > 0) z.L.forEach(o => m[x.id + ":" + o.j] = v); }); });
-  FRC.set(w, {key, m}); return m; }
+  FRC.set(w, {key, m}); return m; } finally { FRB.delete(w); } }
 const phaseRpe = (w, x, j) => phaseRpeMap(w)?.[x.id + ":" + j] ?? null;
 /* sprint e salti prescritti a "% del migliore": tempo / misura obiettivo dal record mobile (12 settimane prima). Sprint: % della velocità → tempo = migliore ÷ % */
 function pbTarget(email, x, name, s, date){ const p = oneNum(s?.pbest), k = intKind(x, name); if (!p || p <= 0 || p > 120 || (k !== "spr" && k !== "jmp") || !email) return null;
@@ -5202,7 +5212,7 @@ const STIM_DEF = () => { const C = (id, name, desc, ex) => ({id: "c_" + id, name
     {id: "r_back", name: "Back-off", desc: "dopo il picco, carico ridotto", type: "B"},
     {id: "r_down", name: "Defaticante / condizionamento (down)", desc: "volume di contorno dopo il target: scarico o condizionamento (es. corsa lenta, complementari)", type: "D"}],
   patCaps: {}}; };
-const stimData = () => S.stim || STIM_DEF();
+let STIMD0 = null; const stimData = () => S.stim || (STIMD0 ??= STIM_DEF());
 /* categoria → stimolo di partenza (per gli esercizi che non l'hanno ancora) e stimolo → categoria interna (le regole del volume e delle alternative la usano ancora) */
 function catToExpr(cat, l = {}){ const c = ck(cat), cols = l.cols || [];
   const e = /potenz|olimp/.test(c) ? "e_forza_espl" : /pliometr|balz|rimbalz/.test(c) ? "e_forza_reat" : /velocit|sprint/.test(c) ? "e_vel_max" : /tecnica/.test(c) ? "e_tec_cons"
@@ -5215,23 +5225,23 @@ function exprToCat(id, pattern){ const q = exprById(id); if (!q) return "";
   return c === "c_vel" ? "Velocità" : c === "c_res" ? "Condizionamento" : c === "c_tec" ? (/salto in alto/i.test(pattern || "") ? "Tecnica salto" : "Tecnica") : c === "c_coord" ? "Coordinazione" : q.cap.name; }
 const stim0Of = l => l && (l.stim0 === "none" ? "" : exprById(l.stim0) ? l.stim0 : catToExpr(l.category, l));   // "none" = nessuno stimolo proposto: decide l'uso
 /* USI di un esercizio (il mezzo): in quante sedute l'hai confermato con ogni stimolo (serie con st.stim scelto da te), tutti gli atleti, settimane caricate */
-let EXU = null;
-function exUses(name){ const n = Object.values(S.cache || {}).reduce((t, c) => t + Object.keys(c || {}).length, 0), key = STIMV + "|" + n;
-  if (!EXU || EXU.key !== key) { const m = {};
-    Object.values(S.cache || {}).forEach(ws => Object.values(ws || {}).forEach(w => (w?.exercises || []).forEach(x => { const es = new Set((x.sets || []).map(st => st.stim).filter(stimOk)); if (!es.size) return;
-      const t = (m[optKey(exName(w, x))] ??= {}); es.forEach(e => t[e] = (t[e] || 0) + 1); })));
-    EXU = {key, m}; }
-  return EXU.m[optKey(name)] || {}; }
+let EXA = null;
+function exAgg(){ if (EXA && EXA.ok && EXA.v === STIMV) return EXA;   // già controllato in questo giro: le sedute in memoria cambiano solo dopo un salvataggio o un caricamento
+  let n = 0, same = !!EXA && EXA.v === STIMV;
+  for (const c of Object.values(S.cache || {})) for (const w of Object.values(c || {})) { n++; if (same && !EXA.o.has(w)) same = false; }
+  const tick = () => setTimeout(() => { if (EXA) EXA.ok = false; }, 0);
+  if (same && EXA.n === n) { EXA.ok = true; tick(); return EXA; }
+  const u = {}, co = {}, o = new WeakSet();
+  Object.values(S.cache || {}).forEach(ws => Object.values(ws || {}).forEach(w => { if (!w) return; o.add(w); (w.exercises || []).forEach(x => { const by = {};
+    (x.sets || []).forEach(st => { if (!stimOk(st.stim)) return; const b = (by[st.stim] ??= new Set()); (st.stim2 || []).filter(id => stimOk(id) && id !== st.stim).forEach(id => b.add(id)); });
+    const es = Object.keys(by); if (!es.length) return; const nk = optKey(exName(w, x));
+    const t = (u[nk] ??= {}); es.forEach(e => t[e] = (t[e] || 0) + 1);
+    const tc = (co[nk] ??= {}); Object.entries(by).forEach(([e, B]) => { const q = (tc[e] ??= {n: 0, co: {}}); q.n++; B.forEach(id => q.co[id] = (q.co[id] || 0) + 1); }); }); }));
+  EXA = {v: STIMV, n, o, u, co, ok: true}; tick(); return EXA; }
+function exUses(name){ return exAgg().u[optKey(name)] || {}; }
 const usesList = name => Object.entries(exUses(name)).sort((a, b) => b[1] - a[1]);
 /* CONCOMITANTI abituali: per ogni stimolo principale confermato su un esercizio, con quali concomitanti l'hai accompagnato (una volta per seduta) */
-let EXC = null;
-function exCo(name){ const n = Object.values(S.cache || {}).reduce((t, c) => t + Object.keys(c || {}).length, 0), key = STIMV + "|" + n;
-  if (!EXC || EXC.key !== key) { const m = {};
-    Object.values(S.cache || {}).forEach(ws => Object.values(ws || {}).forEach(w => (w?.exercises || []).forEach(x => { const by = {};
-      (x.sets || []).forEach(st => { if (!stimOk(st.stim)) return; const b = (by[st.stim] ??= new Set()); (st.stim2 || []).filter(id => stimOk(id) && id !== st.stim).forEach(id => b.add(id)); });
-      const t = (m[optKey(exName(w, x))] ??= {}); Object.entries(by).forEach(([e, B]) => { const q = (t[e] ??= {n: 0, co: {}}); q.n++; B.forEach(id => q.co[id] = (q.co[id] || 0) + 1); }); })));
-    EXC = {key, m}; }
-  return EXC.m[optKey(name)] || {}; }
+function exCo(name){ return exAgg().co[optKey(name)] || {}; }
 /* concomitanti da proporre con quel principale: quelli usati almeno 2 volte e in almeno 2 sedute su 3 con quel principale */
 const coMain = (name, e) => { const q = exCo(name)[e]; return !q ? [] : Object.entries(q.co).filter(([id, k]) => k >= 2 && k / q.n >= 2 / 3).sort((a, b) => b[1] - a[1]).map(([id]) => id); };
 /* stimolo prevalente: solo se è almeno 2 volte su 3 (e usato almeno 2 volte); se no nessuno */
@@ -5592,7 +5602,7 @@ function openEditor(email, w, isNew=false, tpl=false){
   drawEditor();
   /* per "Ultime volte" servono anche le settimane passate di questo atleta (ultimi ~4 mesi) */
   if (email && !tpl) { const E = S.editor, from = addDays(monday(w.date || TODAY()), -7 * 16);
-    ensureWeeks(email, from, 17).then(() => { if (S.editor === E && !$("#confirm").innerHTML) drawEditor(); }).catch(e => console.error(e)); }
+    ensureWeeks(email, from, 17).then(got => { if (got && S.editor === E && !$("#confirm").innerHTML) drawEditor(); }).catch(e => console.error(e)); }
 }
 /* ===== FIRMA DELLO STIMOLO (per movimento) =====
    Lo stimolo programmato è già scritto nel programma: per ogni MOVIMENTO (pattern motorio, non l'esercizio: back squat e front squat = squat)
@@ -5851,6 +5861,7 @@ function movPick(name){
   w.exercises.push(x); $("#confirm").innerHTML = ""; markDirty(); drawEditor(); toast(`${name} aggiunto${M.e ? " · " + exprLbl(M.e) : ""}`); }
 function drawEditor(){
   const E = S.editor; if (!E) { $("#modal").innerHTML = ""; return; }
+  STIMC.delete(E.w);   // la seduta aperta si ricalcola sempre; le altre restano in memoria
   // ridisegnando l'editor la pagina tornava in cima: salvo la posizione e la ripristino subito dopo
   const body = $("#modal .body"), keep = body ? body.scrollTop : null;
   drawEditorInner();
@@ -7129,7 +7140,7 @@ function fixSession(){
     await saveCoachFix({...($("#fs-all")?.checked && $("#fs-st").value === "done" ? {results: plannedResults(w)} : {}), status: $("#fs-st").value, sessionRpe: rpe || null, durationMin: dur || null, athleteNote: $("#fs-note").value.trim(),
       completedAt: w.completedAt || new Date().toISOString(), doneDate: ($("#fs-date").value && $("#fs-date").value !== w.date) ? $("#fs-date").value : null}); };
 }
-function markDirty(){ STIMV++; if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; firmaRefresh();
+function markDirty(){ if (!S.editor) STIMV++; else STIMC.delete(S.editor.w); if (S.editor){ S.editor.dirty = true; const d = $("#ed-dirty"); if (d) d.hidden = false; firmaRefresh();
   const kf = document.querySelector(".kpf"); if (kf && !kf.querySelector("details[open]")) kf.outerHTML = kindFieldHtml(S.editor.w); } }   // il tipo segue gli stimoli mentre programmi
 async function closeEditor(force=false){
   if (!S.editor) return;

@@ -693,7 +693,7 @@ table.progt.grid tr.dim td.pc{opacity:.5}
 .archsvg .argrid{stroke:var(--line);stroke-width:1}
 .archsvg .arax{fill:var(--muted);font-size:11px}
 .archsvg .arth{stroke:var(--warn);stroke-width:1.4;stroke-dasharray:2 3}
-.archsvg .arzone{fill:color-mix(in srgb, var(--warn) 7%, transparent)}.archsvg .arzl{fill:var(--warn);font-size:10.5px;font-weight:700;opacity:.8}
+.archsvg .arzone{fill:color-mix(in srgb, var(--warn) 7%, transparent)}.archsvg .arzl{fill:var(--warn);font-size:10.5px;font-weight:700;opacity:.8}.arctx{fill:var(--ink);font-size:11.5px;font-weight:700}.arctxs{fill:var(--muted);font-weight:500}.arctxv{fill:var(--ink);font-size:9.5px;font-weight:600}.arctxv.off{fill:var(--faint)}
 .archsvg .arthl{fill:var(--warn);font-size:11px;font-weight:700}
 .archsvg .arla{fill:none;stroke:var(--ink);stroke-width:2;opacity:.55;stroke-linejoin:round}
 .archsvg .arlr{fill:none;stroke:var(--faint);stroke-width:1.6;stroke-dasharray:5 4}
@@ -762,7 +762,7 @@ details.mvg > summary{cursor:pointer;list-style:none}details.mvg > summary::-web
 .sess{margin:8px 0 4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:color-mix(in srgb, var(--ink) 2%, transparent)}
 .sessh{font-size:13px}.sessh .sessd{font-size:11.5px;margin-top:3px}.sessh .sesk{display:inline-flex;margin:0 0 0 8px;vertical-align:middle}.sesk button{font-size:12px;padding:2px 9px}.sesvg{display:block;width:100%;height:auto;margin:4px 0 2px}
 .sesvg .ssg{stroke:var(--line);stroke-width:1}.sesvg .ssth{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3;opacity:.7}.sesvg .ssyl{font-size:9px;fill:var(--muted);text-anchor:end}
-.sesvg .ssgl{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 2;opacity:.8}.sesvg .ssgh{fill:var(--surface);stroke:var(--muted);stroke-width:1.3}
+.sesvg .ssgl{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 2;opacity:.8}.ssrg{stroke-width:4;stroke-linecap:round;opacity:.4}.sesvg .ssgh{fill:var(--surface);stroke:var(--muted);stroke-width:1.3}
 .sesvg .ssln{fill:none;stroke:var(--muted);stroke-width:1.2;opacity:.45}.sesvg .ssno{fill:var(--surface);stroke-width:1.6}
 .ssb{position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:0;margin-top:3px}
 .ssb .ssbl{position:absolute;left:0;top:50%;transform:translateY(-50%) rotate(0);font-size:9px;color:var(--muted);width:0;overflow:visible;white-space:nowrap;display:none}
@@ -5716,6 +5716,7 @@ function relabel(a){ const G = ssGroups(a); if (!G.every(g => /^[A-Za-z]?$/.test
 function nextBlock(exs, skip=-1){ const used = ssGroups(exs).map(g => g[0]).filter(i => i !== skip).map(i => (exs[i].block||"").charAt(0).toUpperCase()).filter(Boolean).sort(); const last = used[used.length-1]; return last ? String.fromCharCode(last.charCodeAt(0)+1) : "A"; }
 function openEditor(email, w, isNew=false, tpl=false){
   $("#modal").innerHTML = "";          // un editor nuovo parte dall'inizio
+  S.sessScale = null;   // il grafico Seduta riparte dalla scala adatta a questa seduta
   S.editor = {email, w: clone(w), isNew, dirty: isNew, tpl};
   S.editor.aligned = alignTypes(S.editor.w);   // tipi allineati ai ruoli: non segna la seduta come modificata
   drawEditor();
@@ -5735,7 +5736,7 @@ function firmaSeq(email, w){
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
       const pct = oneNum(st.pct) ?? oneNum(st.pbest) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
       const r = (w.results?.[x.id] || [])[j], did = !!r && !emptyRes(r), rpeA = did ? setRpe(r)?.v ?? null : null, rpeF = phaseRpe(w, x, j), pctA = did ? setInt(email, w, x, name, r, st)?.pct ?? null : null;
-      out.push({em: email, d: effDate(w), wid: w.id, pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: (l => !l ? "" : l.stim0 === "none" ? "none" : stim0Of(l) || "")(libByName(name)), dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+      out.push({em: email, d: effDate(w), wid: w.id, pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, exA: (() => { try { return exResp(w, x, j, r) ?? null; } catch(e) { return null; } })(), exP: exRng(st.ex), ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: (l => !l ? "" : l.stim0 === "none" ? "none" : stim0Of(l) || "")(libByName(name)), dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
   return out; }
 const FIRMA_EPS = {pct: 1.5, rpe: 0.25};
 function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
@@ -5945,14 +5946,39 @@ function fzFix(L){   // la prima volta che il coach tocca una fase, la proposta 
    Scala comune = RPE (anche da RIR); le serie senza RPE sono puntini vuoti in basso. Picchi (come nell'Architettura): in ogni blocco la serie con l'RPE più alto,
    tutte quelle a pari valore; non contano preparazione e defaticamento (l'allenante è relativo allo stimolo). Il più alto della seduta è più marcato.
    Sotto il grafico due fasce allineate alle serie: i mezzi (colore del movimento) e i ruoli. */
+/* "TUTTO": ogni serie letta con il suo parametro (intent esecutivo, se no RPE/RIR, se no %) e messa su tre fasce comuni, quelle già in uso:
+   sotto soglia · allenante (RPE ≥ 7 · intent ≥ 3 · % del migliore ≥ 86) · al limite (RPE ≥ 9 · intent ≥ 4 · % del migliore ≥ 92).
+   Le % come nella Coerenza: sprint e salti con le fasce del 3% (PB_BAND, 95% = 10), pesi % e1RM → RPE con la tabella RTS per quelle ripetizioni.
+   Dentro la fascia la posizione segue il valore; il valore vero resta nell'etichetta. Non è un numero nuovo: le scale restano separate. */
+const LV_B = ["sotto soglia", "allenante", "al limite"];
+const lvRpe = r => r == null ? null : r < 7 ? Math.max(0, (r - 4) / 3) : r < 9 ? 1 + (r - 7) / 2 : Math.min(3, 2 + (r - 9));
+const LV_EX = [0, .25, .75, 1.5, 2.3, 2.65, 2.95];
+const lvEx = e => { if (e == null) return null; e = Math.max(1, Math.min(6, e)); const a = Math.floor(e), b = Math.ceil(e); return LV_EX[a] + (LV_EX[b] - LV_EX[a]) * (e - a); };
+const lvPct = (p, kind, reps) => p == null ? null : lvRpe(kind === "kg" ? rtsRpe(p, reps || 1) : Math.max(4, Math.min(10, 7 + (p - 86) / 3)));
+const exTxt = (v, R) => R && R[0] !== R[1] ? `${R[0]}–${R[1]}` : fmtN(v, 1);
+/* q: {ex, exR, rpe, pct, kind, reps} (valori della serie: dell'atleta se c'è, se no programmati) → {v livello 0–3, k parametro, t testo, s testo corto} */
+function lvOf(q){
+  if (q.ex != null) return {v: lvEx(q.ex), k: "ex", t: "intent " + exTxt(q.ex, q.exR), s: "i" + exTxt(q.ex, q.exR)};
+  if (q.rpe != null) return {v: lvRpe(q.rpe), k: "rpe", t: "RPE " + fmtN(q.rpe, 1), s: fmtN(q.rpe, 1)};
+  if (q.pct != null) { const v = lvPct(q.pct, q.kind, q.reps); return v == null ? null : {v, k: "pct", t: Math.round(q.pct) + "%" + (q.kind === "kg" ? " e1RM" : " del migliore"), s: Math.round(q.pct) + "%"}; }
+  return null; }
 const ROLE_SH = {r_prep: "Prep", r_ramp: "Rampa", r_work: "Target", r_back: "Back-off", r_down: "Down"};
 function sessStrip(F, KC){
   const N = F.N; if (N < 2) return "";
   /* scala: RPE (eseguito se l'atleta l'ha dato, se no programmato) oppure % del migliore (eseguita: tempi, misure, kg; se no la % scritta nel programma).
      Di partenza RPE; % se l'RPE manca in più di metà delle serie e la % c'è */
-  const vR = o => o.rpeA ?? o.rpe, vP = o => o.pctA ?? o.pct, cR = F.seq.filter(o => vR(o) != null).length, cP = F.seq.filter(o => vP(o) != null).length;
-  const M = S.sessScale || (cR < N / 2 && cP > cR ? "pct" : "rpe"), PCT = M === "pct", V = PCT ? vP : vR, nDid = F.seq.filter(o => o.did).length;
-  const isA = o => (PCT ? o.pctA : o.rpeA) != null, nA = F.seq.filter(isA).length, nPl = F.seq.filter(o => o.did && !isA(o) && V(o) != null).length;   // eseguita ma valore solo programmato
+  const exM = o => o.exP ? (o.exP[0] + o.exP[1]) / 2 : null;   // intent esecutivo programmato (3-4 → 3,5)
+  const vR = o => o.rpeA ?? o.rpe, vP = o => o.pctA ?? o.pct, vE = o => o.exA ?? exM(o), cR = F.seq.filter(o => vR(o) != null).length, cP = F.seq.filter(o => vP(o) != null).length, cE = F.seq.filter(o => vE(o) != null).length;
+  /* di partenza: RPE; se l'RPE manca in più di metà delle serie, la scala che c'è di più tra intent esecutivo e % del migliore */
+  /* serie lette in "Tutto": il parametro della serie (intent, se no RPE, se no %), valore dell'atleta se c'è (A) e programmato (P) */
+  const LVM = new Map(), LV = o => { if (!LVM.has(o)) { const ex = o.exA ?? exM(o), k = ex != null ? "ex" : vR(o) != null ? "rpe" : vP(o) != null ? "pct" : null;
+      const A = k === "ex" ? (o.exA != null ? lvOf({ex: o.exA}) : null) : k === "rpe" ? (o.rpeA != null ? lvOf({rpe: o.rpeA}) : null) : k === "pct" ? (o.pctA != null ? lvOf({pct: o.pctA, kind: o.ikind, reps: o.reps}) : null) : null;
+      const P = k === "ex" ? (exM(o) != null ? lvOf({ex: exM(o), exR: o.exP}) : null) : k === "rpe" ? (o.rpe != null ? lvOf({rpe: o.rpe}) : null) : k === "pct" ? (o.pct != null ? lvOf({pct: o.pct, kind: o.ikind, reps: o.reps}) : null) : null;
+      LVM.set(o, k ? {A, P, c: A || P} : null); } return LVM.get(o); };
+  const nTy = [cR, cE, cP].filter(c => c > 0).length;
+  /* di partenza: "Tutto" se la seduta usa più parametri; se no quello che c'è (RPE, intent esecutivo, %) */
+  const M = S.sessScale || (nTy > 1 ? "all" : cE ? "ex" : cP && !cR ? "pct" : "rpe"), ALL = M === "all", PCT = M === "pct", EX = M === "ex", V = ALL ? o => LV(o)?.c?.v ?? null : PCT ? vP : EX ? vE : vR, nDid = F.seq.filter(o => o.did).length;
+  const isA = o => (ALL ? LV(o)?.A : PCT ? o.pctA : EX ? o.exA : o.rpeA) != null, nA = F.seq.filter(isA).length, nPl = F.seq.filter(o => o.did && !isA(o) && V(o) != null).length;   // eseguita ma valore solo programmato
   const at = [], RN = Object.fromEntries(stimData().roles.map(r => [r.id, r.name]));
   F.mv.forEach(f => { const c = `var(--s${KC.indexOf(f.key) % 8 + 1})`, lbl = f.pat || f.names[0];
     const role = {}; try { stimFasi(f).forEach(z => z.L.forEach(o => role[o.pos] = z.role || "")); } catch(e) {}
@@ -5960,16 +5986,22 @@ function sessStrip(F, KC){
     f.L.forEach(o => at[o.pos] = {o, c, lbl, name: o.name, role: role[o.pos] || "", rpe: V(o), pk: mx != null && cand.includes(o) && V(o) >= mx - 1e-9}); });
   const P = at.filter(Boolean); if (!P.length) return "";
   const withR = P.filter(a => a.rpe != null), smx = withR.length ? Math.max(...P.filter(a => a.pk).map(a => a.rpe), -1) : null;
-  const W = (window.innerWidth || 1000) < 640 ? 360 : 640, PT = 8, PH = 74, H = PT + PH + 2, x0 = 22, xr = 4, cw = (W - x0 - xr) / N, sx = k => x0 + (k - .5) * cw;
-  const TH = PCT ? 95 : AR_HARD, hiV = PCT ? Math.max(100, ...withR.map(a => Math.ceil(a.rpe))) : 10;
-  const lo = PCT ? Math.min(80, ...withR.map(a => Math.floor(a.rpe / 5) * 5)) : Math.min(4, ...withR.map(a => Math.floor(a.rpe))), yy = v => PT + PH - 10 - (v - lo) / (hiV - lo) * (PH - 16);
-  const fv = v => PCT ? Math.round(v) + "%" : fmtN(v, 1), unit = PCT ? "" : "RPE ";
-  const grid = [lo, TH, hiV].filter((v, i, A) => A.indexOf(v) === i).map(v => `<line x1="${x0}" x2="${W - xr}" y1="${yy(v)}" y2="${yy(v)}" class="${v === TH ? "ssth" : "ssg"}"/><text x="${x0 - 5}" y="${yy(v) + 3.5}" class="ssyl">${v}</text>`).join("");
+  const W = (window.innerWidth || 1000) < 640 ? 360 : 640, PT = 8, PH = 74, H = PT + PH + 2, x0 = ALL ? 62 : 22, xr = 4, cw = (W - x0 - xr) / N, sx = k => x0 + (k - .5) * cw;
+  const TH = ALL ? 1 : PCT ? 95 : EX ? 3 : AR_HARD, hiV = ALL ? 3 : PCT ? Math.max(100, ...withR.map(a => Math.ceil(a.rpe))) : EX ? 6 : 10;
+  const lo = ALL ? 0 : PCT ? Math.min(80, ...withR.map(a => Math.floor(a.rpe / 5) * 5)) : EX ? 1 : Math.min(4, ...withR.map(a => Math.floor(a.rpe))), yy = v => PT + PH - 10 - (v - lo) / (hiV - lo) * (PH - 16);
+  const fv = v => PCT ? Math.round(v) + "%" : EX && !Number.isInteger(v) ? `${Math.floor(v)}–${Math.ceil(v)}` : fmtN(v, 1), unit = PCT ? "" : EX ? "intent " : "RPE ";
+  const grid = ALL ? [0, 1, 2, 3].map(v => `<line x1="${x0}" x2="${W - xr}" y1="${yy(v)}" y2="${yy(v)}" class="${v === 1 ? "ssth" : "ssg"}"/>`).join("") + LV_B.map((b, i) => `<text x="${x0 - 5}" y="${yy(i + .5) + 3.5}" class="ssyl">${b}</text>`).join("") : (EX ? [1, 3, 6] : [lo, TH, hiV]).filter((v, i, A) => A.indexOf(v) === i).map(v => `<line x1="${x0}" x2="${W - xr}" y1="${yy(v)}" y2="${yy(v)}" class="${v === TH ? "ssth" : "ssg"}"/><text x="${x0 - 5}" y="${yy(v) + 3.5}" class="ssyl">${v}</text>`).join("");
   const line = withR.length > 1 ? `<polyline class="ssln" points="${withR.map(a => `${sx(a.o.pos)},${yy(a.rpe)}`).join(" ")}"/>` : "";
   /* intenzione (programmato) vs percezione (atleta): se diversi, puntino vuoto grigio all'RPE programmato collegato al dato dell'atleta */
-  const ghost = PCT ? "" : P.filter(a => a.rpe != null && isA(a.o) && a.o.rpe != null && Math.abs(a.o.rpe - a.rpe) > 1e-9).map(a => `<line x1="${sx(a.o.pos)}" x2="${sx(a.o.pos)}" y1="${yy(a.o.rpe)}" y2="${yy(a.rpe)}" class="ssgl"/><circle cx="${sx(a.o.pos)}" cy="${yy(a.o.rpe)}" r="2.6" class="ssgh"><title>${esc(a.name)} · serie ${a.o.pos} · intenzione: RPE ${fmtN(a.o.rpe, 1)}</title></circle>`).join("");
-  const dots = P.map(a => a.rpe == null ? `<circle cx="${sx(a.o.pos)}" cy="${PT + PH - 3}" r="3" class="ssno" style="stroke:${a.c}"><title>${esc(a.name)} · serie ${a.o.pos}: senza ${PCT ? "% del migliore" : "RPE"}</title></circle>`
-    : `<circle cx="${sx(a.o.pos)}" cy="${yy(a.rpe)}" r="${a.pk ? 4.6 : 3.4}" style="fill:${a.c}${a.o.did && !isA(a.o) ? ";fill-opacity:.35" : ""}" ${a.pk ? `stroke="var(--ink)" stroke-width="${a.rpe === smx ? 2.2 : 1.2}"` : ""}><title>${esc(a.name)} · serie ${a.o.pos} · ${unit}${fv(a.rpe)}${isA(a.o) ? (a.o.rpeFa && !PCT ? " (RPE di fase dell'atleta)" : " (dato dell'atleta)") + (!PCT && a.o.rpe != null && a.o.rpe !== a.rpe ? ` · intenzione ${fmtN(a.o.rpe, 1)}` : "") : a.o.did ? " (programmato: l'atleta non l'ha dato)" : " (programmato)"}</title></circle>`).join("");
+  const ghost = ALL ? P.filter(a => { const L = LV(a.o); return L?.A && L.P && Math.abs(L.A.v - L.P.v) > 1e-9; }).map(a => { const L = LV(a.o);
+      return `<line x1="${sx(a.o.pos)}" x2="${sx(a.o.pos)}" y1="${yy(L.P.v)}" y2="${yy(L.A.v)}" class="ssgl"/><circle cx="${sx(a.o.pos)}" cy="${yy(L.P.v)}" r="2.6" class="ssgh"><title>${esc(a.name)} · serie ${a.o.pos} · programmato: ${esc(L.P.t)}</title></circle>`; }).join("")
+    : EX ? P.filter(a => a.o.exP && (isA(a.o) ? exM(a.o) !== a.rpe : a.o.exP[0] !== a.o.exP[1])).map(a => isA(a.o)
+      ? `<line x1="${sx(a.o.pos)}" x2="${sx(a.o.pos)}" y1="${yy(exM(a.o))}" y2="${yy(a.rpe)}" class="ssgl"/><circle cx="${sx(a.o.pos)}" cy="${yy(exM(a.o))}" r="2.6" class="ssgh"><title>${esc(a.name)} · serie ${a.o.pos} · intent programmato ${a.o.exP.join("–")}</title></circle>`
+      : `<line x1="${sx(a.o.pos)}" x2="${sx(a.o.pos)}" y1="${yy(a.o.exP[0])}" y2="${yy(a.o.exP[1])}" class="ssrg" style="stroke:${a.c}"/>`).join("")
+    : PCT ? "" : P.filter(a => a.rpe != null && isA(a.o) && a.o.rpe != null && Math.abs(a.o.rpe - a.rpe) > 1e-9).map(a => `<line x1="${sx(a.o.pos)}" x2="${sx(a.o.pos)}" y1="${yy(a.o.rpe)}" y2="${yy(a.rpe)}" class="ssgl"/><circle cx="${sx(a.o.pos)}" cy="${yy(a.o.rpe)}" r="2.6" class="ssgh"><title>${esc(a.name)} · serie ${a.o.pos} · intenzione: RPE ${fmtN(a.o.rpe, 1)}</title></circle>`).join("");
+  const tipT = a => ALL ? (L => `${L.c.t}${L.A ? " (dato dell'atleta)" + (L.P && L.P.t !== L.A.t ? ` · programmato ${L.P.t}` : "") : a.o.did ? " (programmato: l'atleta non l'ha dato)" : " (programmato)"} · ${LV_B[Math.min(2, Math.floor(L.c.v + 1e-9))]}`)(LV(a.o)) : `${unit}${EX && !isA(a.o) && a.o.exP ? a.o.exP[0] === a.o.exP[1] ? a.o.exP[0] : a.o.exP.join("–") : fv(a.rpe)}${EX ? (isA(a.o) ? " (data dall'atleta)" + (a.o.exP && exM(a.o) !== a.rpe ? ` · programmato ${a.o.exP.join("–")}` : "") : a.o.did ? " (programmato: l'atleta non l'ha dato)" : " (programmato)") : isA(a.o) ? (a.o.rpeFa && !PCT ? " (RPE di fase dell'atleta)" : " (dato dell'atleta)") + (!PCT && a.o.rpe != null && a.o.rpe !== a.rpe ? ` · intenzione ${fmtN(a.o.rpe, 1)}` : "") : a.o.did ? " (programmato: l'atleta non l'ha dato)" : " (programmato)"}`;
+  const dots = P.map(a => a.rpe == null ? `<circle cx="${sx(a.o.pos)}" cy="${PT + PH - 3}" r="3" class="ssno" style="stroke:${a.c}"><title>${esc(a.name)} · serie ${a.o.pos}: senza ${ALL ? "intent, RPE o %" : PCT ? "% del migliore" : EX ? "intent esecutivo" : "RPE"}</title></circle>`
+    : `<circle cx="${sx(a.o.pos)}" cy="${yy(a.rpe)}" r="${a.pk ? 4.6 : 3.4}" style="fill:${a.c}${a.o.did && !isA(a.o) ? ";fill-opacity:.35" : ""}" ${a.pk ? `stroke="var(--ink)" stroke-width="${a.rpe === smx ? 2.2 : 1.2}"` : ""}><title>${esc(a.name)} · serie ${a.o.pos} · ${tipT(a)}</title></circle>`).join("");
   /* fasce: segmenti di serie consecutive con lo stesso valore */
   const segs = keyf => { const out = []; for (let k = 1; k <= N; k++){ const a = at[k]; if (!a) continue; const q = out[out.length - 1];
     if (q && q.k === keyf(a) && q.to === k - 1) q.to = k; else out.push({k: keyf(a), a, from: k, to: k}); } return out; };
@@ -5985,12 +6017,12 @@ function sessStrip(F, KC){
   const RS = segs(a => a.role), rl = k => ROLE_SH[k] || RN[k] || "—", full = RS.every(g => fits(rl(g.k), g.to - g.from + 1));
   const rol = RS.map(g => cell(g, rl(g.k), `${RN[g.k] || "senza ruolo"} · ${rng(g)}`, `ssr ssr-${g.k || "x"}`, "", full ? rl(g.k) : RT[g.k] || ROLE_L[g.k] || rl(g.k).slice(0, 1))).join("");
   const leg = full ? "" : `<div class="ssleg">${[...new Set(RS.map(g => g.k))].sort((a, b) => (Object.keys(ROLE_L).indexOf(a) + 1 || 99) - (Object.keys(ROLE_L).indexOf(b) + 1 || 99)).map(k => `<b>${esc(RT[k] || ROLE_L[k] || rl(k).slice(0, 1))}</b> ${esc(RN[k] || "senza ruolo")}`).join(" · ")}</div>`;
-  const pkB = []; P.forEach(a => { if (!a.pk) return; const q = pkB[pkB.length - 1]; if (q && q.lbl === a.lbl && q.rpe === a.rpe && q.to === a.o.pos - 1) q.to = a.o.pos; else pkB.push({lbl: a.lbl, rpe: a.rpe, from: a.o.pos, to: a.o.pos, c: a.c}); });
-  const pkT = pkB.length ? `<b>${pkB.length === 1 ? "Picco" : pkB.length + " picchi"}:</b> ` + pkB.map(q => `<span style="color:${q.c}">●</span> ${esc(q.lbl)} <span class="faint">serie ${q.from}${q.to > q.from ? "–" + q.to : ""}</span> · ${unit}${fv(q.rpe)}${q.rpe === smx && pkB.length > 1 ? " <b>(il più alto)</b>" : ""}`).join(" · ")
-    : `<span class="faint">${withR.length ? "Nessun picco fuori da preparazione e defaticamento" : PCT ? "Nessuna % del migliore: servono tempi, misure o kg registrati (o la % nel programma)" : "Nessun RPE nel programma: la seduta si legge dai mezzi e dai ruoli"}</span>`;
+  const pkB = []; P.forEach(a => { if (!a.pk) return; const q = pkB[pkB.length - 1]; if (q && q.lbl === a.lbl && q.rpe === a.rpe && q.to === a.o.pos - 1) q.to = a.o.pos; else pkB.push({lbl: a.lbl, rpe: a.rpe, from: a.o.pos, to: a.o.pos, c: a.c, t: ALL ? LV(a.o).c.t : unit + fv(a.rpe)}); });
+  const pkT = pkB.length ? `<b>${pkB.length === 1 ? "Picco" : pkB.length + " picchi"}:</b> ` + pkB.map(q => `<span style="color:${q.c}">●</span> ${esc(q.lbl)} <span class="faint">serie ${q.from}${q.to > q.from ? "–" + q.to : ""}</span> · ${esc(q.t)}${q.rpe === smx && pkB.length > 1 ? " <b>(il più alto)</b>" : ""}`).join(" · ")
+    : `<span class="faint">${withR.length ? "Nessun picco fuori da preparazione e defaticamento" : PCT ? "Nessuna % del migliore: servono tempi, misure o kg registrati (o la % nel programma)" : EX ? "Nessun intent esecutivo nel programma: la seduta si legge dai mezzi e dai ruoli" : ALL ? "Nessun intent, RPE o % nel programma: la seduta si legge dai mezzi e dai ruoli" : "Nessun RPE nel programma: la seduta si legge dai mezzi e dai ruoli"}</span>`;
   const noR = P.length - withR.length, pad = `padding:0 ${xr / W * 100}% 0 ${x0 / W * 100}%`;
-  return `<div class="sess"><div class="sessh"><b>Seduta</b> <span class="kfilt sesk">${[["rpe", "RPE"], ["pct", "% del migliore"]].map(([k, l]) => `<button type="button" class="${M === k ? "on" : ""}" data-act="sess-scale" data-v="${k}" aria-pressed="${M === k}">${l}</button>`).join("")}</span>
-      <div class="faint sessd">${N} serie${nDid ? ` · ${nDid} eseguit${nDid === 1 ? "a" : "e"}` : ""} · ${PCT ? "altezza = % del migliore delle ultime 12 settimane (sprint: tempo; salti: misura; pesi: % e1RM) · tratteggio = 95%" : `altezza = RPE (tratteggio = ${AR_HARD}, allenante)`}${nDid ? ` · ${nA} dat${nA === 1 ? "o" : "i"} dell'atleta${nPl ? `, ${nPl} solo programmat${nPl === 1 ? "o" : "i"} (puntini chiari)` : ""}${!PCT && F.seq.some(o => isA(o) && o.rpe != null && o.rpe !== o.rpeA) ? " · ○ grigio = intenzione programmata, se diversa" : ""}` : ""}${noR ? ` · ${noR} senza valore (puntini vuoti)` : ""}</div></div>
+  return `<div class="sess"><div class="sessh"><b>Seduta</b> <span class="kfilt sesk">${[["all", "Tutto"], ["rpe", "RPE"], ["ex", "Intent esecutivo"], ["pct", "% del migliore"]].map(([k, l]) => `<button type="button" class="${M === k ? "on" : ""}" data-act="sess-scale" data-v="${k}" aria-pressed="${M === k}">${l}</button>`).join("")}</span>
+      <div class="faint sessd">${N} serie${nDid ? ` · ${nDid} eseguit${nDid === 1 ? "a" : "e"}` : ""} · ${ALL ? "ogni serie con il suo parametro (intent esecutivo, se no RPE, se no %) · altezza = fascia: sotto soglia, allenante (RPE ≥ 7 · intent ≥ 3 · % ≥ 86), al limite (RPE ≥ 9 · intent ≥ 4 · % ≥ 92) · il valore vero passando sopra al puntino" : PCT ? "altezza = % del migliore delle ultime 12 settimane (sprint: tempo; salti: misura; pesi: % e1RM) · tratteggio = 95%" : EX ? `altezza = intent esecutivo 1–6 (tratteggio = 3, allenante; barretta = intervallo, es. 3–4)` : `altezza = RPE (tratteggio = ${AR_HARD}, allenante)`}${nDid ? ` · ${nA} dat${nA === 1 ? "o" : "i"} dell'atleta${nPl ? `, ${nPl} solo programmat${nPl === 1 ? "o" : "i"} (puntini chiari)` : ""}${ALL ? (F.seq.some(o => LV(o)?.A && LV(o).P && LV(o).A.v !== LV(o).P.v) ? " · ○ grigio = programmato, se diverso" : "") : EX ? (F.seq.some(o => isA(o) && o.exP && exM(o) !== o.exA) ? " · ○ grigio = intent programmato, se diverso" : "") : !PCT && F.seq.some(o => isA(o) && o.rpe != null && o.rpe !== o.rpeA) ? " · ○ grigio = intenzione programmata, se diversa" : ""}` : ""}${noR ? ` · ${noR} senza valore (puntini vuoti)` : ""}</div></div>
     <svg viewBox="0 0 ${W} ${H}" class="sesvg" aria-hidden="true">${grid}${line}${ghost}${dots}</svg>
     <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Mezzi</div>${mez}</div>
     <div class="ssb" style="--n:${N};${pad}"><div class="ssbl">Ruoli</div>${rol}</div>${leg}
@@ -6741,6 +6773,7 @@ function drawProgSess(G, a){
   const PP = w ? psParams(G, w) : []; if (!PP.some(q => q.k === G.sm)) G.sm = PP[0]?.k || "reps";
   const {seq, order} = w ? psSeq(G, w) : {seq: [], order: []};
   const ARCH = !!w && G.psRef === "kind" && G.psArch === "arch" && namedEx(w).length > 0 && !!kindRefOf(G, w).RS;
+  if (ARCH && G.amW !== w.id) { G.amW = w.id; G.am = null; G.amAuto = arAuto(G, w); }   // scala di partenza per questa seduta (se non l'hai scelta tu)
   const dirty = w && psDirty(G, w);
   const restore = keepScroll();
   $("#modal").innerHTML = `<div class="back" style="padding:12px"><div class="modal pgm" role="dialog" aria-label="Progressione">
@@ -6766,8 +6799,9 @@ function drawProgSess(G, a){
               </select></label>`; }).join("")}</div>
             <button class="btn sm pri" data-act="ps-copyref" data-id="${RS.id}">Usa come punto di partenza</button>` : "."}` : `Scegli "Seduta più recente (stesso tipo)" per vedere da dove partire.`}</div>`)(kindRefOf(G, w)) : ""}
         ${ARCH ? (T => `<div class="kfilt psparams"><span class="lbl">Parametro nel grafico</span>${AR_M.map(([k, l, t]) => `<button class="${arMode(G) === k ? "on" : ""}" data-act="ps-am" data-v="${k}" aria-pressed="${arMode(G) === k}" title="${esc(t)}">${l}</button>`).join("")}</div>
-        <div class="kfilt arthr"><span class="lbl">Soglia</span><button class="arthb" data-act="ar-th" data-d="-1" aria-label="Abbassa la soglia">−</button><b>${esc(T.l)}</b><button class="arthb" data-act="ar-th" data-d="1" aria-label="Alza la soglia">+</button>
-          <span class="faint" style="font-size:12px">${T.k === "rpe" && T.v === AR_HARD ? "= serie allenanti, come nell'Analisi (RPE ≥ 7 o RIR ≤ 3)" : `solo per guardare questo grafico: le serie allenanti restano quelle con RPE ≥ 7 (Analisi), qui ${T.k === "rpe" ? "cerchio colorato" : "cerchio colorato se sotto la %"}`}</span></div>`)(arTh(G, arMode(G))) : `<div class="kfilt psparams"><span class="lbl">Parametro nel grafico</span>${PP.map(q => `<button class="${G.sm === q.k ? "on" : ""}" data-act="ps-met" data-v="${q.k}" aria-pressed="${G.sm === q.k}" title="Lo usano ${q.n} esercizi${q.n === 1 ? "o" : ""}">${esc(q.l)}${q.u && q.u !== "rip." ? ` (${esc(q.u)})` : ""} <span class="faint">· ${q.n} es.</span></button>`).join("") || `<span class="faint" style="font-size:12px">nessun parametro numerico</span>`}</div>`}
+        <div class="kfilt arthr"><span class="lbl">Soglia</span>${T.k === "ex" || T.k === "all" ? `<b>${esc(T.l)}</b>
+          <span class="faint" style="font-size:12px">${T.k === "ex" ? "= serie allenanti, come nell'Analisi (intent ≥ 3)" : "fasce: allenante = RPE ≥ 7 · intent ≥ 3 · % del migliore ≥ 86 (pesi: % e1RM con la tabella RTS) · al limite = RPE ≥ 9 · intent ≥ 4 · % ≥ 92. Ogni serie con il suo parametro (intent, se no RPE, se no %) · solo da guardare: per cambiare i valori scegli il parametro"}</span></div>` : `<button class="arthb" data-act="ar-th" data-d="-1" aria-label="Abbassa la soglia">−</button><b>${esc(T.l)}</b><button class="arthb" data-act="ar-th" data-d="1" aria-label="Alza la soglia">+</button>
+          <span class="faint" style="font-size:12px">${T.k === "rpe" && T.v === AR_HARD ? "= serie allenanti, come nell'Analisi (RPE ≥ 7 o RIR ≤ 3)" : `solo per guardare questo grafico: le serie allenanti restano quelle con RPE ≥ 7 (Analisi), qui ${T.k === "rpe" ? "cerchio colorato" : "cerchio colorato se sotto la %"}`}</span>`}</div>`)(arTh(G, arMode(G))) : `<div class="kfilt psparams"><span class="lbl">Parametro nel grafico</span>${PP.map(q => `<button class="${G.sm === q.k ? "on" : ""}" data-act="ps-met" data-v="${q.k}" aria-pressed="${G.sm === q.k}" title="Lo usano ${q.n} esercizi${q.n === 1 ? "o" : ""}">${esc(q.l)}${q.u && q.u !== "rip." ? ` (${esc(q.u)})` : ""} <span class="faint">· ${q.n} es.</span></button>`).join("") || `<span class="faint" style="font-size:12px">nessun parametro numerico</span>`}</div>`}
         <div class="chartwrap" id="ps-chart"></div>
         ${ARCH ? `<div class="pslegend">${arMode(G) === "hard" ? "" : `
           <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--ink);stroke-width:2;opacity:.55"/><circle cx="11" cy="6" r="4.5" fill="var(--s1)"/></svg>questa seduta${done ? " (eseguito dove c'è)" : ""} · colore = esercizio </span>
@@ -6775,7 +6809,7 @@ function drawProgSess(G, a){
           <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 3"/><circle cx="11" cy="6" r="3.5" fill="var(--surface)" stroke="var(--faint)" stroke-width="1.5"/></svg>riferimento (eseguito)</span>
           <span><svg width="22" height="12"><circle cx="11" cy="6" r="5" fill="none" stroke="var(--ink)" stroke-width="1.5"/></svg>picchi (tutti)</span>
           <span><svg width="22" height="12"><line x1="1" x2="21" y1="6" y2="6" style="stroke:var(--warn);stroke-width:1.5;stroke-dasharray:2 3"/></svg>soglia</span>
-          <span><svg width="12" height="14"><line x1="6" x2="6" y1="2" y2="12" style="stroke:var(--s1);stroke-width:6;stroke-linecap:round;opacity:.35"/></svg>range programmato (es. RPE 7-8)</span>`}
+          <span><svg width="12" height="14"><line x1="6" x2="6" y1="2" y2="12" style="stroke:var(--s1);stroke-width:6;stroke-linecap:round;opacity:.35"/></svg>range programmato (es. RPE 7-8)</span>${arMode(G) === "all" ? `<span>sopra i punti: <b>i3</b> = intent esecutivo 3 · <b>8</b> = RPE 8 · <b>92%</b> = % del migliore (o e1RM)</span>` : ""}`}
           ${editable ? `<span><svg width="14" height="12"><circle cx="7" cy="6" r="5" fill="var(--surface)" stroke="var(--muted)" stroke-width="1.2"/><path d="M4.6 6H9.4M7 3.6V8.4" stroke="var(--ink)" stroke-width="1.5"/></svg> ${arMode(G) === "hard" ? "tra due serie" : "a metà linea"}: aggiungi una serie lì · <b>−</b> sotto il numero: togli quella serie</span>` : ""}
           ${arMode(G) === "hard" ? `<span><svg width="16" height="14"><rect x="1" y="1" width="14" height="12" rx="3" fill="var(--s1)"/><text x="8" y="10.5" text-anchor="middle" style="font-size:9px;font-weight:800;fill:#fff">3</text></svg> serie allenante: il numero dice quale (1ª, 2ª, 3ª…)</span>
           <span><svg width="16" height="14"><rect x="1.5" y="1.5" width="13" height="11" rx="3" fill="var(--surface)" stroke="var(--faint)" stroke-dasharray="2 2"/></svg> sotto soglia</span>
@@ -6828,11 +6862,15 @@ function psDomains(G, seq, done){
    La seduta come sequenza di serie dall'inizio (1ª serie della seduta, 2ª, 3ª…), qualunque sia l'esercizio:
    conta QUANDO arriva lo stimolo (picchi, serie sopra soglia), l'esercizio è il mezzo.
    Parametri che non dipendono dall'esercizio: RPE, % del riferimento, ripetizioni, serie allenanti accumulate */
-const AR_M = [["rpe", "RPE", "RPE (o 10 − RIR) di ogni serie"], ["pct", "% del riferimento", "Pesi: kg ÷ e1RM (o il %1RM scritto nel programma) · Sprint e salti: % del record delle 12 settimane prima"],
+const AR_M = [["all", "Tutto", "Ogni serie con il suo parametro (intent esecutivo, se no RPE/RIR, se no %) su tre fasce: sotto soglia · allenante · al limite. Solo da guardare: per cambiare i valori scegli il parametro"],
+  ["rpe", "RPE", "RPE (o 10 − RIR) di ogni serie"], ["ex", "Intent esecutivo", "Intent esecutivo (scala 1–6) di ogni serie: programmato, o il voto dell'atleta se c'è"], ["pct", "% del riferimento", "Pesi: kg ÷ e1RM (o il %1RM scritto nel programma) · Sprint e salti: % del record delle 12 settimane prima"],
   ["reps", "Ripetizioni", "Ripetizioni di ogni serie (cluster: la somma dei cluster); punti pieni = serie allenanti (RPE sopra soglia)"]];
-const arMode = G => AR_M.some(q => q[0] === G.am) ? G.am : "rpe";
+const arMode = G => AR_M.some(q => q[0] === G.am) ? G.am : G.amAuto || "rpe";
+/* di partenza: "Tutto" se la seduta usa più parametri (intent, RPE, %); se no quello che c'è */
+const arAuto = (G, w) => { const P = archPts(G, w, w.status !== "done"), n = q => P.some(p => p[q] != null), t = ["rpe", "ex", "pct"].filter(n);
+  return t.length > 1 ? "all" : t[0] || "rpe"; };
 const arTh = (G, m) => { G.ath ??= {rpe: 7, pct: 85};   // RPE 7 = come le "serie allenanti" dell'Analisi (RPE ≥ 7 o RIR ≤ 3)
-  return m === "pct" ? {k: "pct", v: G.ath.pct, l: G.ath.pct + "%"} : {k: "rpe", v: G.ath.rpe, l: "RPE " + fmtN(G.ath.rpe, 1)}; };
+  return m === "pct" ? {k: "pct", v: G.ath.pct, l: G.ath.pct + "%"} : m === "ex" ? {k: "ex", v: 3, l: "intent 3"} : m === "all" ? {k: "all", v: 1, l: "allenante"} : {k: "rpe", v: G.ath.rpe, l: "RPE " + fmtN(G.ath.rpe, 1)}; };
 const arRng = v => { const q = String(v ?? "").trim().replace(/,/g, ".").match(/^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$/); return q ? [+q[1], +q[2]].sort((x, y) => x - y) : null; };   // "7-8", "8-10"
 const arClReps = (cl, d) => cl.reduce((t, q) => t + (numv(q?.reps ?? d) ?? 0), 0);
 const archPlan = s => { if (!isCl(s)) return s;   // serie cluster: kg medio pesato sulle reps, RPE più alto, reps sommate
@@ -6842,7 +6880,9 @@ const archPlan = s => { if (!isCl(s)) return s;   // serie cluster: kg medio pes
 const arRepsOf = r => hasClRes(r) ? arClReps(r.cl, r.reps) : numv(r?.reps);
 function archPts(G, w, plan){
   const out = [];
-  if (!plan) { sessionSets(w).sets.forEach(o => out.push({name: o.name, gk: o.grp, lab: o.lead, rpe: o.act?.v ?? null, pct: o.int?.pct ?? null, reps: arRepsOf(o.r), did: true, n: o.n, extra: o.extra, r: o.r, s: o.s, cols: o.cols, type: o.type})); return out; }
+  if (!plan) { sessionSets(w).sets.forEach(o => { const j0 = (o.x?.sets || []).indexOf(o.s), exR = exRng(o.s?.ex), ex = exRng(o.r?.ex)?.[0] ?? (j0 >= 0 ? phaseEx(w, o.x, j0) : null) ?? (exR ? (exR[0] + exR[1]) / 2 : null);
+      out.push({name: o.name, gk: o.grp, lab: o.lead, rpe: o.act?.v ?? null, pct: o.int?.pct ?? null, ex, reps: arRepsOf(o.r), kind: o.x ? intKind(o.x, o.name) : "", did: true, n: o.n, extra: o.extra, r: o.r, s: o.s, cols: o.cols, type: o.type}); });
+    out.forEach(p => p.lv = lvOf(p)); return out; }
   const D = psDraft(G, w), ex = namedEx(w), L = exLabels(ex), res = w.results || {};
   ssGroups(ex).forEach(g => { const len = Math.max(0, ...g.map(i => (D.sets[ex[i].id] || []).length));
     for (let j = 0; j < len; j++) g.forEach(i => { const x = ex[i], st = (D.sets[x.id] || [])[j]; if (!st) return;
@@ -6852,33 +6892,37 @@ function archPts(G, w, plan){
         if (ra) rpeR = ra; else if (rb && !String(st.rpe ?? "").trim()) rpeR = [10 - rb[1], 10 - rb[0]]; if (rpeR) rpe = (rpeR[0] + rpeR[1]) / 2;
         const rr = !isCl(st) && arRng(st.reps); if (rr) { repsR = rr; reps = (rr[0] + rr[1]) / 2; } }
       const pp = oneNum(st.pct) ?? oneNum(st.pbest), pc = !did && pp != null ? pp : setInt(G.email, w, x, name, src, st)?.pct ?? null;
-      out.push({name, gk: g[0], lab: L[g[0]] || "", rpe, rpeR, reps, repsR, pct: pc, did, x, j, st, n: j + 1, lock: did || psLocked(w, x, j), r: did ? r : null, s: st, cols: x.cols, type: st.type || ""}); }); });
-  return out; }
-const arVal = (p, m) => m === "rpe" ? p.rpe : m === "pct" ? p.pct : m === "reps" ? p.reps : null;
+      const exR = exRng(st.ex), exP = exR ? (exR[0] + exR[1]) / 2 : null, exV = did ? exResp(w, x, j, r) ?? exP : exP, exRg = !did && exR && exR[0] !== exR[1] ? exR : null;
+      out.push({name, gk: g[0], lab: L[g[0]] || "", rpe, rpeR, reps, repsR, pct: pc, ex: exV, exRg, kind: intKind(x, name), did, x, j, st, n: j + 1, lock: did || psLocked(w, x, j), r: did ? r : null, s: st, cols: x.cols, type: st.type || ""}); }); });
+  out.forEach(p => p.lv = lvOf({...p, exR: p.exRg})); return out; }
+const arVal = (p, m) => m === "rpe" ? p.rpe : m === "pct" ? p.pct : m === "reps" ? p.reps : m === "ex" ? p.ex : m === "all" ? p.lv?.v ?? null : null;
+const arIsHard = p => (p.rpe != null && p.rpe >= AR_HARD - 1e-9) || (p.ex != null && p.ex >= 3);   // allenante come nell'Analisi: RPE ≥ 7 (o RIR ≤ 3) e/o intent ≥ 3
 const arHard = (P, th) => { let c = 0; return P.map(p => p.rpe != null && p.rpe >= th - 1e-9 ? ++c : c); };
 function archStats(G, P, m){ const T = arTh(G, m), pm = m === "hard" ? "rpe" : m;
   const r = v => v == null ? null : pm === "pct" ? Math.round(v) : Math.round(v * 10) / 10, v = P.map(p => r(arVal(p, pm))), mx = Math.max(-Infinity, ...v.filter(z => z != null));
   const peaks = isFinite(mx) ? v.map((z, k) => z === mx ? k : -1).filter(k => k >= 0) : [];   // TUTTE le serie al valore più alto
   const moments = []; peaks.forEach(k => { const g = moments[moments.length - 1]; if (g && g[1] === k - 1) g[1] = k; else moments.push([k, k]); });   // serie di picco consecutive = un momento
-  const iv = P.map(p => T.k === "pct" ? p.pct : p.rpe), over = iv.map((z, k) => z != null && z >= T.v - 1e-9 ? k : -1).filter(k => k >= 0), rp = p => p.reps ?? 0;
+  const iv = P.map(p => T.k === "pct" ? p.pct : T.k === "ex" ? p.ex : T.k === "all" ? p.lv?.v ?? null : p.rpe), over = iv.map((z, k) => z != null && z >= T.v - 1e-9 ? k : -1).filter(k => k >= 0), rp = p => p.reps ?? 0;
   return {n: P.length, pm, pv: peaks.length ? mx : null, peaks, moments, pnames: [...new Set(peaks.map(k => P[k].name))], over: over.length, first: over.length ? over[0] : -1,
-    overReps: over.reduce((t, k) => t + rp(P[k]), 0), hard: P.filter(p => p.rpe != null && p.rpe >= AR_HARD - 1e-9).length, reps: P.reduce((t, p) => t + rp(p), 0), miss: P.filter(p => arVal(p, pm) == null).length}; }
+    overReps: over.reduce((t, k) => t + rp(P[k]), 0), hard: P.filter(arIsHard).length, reps: P.reduce((t, p) => t + rp(p), 0), miss: P.filter(p => arVal(p, pm) == null).length}; }
 const arCanSet = (p, m) => !p.lock && p.st && (m === "rpe" ? ["rpe", "rir"].some(c => (p.x.cols || []).includes(c)) && p.rpe != null
   : m === "reps" ? (p.x.cols || []).includes("reps") && !isCl(p.st) && p.reps != null
+  : m === "ex" ? (p.x.cols || []).includes("ex") && p.ex != null
   : m === "pct" ? p.pct != null && ((p.x.cols || []).includes("pct") || (p.x.cols || []).includes("pbest") || (intKind(p.x, p.name) === "kg" && !isCl(p.st))) : false);
 const AR_HARD = 7;   // serie allenante (come nell'Analisi): RPE ≥ 7 o RIR ≤ 3
 const rpeStep = () => pickOpts("rpe").some(o => !Number.isInteger(+String(o.v).replace(",", "."))) ? 0.5 : 1;   // l'atleta sceglie l'RPE da un menu: di solito numeri interi
-const AR_STEP = {get rpe(){ return rpeStep(); }, pct: 1, reps: 1};
+const AR_STEP = {get rpe(){ return rpeStep(); }, pct: 1, reps: 1, ex: 1};
 /* stato di una serie rispetto alla soglia del grafico: "on" sopra soglia · "hard" allenante (RPE ≥ 7) ma sotto la soglia scelta · "" non allenante */
-const arState = (G, p, m) => { const T = m === "reps" ? arTh(G, "rpe") : arTh(G, m), v = T.k === "pct" ? p.pct : p.rpe;
-  return v != null && v >= T.v - 1e-9 ? "on" : p.rpe != null && p.rpe >= AR_HARD - 1e-9 ? "hard" : ""; };
-const arIsStd = (G, m) => m !== "pct" && arTh(G, "rpe").v === AR_HARD;   // soglia = definizione dell'Analisi: "sopra soglia" e "allenante" coincidono
+const arState = (G, p, m) => { const T = m === "reps" ? arTh(G, "rpe") : arTh(G, m), v = T.k === "pct" ? p.pct : T.k === "ex" ? p.ex : T.k === "all" ? p.lv?.v ?? null : p.rpe;
+  return v != null && v >= T.v - 1e-9 ? "on" : arIsHard(p) ? "hard" : ""; };
+const arIsStd = (G, m) => m === "ex" || m === "all" || (m !== "pct" && arTh(G, "rpe").v === AR_HARD);   // soglia = definizione dell'Analisi: "sopra soglia" e "allenante" coincidono
 function arSet(G, w, p, m, v){ const st = G.sess.sets[p.x.id]?.[p.j]; if (!st) return;
   const span = R => R ? R[1] - R[0] : 0, two = (c, R, lo, hi, f) => { const h = span(R) / 2; let a = Math.max(lo, v - h), b = a + 2 * h; if (b > hi) { b = hi; a = hi - 2 * h; } st[c] = R ? `${f(a)}-${f(b)}` : f(Math.min(hi, Math.max(lo, v))); };
   const f1 = z => { const q = rpeStep(); return String(Math.round(z / q) * q); };
   if (m === "rpe") { if ((p.x.cols || []).includes("rpe")) { two("rpe", p.rpeR, 1, 10, f1); if (isCl(st) && st.cl.some(q => String(q.rpe ?? "").trim())) st.cl.forEach(q => q.rpe = st.rpe); }
     else { v = 10 - v; two("rir", p.rpeR, 0, 9, f1); } }
   else if (m === "reps") two("reps", p.repsR, 1, 99, z => String(Math.round(z)));
+  else if (m === "ex") two("ex", p.exRg, 1, 6, z => String(Math.round(z)));
   else if (m === "pct" && ["spr", "jmp"].includes(intKind(p.x, p.name))) {   // sprint e salti: si programma la % del migliore (il parametro si aggiunge da solo)
     if (!(p.x.cols || []).includes("pbest")) { p.x.cols = p.x.cols || []; const i = p.x.cols.findIndex(c => c === "time" || c === "height"); p.x.cols.splice(i < 0 ? p.x.cols.length : i, 0, "pbest"); }
     st.pbest = String(Math.round(Math.max(50, Math.min(105, v)))); }
@@ -6889,16 +6933,30 @@ function drawArchChart(G, w, order, editable){
   const A = archPts(G, w, !fin), B = RS ? archPts(G, RS, false) : [], N = Math.max(A.length, B.length);
   const HA = arHard(A, T.v), HB = arHard(B, T.v), val = (P, k) => m === "hard" ? (P === A ? HA : HB)[k] : arVal(P[k], m);
   const vs = [...A.map((_, k) => val(A, k)), ...B.map((_, k) => val(B, k)), ...A.flatMap(p => m === "rpe" ? p.rpeR || [] : m === "reps" ? p.repsR || [] : [])].filter(v => v != null);
-  if (!N || !vs.length) { el.innerHTML = `<div class="faint" style="padding:16px 0">${m === "pct" ? "Nessuna serie con la % del riferimento (servono kg con un e1RM, o sprint/salti con un record)." : m === "reps" ? "Nessuna serie con le ripetizioni." : "Nessuna serie con l'RPE (o RIR)."}</div>`; return; }
+  if (!N || !vs.length) { el.innerHTML = `<div class="faint" style="padding:16px 0">${m === "all" ? "Nessuna serie con intent esecutivo, RPE o %." : m === "ex" ? "Nessuna serie con l'intent esecutivo." : m === "pct" ? "Nessuna serie con la % del riferimento (servono kg con un e1RM, o sprint/salti con un record)." : m === "reps" ? "Nessuna serie con le ripetizioni." : "Nessuna serie con l'RPE (o RIR)."}</div>`; return; }
   const mxv = Math.max(...vs), mnv = Math.min(...vs); let lo, hi, stp;
   if (m === "rpe") { lo = Math.min(5, Math.floor(mnv)); hi = 10; stp = 1; }
+  else if (m === "ex") { lo = 1; hi = 6; stp = 1; }
+  else if (m === "all") { lo = 0; hi = 3; stp = 1; }
   else if (m === "pct") { lo = Math.min(60, Math.floor(mnv / 10) * 10); hi = Math.max(100, Math.ceil(mxv / 10) * 10); stp = 10; }
   else { lo = 0; stp = mxv <= 6 ? 1 : mxv <= 12 ? 2 : mxv <= 30 ? 5 : 10; hi = Math.max(stp, Math.ceil(mxv / stp) * stp); }
   const canEd = editable && !fin, off = canEd ? 18 : 0;
   const HM = m === "hard";   // serie allenanti: due file di riquadri (ora / riferimento) invece del grafico a linee
-  const W = Math.max(560, el.clientWidth || 800), pl = 46, pr = HM ? (canEd ? 62 : 46) : canEd ? 30 : 16, pt = 26, ih = HM ? 150 : 220, H = pt + ih + 92 + off, iw = W - pl - pr, slot = iw / N;
+  /* con un parametro scelto (RPE, intent, %, ripetizioni) sopra resta "Tutto" in piccolo, serie per serie: modifichi sapendo l'intensità di ogni serie */
+  const CTX = !HM && m !== "all" && A.some(p => p.lv), cH = 104;
+  const W = Math.max(560, el.clientWidth || 800), pl = m === "all" || CTX ? 86 : 46, pr = HM ? (canEd ? 62 : 46) : canEd ? 30 : 16, pt = 26 + (CTX ? cH + 26 : 0), ih = HM ? 150 : 220, H = pt + ih + 92 + off, iw = W - pl - pr, slot = iw / N;
   const X = k => pl + slot * k + slot / 2, Y = v => pt + ih - (v - lo) / (hi - lo) * ih, f = v => m === "pct" ? String(Math.round(v)) : fmtN(v, Number.isInteger(v) ? 0 : 1);
   G.arGeo = {pt, ih, lo, hi};
+  const cT = 24, cY = v => cT + cH - 6 - v / 3 * (cH - 12);
+  const ctx = () => !CTX ? "" : (() => { const pl0 = P => { let d = "", pen = false; P.forEach((p, k) => { if (!p.lv) { pen = false; return; } d += `${pen ? "L" : "M"}${X(k).toFixed(1)} ${cY(p.lv.v).toFixed(1)}`; pen = true; }); return d; };   // si interrompe dove manca il valore
+    const pb = pl0(B), pa = pl0(A), lab = AR_M.find(q => q[0] === m)?.[1] || "";
+    return `<text x="${pl}" y="${cT - 9}" class="arctx">Tutto · intensità di ogni serie <tspan class="arctxs">(sola lettura · accese le serie con ${esc(m === "rpe" ? "RPE" : lab.toLowerCase())})</tspan></text>`
+      + [0, 1, 2, 3].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${cY(v)}" y2="${cY(v)}" class="${v === 1 ? "arth" : "argrid"}"/>`).join("")
+      + LV_B.map((b, i) => `<text x="${pl - 8}" y="${cY(i + .5) + 3.5}" text-anchor="end" class="arax" style="font-size:10px">${b}</text>`).join("")
+      + (pb && B.length ? `<path d="${pb}" class="arlr"/>` : "") + (pa ? `<path d="${pa}" class="arla" style="stroke-width:1.5"/>` : "")
+      + A.map((p, k) => { if (!p.lv) return ""; const on = arVal(p, m) != null, c = exColor(order, p.name);
+        return `<circle cx="${X(k)}" cy="${cY(p.lv.v)}" r="${on ? 3.8 : 2.8}" style="${on ? `fill:${c}` : `fill:var(--surface);stroke:var(--faint);stroke-width:1.2`}"><title>${esc(tip(p))} · ${esc(p.lv.t)} · ${LV_B[Math.min(2, Math.floor(p.lv.v + 1e-9))]}</title></circle>${slot >= 26 ? `<text x="${X(k)}" y="${cY(p.lv.v) - 6}" text-anchor="middle" class="arctxv${on ? "" : " off"}">${esc(p.lv.s)}</text>` : ""}`; }).join("")
+      + `<line x1="${pl}" x2="${W - pr}" y1="${cT + cH + 12}" y2="${cT + cH + 12}" class="argrid" style="opacity:.5"/>`; })();
   /* linea morbida "a onda" (cubica monotona: tra due punti non va mai oltre i loro valori, quindi niente picchi finti); in "Serie" resta a scalini */
   const curve = P => { const pts = P.map((_, k) => { const v = val(P, k); return v == null ? null : [X(k), Y(v)]; }), tan = [];
     pts.forEach((q, k) => { if (!q) return; const a0 = pts[k - 1], b0 = pts[k + 1], s0 = a0 ? (q[1] - a0[1]) / (q[0] - a0[0]) : null, s1 = b0 ? (b0[1] - q[1]) / (b0[0] - q[0]) : null;
@@ -6912,8 +6970,9 @@ function drawArchChart(G, w, order, editable){
     return {d, mid, pts}; };
   const line = (P, cls) => { const c = curve(P); return c.d ? `<path d="${c.d}" class="${cls}"/>` : ""; };
   const SA = archStats(G, A, m), SB = archStats(G, B, m);
-  const grid = Array.from({length: Math.round((hi - lo) / stp) + 1}, (_, k) => lo + stp * k).map(v => `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" class="argrid"/><text x="${pl - 8}" y="${Y(v) + 4}" text-anchor="end" class="arax">${v}${m === "pct" ? "%" : ""}</text>`).join("");
-  const thl = m === "rpe" || m === "pct" ? `<rect x="${pl}" y="${pt}" width="${W - pr - pl}" height="${Math.max(0, Y(T.v) - pt)}" class="arzone"/><text x="${pl + 6}" y="${pt + 13}" class="arzl">${arIsStd(G, m) ? "serie allenanti" : "sopra soglia"}</text><line x1="${pl}" x2="${W - pr}" y1="${Y(T.v)}" y2="${Y(T.v)}" class="arth"/><text x="${W - pr - 2}" y="${Y(T.v) - 5}" text-anchor="end" class="arthl">soglia ${esc(m === "pct" ? T.l : fmtN(T.v, 1))}</text>` : "";
+  const grid = Array.from({length: Math.round((hi - lo) / stp) + 1}, (_, k) => lo + stp * k).map(v => `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" class="argrid"/>${m === "all" ? "" : `<text x="${pl - 8}" y="${Y(v) + 4}" text-anchor="end" class="arax">${v}${m === "pct" ? "%" : ""}</text>`}`).join("")
+    + (m === "all" ? LV_B.map((b, i) => `<text x="${pl - 8}" y="${Y(i + .5) + 4}" text-anchor="end" class="arax">${b}</text>`).join("") : "");
+  const thl = m === "rpe" || m === "pct" || m === "ex" || m === "all" ? `<rect x="${pl}" y="${pt}" width="${W - pr - pl}" height="${Math.max(0, Y(T.v) - pt)}" class="arzone"/><text x="${pl + 6}" y="${pt + 13}" class="arzl">${arIsStd(G, m) ? "serie allenanti" : "sopra soglia"}</text><line x1="${pl}" x2="${W - pr}" y1="${Y(T.v)}" y2="${Y(T.v)}" class="arth"/><text x="${W - pr - 2}" y="${Y(T.v) - 5}" text-anchor="end" class="arthl">${m === "all" ? "" : `soglia ${esc(m === "pct" ? T.l : fmtN(T.v, 1))}`}</text>` : "";
   const every = N > 30 ? 3 : N > 18 ? 2 : 1, xl = Array.from({length: N}, (_, k) => (k + 1) % every && k ? "" : `<text x="${X(k)}" y="${pt + ih + 15}" text-anchor="middle" class="arax">${k + 1}</text>`).join("");
   const runs = P => { const R = []; P.forEach((p, k) => { const r = R[R.length - 1]; if (r && r.gk === p.gk) { r.to = k; r.names.includes(p.name) || r.names.push(p.name); r.xs.includes(p.x?.id) || r.xs.push(p.x?.id); } else R.push({gk: p.gk, lab: p.lab, from: k, to: k, names: [p.name], xs: [p.x?.id]}); }); return R; };
   const fit = (t, px) => { const n = Math.max(1, Math.floor(px / 6.3)); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + "…" : t; };
@@ -6922,15 +6981,15 @@ function drawArchChart(G, w, order, editable){
     const tools = "", tw = wd - 10;
     return `<rect x="${x0}" y="${y}" width="${Math.max(2, wd)}" height="18" rx="4" class="arband${ref ? " rf" : ""}" style="--bc:${c}"><title>${esc((ref ? "Riferimento: " : "") + r.names.join(" + "))}</title></rect>
       <text x="${x0 + 6}" y="${y + 13}" class="arbt${ref ? " rf" : ""}">${esc(fit((ref ? "" : r.lab ? r.lab + " · " : "") + r.names.join(" + "), tw))}</text>${tools}`; }).join("");
-  const tip = (p, ref) => `${ref ? "Riferimento · " : ""}${p.name} · serie ${p.n} dell'esercizio${p.rpe != null ? " · RPE " + fmtN(p.rpe, 1) : ""}${p.pct != null ? " · " + Math.round(p.pct) + "%" : ""}${p.reps != null ? " · " + fmtN(p.reps, 1) + " rip." : ""}`;
+  const tip = (p, ref) => `${ref ? "Riferimento · " : ""}${p.name} · serie ${p.n} dell'esercizio${p.ex != null ? " · intent " + exTxt(p.ex, p.exRg) : ""}${p.rpe != null ? " · RPE " + fmtN(p.rpe, 1) : ""}${p.pct != null ? " · " + Math.round(p.pct) + "%" : ""}${p.reps != null ? " · " + fmtN(p.reps, 1) + " rip." : ""}`;
   const dotsB = B.map((p, k) => val(B, k) == null ? "" : `<circle cx="${X(k)}" cy="${Y(val(B, k))}" r="3.6" class="ardr ${arState(G, p, m)}"/><circle cx="${X(k)}" cy="${Y(val(B, k))}" r="10" fill="transparent" class="ardb" data-k="${k}"/>`).join("");
-  const bars = A.map((p, k) => { const R = m === "rpe" ? p.rpeR : m === "reps" ? p.repsR : null; return R ? `<line x1="${X(k)}" x2="${X(k)}" y1="${Y(R[0])}" y2="${Y(R[1])}" class="arrng" style="stroke:${exColor(order, p.name)}"><title>${esc(`programmato ${fmtN(R[0], 1)}–${fmtN(R[1], 1)}`)}</title></line>` : ""; }).join("");
+  const bars = A.map((p, k) => { const R = m === "rpe" ? p.rpeR : m === "reps" ? p.repsR : m === "ex" ? p.exRg : null; return R ? `<line x1="${X(k)}" x2="${X(k)}" y1="${Y(R[0])}" y2="${Y(R[1])}" class="arrng" style="stroke:${exColor(order, p.name)}"><title>${esc(`programmato ${fmtN(R[0], 1)}–${fmtN(R[1], 1)}`)}</title></line>` : ""; }).join("");
   const dotsA = A.map((p, k) => { const v = val(A, k), ed = canEd && !p.lock, dr = ed && arCanSet(p, m);
     if (v == null) return `<g class="ardg${ed ? " ed" : ""}" data-k="${k}" ${ed ? `tabindex="0" role="button" aria-label="${esc(p.name)} serie ${p.n}"` : ""}><rect x="${X(k) - 9}" y="${pt + ih - 22}" width="18" height="22" fill="transparent"/><text x="${X(k)}" y="${pt + ih - 6}" text-anchor="middle" class="arax">–</text><title>${esc(tip(p))}</title></g>`;
     const sx = arState(G, p, m), hd = sx !== "on", c = exColor(order, p.name);   // pieno = sopra soglia · cerchio colorato = allenante sotto soglia · cerchio grigio = non allenante
     return `<g class="ardg${ed ? " ed" : ""}${dr ? " dr" : ""}" data-k="${k}" ${ed ? `tabindex="0" role="button" aria-label="${esc(p.name)} serie ${p.n}${dr ? ": trascina o usa le frecce per cambiare il valore" : ""}"` : ""}>
       <circle cx="${X(k)}" cy="${Y(v)}" r="${Math.max(7, Math.min(13, slot / 2 - 10))}" fill="transparent"/><circle cx="${X(k)}" cy="${Y(v)}" r="${sx === "on" ? 4.6 : sx === "hard" ? 3.8 : 3.2}" style="${sx === "on" ? `fill:${c}` : sx === "hard" ? `fill:var(--surface);stroke:${c};stroke-width:2` : `fill:var(--surface);stroke:var(--faint);stroke-width:1.4`}" class="${p.did ? "" : "arpl"}"/></g>
-      ${slot >= 18 && (m !== "hard" || (!hd && (k === 0 || HA[k] !== HA[k - 1]))) ? `<text x="${X(k)}" y="${Y(v) - 9}" text-anchor="middle" class="arv">${f(v)}</text>` : ""}`; }).join("");
+      ${slot >= 18 && (m !== "hard" || (!hd && (k === 0 || HA[k] !== HA[k - 1]))) ? `<text x="${X(k)}" y="${Y(v) - 9}" text-anchor="middle" class="arv">${m === "all" ? esc(A[k].lv?.s || "") : m === "ex" ? exTxt(v, A[k].exRg) : f(v)}</text>` : ""}`; }).join("");
   const rings = (S0, P) => m === "hard" ? "" : S0.peaks.map(k => `<circle cx="${X(k)}" cy="${Y(val(P, k))}" r="9" class="arpk${P === B ? " rf" : ""}"/>`).join("");
   /* SERIE ALLENANTI a riquadri: una colonna per serie; piena e numerata (1ª, 2ª… allenante) se sopra soglia, vuota se sotto; sotto il riquadro l'RPE.
      Le serie allenanti di fila stanno su un fondo comune ("3 di fila"): si vedono i blocchi di lavoro duro e le pause tra un blocco e l'altro */
@@ -6974,7 +7033,7 @@ function drawArchChart(G, w, order, editable){
     <div class="row col">${iq.map(o => `<button class="btn sm" data-act="ar-ins" data-xs="${o.xs.join(",")}" data-at="${o.at}">${esc(o.l)}</button>`).join("")}</div><div class="row"><span class="grow"></span><button class="btn sm ghost" data-act="ar-close">Chiudi</button></div></div>` : "";
   const pk = G.arPop != null && A[G.arPop] && !A[G.arPop].lock ? G.arPop : null;
   el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="archsvg" role="img" aria-label="Architettura della seduta serie per serie">
-    ${HM ? "" : grid + thl}${xl}<text x="${pl}" y="${pt + ih + 15}" text-anchor="end" dx="-8" class="arax">serie</text>
+    ${ctx()}${HM ? "" : grid + thl}${xl}<text x="${pl}" y="${pt + ih + 15}" text-anchor="end" dx="-8" class="arax">serie</text>
     ${HM ? hardSvg : line(B, "arlr") + bars + line(A, "arla") + rings(SB, B) + rings(SA, A) + dotsB + dotsA}
     ${edits}
     <text x="${pl - 8}" y="${pt + ih + 36 + off}" text-anchor="end" class="arax">ora</text>${band(A, pt + ih + 23 + off, false)}
@@ -7004,7 +7063,7 @@ function arDragStart(e, G, w, order, k, drag){
   const move = ev => { if (!drag || (!moved && Math.abs(ev.clientY - y0) < 4)) return; moved = true; G.arDrag = true; el.querySelector(".artip")?.setAttribute("hidden", "");
     const sv = el.querySelector("svg"), r = sv.getBoundingClientRect(), py = (ev.clientY - r.top) * sv.viewBox.baseVal.height / r.height;
     const st = AR_STEP[m], v = Math.round((geo.lo + (geo.pt + geo.ih - py) / geo.ih * (geo.hi - geo.lo)) / st) * st;
-    const p = archPts(G, w, true)[k]; if (!p || v === arVal(p, m)) return; arSet(G, w, p, m, Math.max(m === "rpe" ? 1 : m === "reps" ? 1 : 30, v)); drawArchChart(G, w, order, true); };
+    const p = archPts(G, w, true)[k]; if (!p || v === arVal(p, m)) return; arSet(G, w, p, m, Math.max(m === "pct" ? 30 : 1, v)); drawArchChart(G, w, order, true); };
   if (drag) G.arDrag = false;
   const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); G.arDrag = false;
     if (!moved) { if (e.pointerType !== "mouse" && G.arTapK !== k) { G.arTapK = k; const g = el.querySelector(`.ardg[data-k="${k}"]`); if (g) G.arShowTip?.(k, g, true); return; }   // tablet: il primo tocco mostra il confronto
@@ -7026,7 +7085,7 @@ function arTipHtml(G, a, b, k, m, RS, fin, touch){
   /* confronto sui parametri che valgono per ogni esercizio */
   const f = (v, q) => v == null ? "–" : q === "pct" ? Math.round(v) + "%" : fmtN(v, Number.isInteger(v) ? 0 : 1);
   const dd = (x, y, q) => x == null || y == null ? "" : (d => Math.abs(d) < 1e-9 ? `<span class="faint">=</span>` : `<span class="dv">${d > 0 ? "+" : "−"}${q === "pct" ? Math.round(Math.abs(d)) + " punti" : f(Math.abs(d), q)}</span>`)(x - y);   // più o meno non è meglio o peggio: dipende dallo stimolo
-  const cmp = [["rpe", "RPE"], ["pct", "% rif."], ["reps", "Rip."]].filter(([q]) => (a && a[q] != null) || (b && b[q] != null))
+  const cmp = [["ex", "Intent"], ["rpe", "RPE"], ["pct", "% rif."], ["reps", "Rip."]].filter(([q]) => (a && a[q] != null) || (b && b[q] != null))
     .map(([q, l]) => `<span class="${q === m ? "on" : ""}"><small>${l}</small><b>${f(a?.[q], q)}</b>${b ? ` <span class="faint">rif. ${f(b[q], q)}</span> ${dd(a?.[q], b?.[q], q)}` : ""}</span>`).join("");
   const tb = t => t ? typeBadge(t) : "";
   return `<div class="tt-h"><b>Serie ${k + 1} della seduta</b>${!b ? `<span class="faint">nel riferimento non c'era</span>` : !a ? `<span class="faint">solo nel riferimento</span>` : ""}</div>
@@ -7039,7 +7098,7 @@ function arPopHtml(p, x, y, W){ const a = `data-x="${p.x.id}" data-j="${p.j}"`;
   return `<div class="pspop" style="left:${Math.min(Math.max(0, x - 110), W - 230)}px;top:${y + 16}px"><b>${esc(p.name)} · serie ${p.n}</b>
     <div class="row">${TYPE_ORDER.map(t => `<button class="tchip ${(p.st.type || "") === t ? "on" : ""}" data-act="ar-type" ${a} data-t="${t}">${t ? typeBadge(t) + " " + SET_TYPES[t].s : "nessuno"}</button>`).join("")}</div>
     <div class="row"><button class="btn sm" data-act="ar-dup" ${a}>Duplica serie</button><button class="btn sm ghost danger" data-act="ar-del" ${a}>Elimina serie</button><span class="grow"></span><button class="btn sm ghost" data-act="ar-close">Chiudi</button></div></div>`; }
-function archSumHtml(G, A, B, m, hasB, fin){ const T = arTh(G, m), th = T.l, std = arIsStd(G, m), pm = A.pm, f = v => v == null ? "–" : pm === "pct" ? Math.round(v) + "%" : pm === "rpe" ? "RPE " + fmtN(v, 1) : fmtN(v, 1) + " rip.";
+function archSumHtml(G, A, B, m, hasB, fin){ const T = arTh(G, m), th = T.l, std = arIsStd(G, m), pm = A.pm, f = v => v == null ? "–" : pm === "pct" ? Math.round(v) + "%" : pm === "rpe" ? "RPE " + fmtN(v, 1) : pm === "ex" ? "intent " + (Number.isInteger(v) ? v : `${Math.floor(v)}–${Math.ceil(v)}`) : pm === "all" ? LV_B[Math.min(2, Math.floor(v + 1e-9))] : fmtN(v, 1) + " rip.";
   const ser = L => L.map(([a, b]) => a === b ? `<b>${a + 1}</b>` : `<b>${a + 1}–${b + 1}</b>`), list = L => { const q = ser(L); return q.length > 1 ? q.slice(0, -1).join(", ") + " e " + q[q.length - 1] : q[0] || ""; };
   const pos = (k, ref) => { if (!hasB || k < 0 || ref < 0) return ""; const d = k - ref; return d === 0 ? ` <span class="ard0">stesso punto</span>` : ` <span class="ard">${Math.abs(d)} serie ${d > 0 ? "più tardi" : "prima"}</span>`; };
   const num = (a, b) => !hasB ? "" : a === b ? ` <span class="ard0">uguale</span>` : ` <span class="ard">${a > b ? "+" : "−"}${fmtN(Math.abs(a - b), 1)}</span>`;
@@ -7049,9 +7108,17 @@ function archSumHtml(G, A, B, m, hasB, fin){ const T = arTh(G, m), th = T.l, std
       <td>${S0.first < 0 ? "nessuna" : `serie <b>${S0.first + 1}</b>${me ? pos(S0.first, O.first) : ""}`}</td>
       <td><b>${S0.over}</b>${me ? num(S0.over, O.over) : ""}</td><td><b>${fmtN(S0.overReps, 1)}</b>${me ? num(S0.overReps, O.overReps) : ""}</td>
       <td><b>${S0.n}</b> serie${me ? num(S0.n, O.n) : ""}${std ? "" : ` <span class="faint">·</span> <b>${S0.hard}</b> allenanti${me ? num(S0.hard, O.hard) : ""}`} <span class="faint">·</span> <b>${fmtN(S0.reps, 1)}</b> rip.${me ? num(S0.reps, O.reps) : ""}</td></tr>`;
-  const miss = A.miss ? `<div class="faint" style="font-size:12px;margin-top:4px">${A.miss} serie di questa seduta senza ${pm === "pct" ? "% (esercizio senza kg con e1RM, o senza record)" : pm === "reps" ? "ripetizioni" : "RPE/RIR"}: nel grafico restano al loro posto con un trattino.</div>` : "";
+  const miss = A.miss ? `<div class="faint" style="font-size:12px;margin-top:4px">${A.miss} serie di questa seduta senza ${pm === "pct" ? "% (esercizio senza kg con e1RM, o senza record)" : pm === "reps" ? "ripetizioni" : pm === "ex" ? "intent esecutivo" : pm === "all" ? "intent, RPE o %" : "RPE/RIR"}: nel grafico restano al loro posto con un trattino.</div>` : "";
   return `<div class="arsum"><table><thead><tr><th></th><th>Picco${pm !== m ? " (RPE)" : ""}</th><th>Momenti di picco</th>${std ? `<th>Prima serie allenante</th><th>Serie allenanti</th><th>Rip. nelle serie allenanti</th>` : `<th>Prima serie ≥ ${esc(th)}</th><th>Serie ≥ ${esc(th)}</th><th>Rip. nelle serie ≥ ${esc(th)}</th>`}<th>Totale</th></tr></thead>
     <tbody>${row(fin ? "Questa seduta (eseguita)" : "Questa seduta", A, B, true)}${hasB ? row("Riferimento", B, A, false) : ""}</tbody></table>${miss}</div>`; }
+/* "Tutto" sopra la Progressione per esercizio: l'intensità di ogni serie con il suo parametro (intent, se no RPE, se no %), come nell'Architettura */
+function psLvOf(G, w, o, done){ try { const x = o.x, st = o.st; if (!x || !st || o.ghost) return null;
+  const r = done && o.exec && !emptyRes(o.exec) ? o.exec : null, src = r || archPlan(st), R = exRng(st.ex), mid = R ? (R[0] + R[1]) / 2 : null;
+  const ex = r ? exRng(r.ex)?.[0] ?? phaseEx(w, x, o.j) ?? mid : mid, pp = oneNum(st.pct) ?? oneNum(st.pbest);
+  const pct = !r && pp != null ? pp : setInt(G.email, w, x, o.name, src, st)?.pct ?? null;
+  return lvOf({ex, exR: r ? null : R, rpe: setRpe(src)?.v ?? null, pct, kind: intKind(x, o.name), reps: numv(src.reps)}); } catch(e) { return null; } }
+const psLvRef = o => { const q = o.ref; if (!q || !o.refOk || !o.x) return null; const R = exRng(q.ex);
+  return lvOf({ex: R ? (R[0] + R[1]) / 2 : null, rpe: setRpe(q)?.v ?? null, pct: oneNum(q.pct) ?? oneNum(q.pbest), kind: intKind(o.x, o.name), reps: numv(q.reps)}); };
 function drawPsChart(G, w, seq, order, editable, done, doms){
   const el = $("#ps-chart"); if (!el) return; const M = psLabel(G.sm);
   if (!seq.length) { el.innerHTML = `<div class="faint" style="padding:16px 0">Nessuna serie da mostrare.</div>`; return; }
@@ -7062,7 +7129,8 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
   const cur = seq.map(o => val(o, "cur")), ref = seq.map(o => val(o, "ref")), ex = seq.map(o => val(o, "exec"));
   /* ogni esercizio (blocco) ha la sua fascia: tra una fascia e l'altra un piccolo spazio */
   const runs = []; seq.forEach((o, k) => { const r = runs[runs.length - 1]; if (r && r.grp === o.band) r.to = k; else runs.push({grp: o.band, from: k, to: k, names: [], ghost: o.ghost}); const rr = runs[runs.length - 1]; if (!rr.names.includes(o.name)) rr.names.push(o.name); if (o.refName && !o.ghost) (rr.refs ??= []).includes(o.refName) || rr.refs.push(o.refName); });
-  const GAP = SETS ? 1.1 : 0.5, W = Math.max(560, el.clientWidth || 800), H = 340, pl = 46, pr = SETS ? 30 : 10, pt = 30, pb = 82, iw = W - pl - pr, ih = H - pt - pb;
+  const LVc = seq.map(o => psLvOf(G, w, o, done)), LVr = seq.map(psLvRef), CTX = LVc.some(Boolean), cH = 96, cX = CTX ? cH + 26 : 0;   // "Tutto" in piccolo sopra
+  const GAP = SETS ? 1.1 : 0.5, W = Math.max(560, el.clientWidth || 800), H = 340 + cX, pl = CTX ? 86 : 46, pr = SETS ? 30 : 10, pt = 30 + cX, pb = 82, iw = W - pl - pr, ih = H - pt - pb;
   const slot = iw / (seq.length + GAP * (runs.length - 1)), runOf = k => runs.findIndex(r => k >= r.from && k <= r.to);
   const X = k => pl + slot * (k + GAP * runOf(k)) + slot / 2;
   const one = doms.all || {lo: 0, hi: 1}, Y = v => pt + ih - (v - one.lo) / ((one.hi - one.lo) || 1) * ih;
@@ -7091,6 +7159,16 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     if (!r.ghost && r.refs?.some(n => !r.names.some(m => sameName(m, n)))) r.lines.push(...psWrap("rif.: " + r.refs.join(" + "), mx).slice(0, 2)); });   // confronto con un esercizio diverso (stesso pattern…): con quale
   const HX = H + LH * (Math.max(1, ...runs.map(r => r.lines.length)) - 1);   // più righe = grafico un po' più alto sotto
   let svg = `<svg viewBox="0 0 ${W} ${HX}" role="img" aria-label="${esc(M.l)} di ogni serie">`;
+  if (CTX) { const cT = 24, cY = v => cT + cH - 6 - v / 3 * (cH - 12);
+    const segs = arr => { let d = "", pen = false, lr = -1; arr.forEach((L, k) => { if (!L || runOf(k) !== lr) pen = false; lr = runOf(k); if (!L) return; d += `${pen ? "L" : "M"}${X(k).toFixed(1)} ${cY(L.v).toFixed(1)}`; pen = true; }); return d; };
+    const dr = segs(LVr), dc = segs(LVc);
+    svg += `<g class="archsvg"><text x="${pl}" y="${cT - 9}" class="arctx">Tutto · intensità di ogni serie <tspan class="arctxs">(sola lettura · accese le serie con ${esc(G.sm === "rpe" ? "RPE" : M.l.toLowerCase())})</tspan></text>`
+      + [0, 1, 2, 3].map(v => `<line x1="${pl}" x2="${W - pr}" y1="${cY(v)}" y2="${cY(v)}" class="${v === 1 ? "arth" : "argrid"}"/>`).join("")
+      + LV_B.map((b, i) => `<text x="${pl - 8}" y="${cY(i + .5) + 3.5}" text-anchor="end" class="arax" style="font-size:10px">${b}</text>`).join("")
+      + (dr ? `<path d="${dr}" class="arlr"/>` : "") + (dc ? `<path d="${dc}" class="arla" style="stroke-width:1.5"/>` : "")
+      + LVc.map((L, k) => { if (!L) return ""; const o = seq[k], on = cur[k] != null, c = exColor(order, o.name);
+        return `<circle cx="${X(k)}" cy="${cY(L.v)}" r="${on ? 3.8 : 2.8}" style="${on ? `fill:${c}` : `fill:var(--surface);stroke:var(--faint);stroke-width:1.2`}"><title>${esc(o.name)} · serie ${o.j + 1} · ${esc(L.t)} · ${LV_B[Math.min(2, Math.floor(L.v + 1e-9))]}${LVr[k] ? ` · rif. ${esc(LVr[k].t)}` : ""}</title></circle>${slot >= 26 ? `<text x="${X(k)}" y="${cY(L.v) - 6}" text-anchor="middle" class="arctxv${on ? "" : " off"}">${esc(L.s)}</text>` : ""}`; }).join("")
+      + `<line x1="${pl}" x2="${W - pr}" y1="${cT + cH + 12}" y2="${cT + cH + 12}" class="argrid" style="opacity:.5"/></g>`; }
   runs.forEach(r => { const x1 = X(r.from) - slot / 2 + 2, x2 = X(r.to) + slot / 2 - 2;
     svg += `<rect class="psband ${r.ghost ? "gh" : ""}" x="${x1}" y="${pt - 16}" width="${x2 - x1}" height="${ih + 22}" rx="8" ${r.ghost ? "" : `style="fill:color-mix(in srgb,${exColor(order, r.names[0])} 9%,var(--surface));opacity:1"`}/>`; });   // fascia leggermente colorata come l'esercizio
   runs.forEach(r => { if (r.ghost || SETS) return; const o = seq.slice(r.from, r.to + 1).find(q => psPct(q, 1)); if (!o) return;
@@ -7098,7 +7176,7 @@ function drawPsChart(G, w, seq, order, editable, done, doms){
     if (yr >= pt && yr <= pt + ih) svg += `<line class="psrefl" x1="${x1 + 4}" x2="${x2 - 4}" y1="${yr}" y2="${yr}"/>`;
     svg += `<text class="psreft" x="${(x1 + x2) / 2}" y="${pt - 3}" text-anchor="middle">${q.ref.k === "kg" ? `e1RM ${nf(q.ref.v)} kg` : q.ref.k === "spr" ? `record ${fmtN(q.ref.v, 2)} s` : `record ${nf(q.ref.v)} cm`}<title>${esc(intRefTxt(q.ref))} · 100% delle percentuali</title></text>`; });
   if (!SETS) svg += `<g class="grid">${ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${Y(t)}" y2="${Y(t)}"/>`).join("")}</g>
-    <g class="axis">${ticks.map(t => `<text x="${pl - 8}" y="${Y(t) + 4}" text-anchor="end">${nf(t)}</text>`).join("")}<text x="0" y="11" style="font-size:10.5px;font-weight:700">${esc(M.u || M.l)}</text></g>`;
+    <g class="axis">${ticks.map(t => `<text x="${pl - 8}" y="${Y(t) + 4}" text-anchor="end">${nf(t)}</text>`).join("")}<text x="0" y="${pt - 19}" style="font-size:10.5px;font-weight:700">${esc(M.u || M.l)}</text></g>`;
   // nomi delle fasce, sotto
   runs.forEach(r => { const cx = (X(r.from) + X(r.to)) / 2, pre = r.ghost ? "" : r.grp + " · ";
     svg += `<text class="psbl ${r.ghost ? "gh" : ""}" text-anchor="middle"><title>${esc(r.names.join(" + "))}</title>${r.lines.map((ln, i) => `<tspan x="${cx}" y="${H - 10 + i * LH}">${i === 0 && pre && ln.startsWith(pre) ? `<tspan style="fill:${exColor(order, r.names[0])};font-weight:800">${esc(r.grp)}</tspan> · ${esc(ln.slice(pre.length))}` : ln.startsWith("rif.: ") || (i > 0 && r.lines.slice(0, i).some(z => z.startsWith("rif.: "))) ? `<tspan class="psrfl">${esc(ln)}</tspan>` : esc(ln)}</tspan>`).join("")}</text>`; });
@@ -8284,7 +8362,7 @@ const ACT = {
   "ps-ref"(t){ S.prog.psRef = t.dataset.v; drawProg(); },
   "ps-arch"(t){ S.prog.psArch = t.dataset.v; S.prog.arPop = null; drawProg(); },
   "ps-am"(t){ S.prog.am = t.dataset.v; S.prog.arPop = null; S.prog.arIns = null; drawProg(); },
-  "ar-th"(t){ const G = S.prog, T = arTh(G, arMode(G)), d = +t.dataset.d;
+  "ar-th"(t){ const G = S.prog, T = arTh(G, arMode(G)), d = +t.dataset.d; if (T.k === "ex" || T.k === "all") return;
     if (T.k === "pct") G.ath.pct = Math.max(50, Math.min(100, G.ath.pct + 5 * d)); else G.ath.rpe = Math.max(5, Math.min(10, G.ath.rpe + rpeStep() * d)); drawProg(); },
   "ar-ins"(t){ const G = S.prog, at = t.dataset.at;
     t.dataset.xs.split(",").forEach(id => { const a = G.sess.sets[id]; if (!a) return; if (at === "end") a.push(nextSet(a)); else { const i = +at; a.splice(i, 0, clone(a[Math.max(0, i - 1)] || a[0] || {})); } });

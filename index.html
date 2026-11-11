@@ -5736,9 +5736,9 @@ function firmaSeq(email, w){
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
       const pct = oneNum(st.pct) ?? oneNum(st.pbest) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
       const r = (w.results?.[x.id] || [])[j], did = !!r && !emptyRes(r), rpeA = did ? setRpe(r)?.v ?? null : null, rpeF = phaseRpe(w, x, j), pctA = did ? setInt(email, w, x, name, r, st)?.pct ?? null : null;
-      out.push({em: email, d: effDate(w), wid: w.id, pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, exA: (() => { try { return exResp(w, x, j, r) ?? null; } catch(e) { return null; } })(), exP: exRng(st.ex), ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: (l => !l ? "" : l.stim0 === "none" ? "none" : stim0Of(l) || "")(libByName(name)), dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+      out.push({em: email, d: effDate(w), wid: w.id, pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, exA: (() => { try { return exResp(w, x, j, r) ?? null; } catch(e) { return null; } })(), exP: exRng(st.ex), exi: (q => q ? (q[0] + q[1]) / 2 : null)(exRng(st.ex)), ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: (l => !l ? "" : l.stim0 === "none" ? "none" : stim0Of(l) || "")(libByName(name)), dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
   return out; }
-const FIRMA_EPS = {pct: 1.5, rpe: 0.25};
+const FIRMA_EPS = {pct: 1.5, rpe: 0.25, exi: 0.25};
 function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
   const eps = m === "kg" ? Math.max(...L) * 0.015 : FIRMA_EPS[m] || 0;
   const seg = []; L.forEach(z => { const s0 = seg[seg.length - 1]; if (s0 && Math.abs(z - s0.v) <= eps) s0.n++; else seg.push({v: z, n: 1}); });
@@ -5758,19 +5758,19 @@ function firmaOf(email, w){
   seq.forEach(o => { let r = cur.get(o.key); if (!r || r.g < o.gi - 1) { r = {id: nr++}; by.set(r.id, []); } r.g = o.gi; cur.set(o.key, r); by.get(r.id).push(o); });
   return {N, seq, mv: [...by.values()].map(L => {
     const n = L.length, names = [...new Set(L.map(o => o.name))], pat = L[0].pat || "";
-    /* intensità con cui leggere la forma: %1RM scritto nel programma, se no RPE/RIR (carico interno, come prescrive Giuseppe), se no % dell'e1RM, se no kg */
-    const has = q => L.filter(o => o[q] != null).length, pres = L.filter(o => oneNum(o.st.pct) != null).length, ord = pres >= n * .5 ? ["pct", "rpe", "kg"] : ["rpe", "pct", "kg"];
+    /* intensità con cui leggere la forma: %1RM scritto nel programma, se no intent esecutivo, RPE/RIR (stesso ordine di "Tutto"), se no % dell'e1RM, se no kg */
+    const has = q => L.filter(o => o[q] != null).length, pres = L.filter(o => oneNum(o.st.pct) != null).length, ord = pres >= n * .5 ? ["pct", "exi", "rpe", "kg"] : ["exi", "rpe", "pct", "kg"];
     const m = ord.find(q => has(q) === n) || ord.find(q => has(q) >= n * .5) || null;
     const v = L.map(o => m ? o[m] : null), vv = v.filter(z => z != null), mx = vv.length ? Math.max(...vv) : null, eps = m === "kg" ? (mx || 0) * .015 : FIRMA_EPS[m] || 0;
     const shape = m ? firmaShape(v, m) : "", ip = mx != null ? v.findIndex(z => z != null && z >= mx - eps) : -1;
     const typed = L.some(o => o.type), work = L.filter(o => o.type === "W");
     const ramp = typed ? L.filter(o => o.type === "R").length : ip > 0 ? ip : 0, back = typed ? L.filter(o => o.type === "B" || o.type === "D").length : 0;
     const peakW = typed && ip >= 0 && L[ip].type === "W" ? work.indexOf(L[ip]) + 1 : null;
-    const hard = has("rpe") ? L.filter(o => o.rpe != null && o.rpe >= 7 - 1e-9).length : null;
+    const hard = has("rpe") || has("exi") ? L.filter(o => (o.rpe != null && o.rpe >= 7 - 1e-9) || (o.exi != null && o.exi >= 3)).length : null;   // allenante: RPE ≥ 7 e/o intent ≥ 3
     const rt = L.map(o => o.repsTxt).filter(Boolean), reps = !rt.length ? "" : rt.every(z => z === rt[0]) ? "× " + rt[0] : rt.length <= 6 ? rt.join("-") : `${Math.min(...L.map(o => o.reps ?? 99))}–${Math.max(...L.map(o => o.reps ?? 0))} rip.`;
     const totR = L.reduce((t, o) => t + (o.reps || 0), 0);
-    const fm = z => m === "pct" ? Math.round(z) + "%" : m === "rpe" ? fmtN(z, Number.isInteger(z) ? 0 : 1) : fmtN(z, 1) + " kg";
-    const iTxt = !vv.length ? "" : (lo => lo === mx ? (m === "rpe" ? "RPE " : "") + fm(mx) : `${m === "rpe" ? "RPE " : ""}${fm(lo)}–${fm(mx)}`)(Math.min(...vv)) + (m === "pct" && L.some(o => oneNum(o.st.pct) == null) ? " e1RM" : "");
+    const fm = z => m === "pct" ? Math.round(z) + "%" : m === "rpe" ? fmtN(z, Number.isInteger(z) ? 0 : 1) : m === "exi" ? (Number.isInteger(z) ? String(z) : `${Math.floor(z)}–${Math.ceil(z)}`) : fmtN(z, 1) + " kg", pre = m === "rpe" ? "RPE " : m === "exi" ? "intent " : "";
+    const iTxt = !vv.length ? "" : (lo => lo === mx ? pre + fm(mx) : m === "exi" ? `${pre}${Math.floor(lo)}–${Math.ceil(mx)}` : `${pre}${fm(lo)}–${fm(mx)}`)(Math.min(...vv)) + (m === "pct" && L.some(o => oneNum(o.st.pct) == null) ? " e1RM" : "");
     const uniq = q => [...new Set(L.map(o => o[q]).filter(Boolean))];
     return {key: L[0].key, pat, sch: !!pat && !pcOf(L[0].name), names, L, n, m, v, shape, ip, ramp, back, peakW, hard, reps, totR, iTxt, rest: uniq("rest"), tut: uniq("tut"), cl: L.filter(o => o.cl).length, first: L[0].pos, last: L[n - 1].pos}; })}; }
 /* ===== FASI DELLO STIMOLO (passo 2) =====

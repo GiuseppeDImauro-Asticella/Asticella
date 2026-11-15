@@ -412,6 +412,11 @@ button.done-box.warnb:hover{border-color:var(--warn)} button.done-box.badb:hover
 button.done-box:hover .fix{color:var(--ink)}
 .fixt input{width:70px;text-align:center;border:1px solid var(--line);border-radius:6px;padding:6px 4px;background:var(--surface2)}
 .fixt select{border:1px solid var(--line);border-radius:6px;padding:6px 4px;background:var(--surface2)}
+.fixt .fxpk{position:relative;display:flex;align-items:center;justify-content:center;width:70px;height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);font-weight:600}
+.fixt .fxpk.pk-empty span{color:var(--faint);font-weight:500}
+.fixt .fxpk::after{content:"";position:absolute;right:5px;bottom:5px;border:4px solid transparent;border-top-color:var(--faint);border-bottom:0}
+.fixt .fxpk select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;cursor:pointer;border:0;padding:0}
+.fixt .fxpk:focus-within{border-color:var(--accent);background:var(--surface)}
 .fixt td,.fixt th{padding:3px}
 .fixt tr.fxex td{background:color-mix(in srgb,var(--accent) 6%,transparent)}
 .fixt td small{display:block}.fixt td.n{text-align:center;min-width:34px}
@@ -7388,6 +7393,12 @@ async function saveCoachFix(patch){
   const c = S.cache[E.email]?.[w.id]; if (c) Object.assign(c, clone(patch));
   $("#confirm").innerHTML = ""; drawEditor(); refreshCoach(); toast("Dati corretti");
 }
+/* menu nella correzione del coach: come la casella dell'atleta (si vede il numero, il menu ha le spiegazioni); in grigio il previsto */
+function fxPick(c, j, val, plan){ const opts = pickOpts(c), v = String(val ?? "");
+  if (v && !opts.some(o => o.v === v)) opts.unshift({v, s: v, l: v});
+  const cur = opts.find(o => o.v === v), pl = String(plan ?? "").trim(), plOk = opts.some(o => o.v === pl);
+  return `<label class="pick fxpk ${cur ? "" : "pk-empty"}"><span>${esc(cur ? cur.s : (pl || "–"))}</span><select data-fx="${j}|${c}" data-plan="${plOk ? esc(pl) : ""}" data-ph="${esc(pl || "–")}" aria-label="${esc(COLS[c].l)} serie ${j + 1}">
+    <option value="" ${cur ? "" : "selected"}>${pl ? `Previsto: ${esc(pl)}` : "— nessuno —"}</option>${opts.map(o => `<option value="${esc(o.v)}" data-s="${esc(o.s)}" ${o === cur ? "selected" : ""}>${esc(o.l)}</option>`).join("")}</select></label>`; }
 function fixResults(i){
   const w = S.editor.w, x = w.exercises[i];
   let rows = clone((w.results||{})[x.id] || []);
@@ -7405,6 +7416,7 @@ function fixResults(i){
           ? `<td><div class="cst">${Array.from({length: K}, (_, k) => `<input data-fx="${j}|${c}|${k}" inputmode="${COLS[c].txt ? "text" : "decimal"}" value="${esc(r.cl?.[k]?.[c] || "")}" placeholder="${esc(p.cl?.[k]?.[c] || "–")}" aria-label="${COLS[c].l} serie ${j+1} cluster ${k+1}">`).join("")}</div></td>`
           : c === "side"
           ? `<td><select data-fx="${j}|side" data-plan="${esc(p.side || "")}" aria-label="Lato serie ${j+1}">${[...new Set([...SIDES, r.side||""])].map(v => `<option value="${esc(v)}" ${(r.side||"")===v?"selected":""}>${esc(SIDE_LBL[v] ?? v)}</option>`).join("")}</select></td>`
+          : COLS[c].pick && pickOpts(c).length ? `<td>${fxPick(c, j, r[c], p[c])}</td>`   // parametro con menu (RPE, RIR, esecuzione, esito…): lo stesso menu dell'atleta, con le spiegazioni
           : `<td><input data-fx="${j}|${c}" inputmode="${COLS[c].txt ? "text" : "decimal"}" value="${esc(r[c]||"")}" placeholder="${esc(p[c]||"–")}" aria-label="${COLS[c].l} serie ${j+1}"></td>`).join("")}
         <td style="text-align:center"><input type="checkbox" data-fx="${j}|done" ${r.done?"checked":""} aria-label="Serie ${j+1} fatta" style="width:18px;height:18px"></td>
         <td>${j >= x.sets.length ? `<button type="button" class="btn sm ghost danger" data-fxrm="${j}" aria-label="Togli serie ${j+1}">✕</button>` : ""}</td></tr>`; }).join("")}
@@ -7425,8 +7437,10 @@ function fixResults(i){
       let done = 0; const ex = []; D.forEach(j => { if (j < n) done++; else ex.push({...rows[j], at: done}); }); rows = [...rows.slice(0, n), ...ex]; draw(); };
     const add = $("#fx-add"); if (add) add.onclick = () => { read(); rows.push({}); draw(); };
     /* spuntando "Fatta" i campi vuoti prendono il valore previsto (come quando l'atleta spunta la serie); intervalli tipo 8-10 restano da scrivere */
+    const pkShow = sel => { const box = sel.closest(".fxpk"); if (!box) return; const o = sel.selectedOptions[0]; box.querySelector("span").textContent = sel.value ? (o?.dataset.s || sel.value) : sel.dataset.ph; box.classList.toggle("pk-empty", !sel.value); };
+    f.querySelectorAll(".fxpk select").forEach(sel => sel.addEventListener("change", () => pkShow(sel)));
     const fillRow = tr => tr.querySelectorAll("[data-fx]").forEach(el => { if (el.type === "checkbox") return;
-      if (el.tagName === "SELECT") { if (!el.value && el.dataset.plan) el.value = el.dataset.plan; return; }
+      if (el.tagName === "SELECT") { if (!el.value && el.dataset.plan) { el.value = el.dataset.plan; pkShow(el); } return; }
       const ph = el.getAttribute("placeholder") || ""; if (!el.value && ph && ph !== "–" && !/[-–/]/.test(ph)) el.value = ph; });
     f.querySelectorAll('input[type=checkbox][data-fx$="|done"]').forEach(cb => cb.addEventListener("change", () => { if (cb.checked) fillRow(cb.closest("tr")); }));
     const all = $("#fx-all"); if (all) all.onclick = () => f.querySelectorAll('input[type=checkbox][data-fx$="|done"]').forEach(cb => { cb.checked = true; fillRow(cb.closest("tr")); });

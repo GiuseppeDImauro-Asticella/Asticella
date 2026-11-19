@@ -4295,7 +4295,7 @@ function tenOfSession(email, w){
     const rr = (w.results || {})[x.id] || [], SMt = stimMapOf(w), ord = resOrder(x, rr).filter(j => rr[j] && !emptyRes(rr[j]) && !ROLE_NOHARD.includes(stimOfSet(SMt, x, j)?.role));   // serie preparatorie / defaticanti: non sono prove di prestazione
     const P = ord.map(j => { const r = rr[j], s = x.sets[j] || {}, es = x.cols.includes("esito") ? esitoOf(r.esito) : null;
       const raw = k === "spr" ? secOf(r.time) : numv(r.height), v = raw && raw > 0 && !(k === "jmp" && (es === "ko" || es === "rif")) ? raw : null;
-      const dist = k === "spr" ? (numv(r.dist) ?? oneNum(s.dist)) : null;
+      const dist = k === "spr" ? (distKey(r.dist) ?? numv(r.dist) ?? distKey(s.dist) ?? oneNum(s.dist)) : null;
       return {j, r, s, raw, v, es, dist}; }).filter(p => p.raw != null || p.es);
     if (!P.length) return;
     /* sprint: ogni distanza è un confronto a sé (30 m e 60 m non si confrontano: il tempo più alto sui 60 non è un calo) */
@@ -4842,10 +4842,10 @@ function setVolume(x, name, r, s){
   /* serie cluster: si somma cluster per cluster (ripetizioni vuote = 1, come per i contatti): metri = Σ distanza × rip; stacchi e pliometria = Σ rip */
   if ((isCl(s) || hasClRes(r)) && ["sprint", "corsa", "plio", "stacchi"].includes(b)) {
     const K = Math.max(s?.cl?.length || 0, r?.cl?.length || 0); let n = 0, m = 0, anyD = false;
-    for (let k = 0; k < K; k++) { const rq = r?.cl?.[k], sq = s?.cl?.[k]; if (!rq && !sq) continue; const nk = numv(rq?.reps) ?? numv(sq?.reps) ?? 1, dk = numv(rq?.dist) ?? numv(sq?.dist) ?? numv(r?.dist) ?? oneNum(plan("dist"));
+    for (let k = 0; k < K; k++) { const rq = r?.cl?.[k], sq = s?.cl?.[k]; if (!rq && !sq) continue; const nk = numv(rq?.reps) ?? numv(sq?.reps) ?? 1, dk = distTot(rq?.dist) ?? distTot(sq?.dist) ?? distTot(r?.dist) ?? (v => distParts(v) ? distTot(v) : oneNum(v))(plan("dist"));
       n += nk; if (dk != null) { anyD = true; m += dk * nk; } }
     if (b === "sprint" || b === "corsa") { if (anyD) return {b, v: m}; } else return {b, v: n}; }
-  const k = numv(r.kg), rp = numv(r.reps), d = numv(r.dist) ?? numv(plan("dist")), n1 = rp ?? numv(plan("reps")) ?? 1, sc = secOf(r.time) ?? secOf(plan("time"));
+  const k = numv(r.kg), rp = numv(r.reps), d = distTot(r.dist) ?? distTot(plan("dist")), n1 = rp ?? numv(plan("reps")) ?? 1, sc = secOf(r.time) ?? secOf(plan("time"));
   if (b === "carico") { if (k != null && rp != null) return {b, v: k * rp}; if (rp != null) return {b: "rip", v: rp}; if (sc != null) return {b: "tempo", v: sc}; return null; }
   if (b === "sprint" || b === "corsa") { if (d == null) { const dk = durCol(x.cols), mn = dk ? minOf(r[dk]) ?? minOf(plan(dk)) : null;   // senza metri: i minuti di Durata, poi le ripetizioni (il Tempo qui è la prestazione, non conta)
       return mn != null ? {b: "durata", v: mn * n1} : rp != null ? {b: "rip", v: rp} : null; } return {b, v: d * n1}; }   // senza distanza: contano le ripetizioni
@@ -4870,6 +4870,12 @@ function intKind(x, name){ const l = libByName(name) || {}, cols = x.cols || [];
   if (cols.includes("height") && !/box|ostacol|hurdle|plinto|gradin|step/i.test(name)) return "jmp";   // box/ostacoli: l'altezza è dell'attrezzo, non la prestazione
   return null; }
 const oneNum = v => /[-–/]/.test(String(v ?? "")) ? null : numv(v);   // "70-75" non è un numero solo
+/* distanza scritta "20+20" = accelerazione + lanciato: il tempo è sul tratto DOPO il "+" (lanciato).
+   Volume = somma (40 m); confronti dei tempi (record, % del migliore) solo tra la stessa scrittura (20+20 con 20+20, 30+20 con 30+20) */
+const distParts = v => { const t = String(v ?? "").trim().replace(/,/g, "."); return /^\d+(\.\d+)?(\s*\+\s*\d+(\.\d+)?)+$/.test(t) ? t.split("+").map(z => +z.trim()) : null; };
+const distTot = v => { const p = distParts(v); return p ? p.reduce((a, b) => a + b, 0) : numv(v); };
+const distRun = v => { const p = distParts(v); return p ? p[p.length - 1] : numv(v); };   // tratto cronometrato
+const distKey = v => { const p = distParts(v); return p ? p.map(z => fmtN(z, 1)).join("+") : null; };
 /* serie cluster e massimale: ogni cluster è una serie corta. Con l'RPE per cluster valgono tutti (il migliore);
    con l'RPE della serie, questo vale per il cluster più pesante (a parità di kg l'ultimo, il più faticoso). Così le reps contano senza gonfiare il massimale */
 function clE1(r, f){ const cl = (r.cl || []).filter(q => numv(q?.reps)); if (!cl.length) return null; const kgOf = q => q.kg ?? r.kg;
@@ -4881,7 +4887,7 @@ function e1rmOf(r){ if (hasClRes(r)) return clE1(r, e1rmOf); const kg = numv(r?.
   const tot = reps + rir; return tot <= 1 ? kg : kg * (1 + tot / 30); }
 const intCur = (k, r) => { const v = k === "kg" ? numv(r?.kg) : k === "spr" ? secOf(r?.time) : numv(r?.height); return v && v > 0 ? v : null; };
 const intPerf = (k, r) => k === "kg" ? e1rmOf(r) : intCur(k, r);
-const intKey = (k, name, r, s) => k + "|" + ck(name) + (k === "spr" ? "|" + (numv(r?.dist) ?? oneNum(s?.dist) ?? "") : "");
+const intKey = (k, name, r, s) => k + "|" + ck(name) + (k === "spr" ? "|" + (distKey(r?.dist) ?? numv(r?.dist) ?? distKey(s?.dist) ?? oneNum(s?.dist) ?? "") : "");
 let INTM = null;   // indice delle prestazioni per atleta (si ricalcola a ogni ridisegno)
 const intReset = () => { INTM = null; };
 function wEmail(w){ for (const [e, c] of Object.entries(S.cache)) if (c[w.id] === w || c[w.id]?.id === w.id) return e; return S.user?.email || null; }
@@ -4978,7 +4984,7 @@ function sessionPanelHtml(a, list, w, cmp = false){
     ${sets.length ? `<div class="kfilt" role="group" aria-label="Cosa mostra il grafico"><span class="lbl">Grafico</span>${[["rpe", "Intensità"], ["vol", "Volume"]].map(([k, l]) => `<button class="${sm === k ? "on" : ""}" data-act="an-smode" data-v="${k}" aria-pressed="${sm === k}">${l}</button>`).join("")}</div>
       <div class="kfilt sm-int" role="group" aria-label="Parametro di intensità"><span class="lbl">Parametro</span>${[["rpe", "RPE"], ["ex", "Esecuzione"], ["pct", sessPctLbl(sets)]].map(([k, l]) => { const has = k === "rpe" || (k === "ex" ? sets.some(o => o.exA != null) : hasPct);
         return `<button class="${ip === k ? "on" : ""} ${has ? "" : "nodata"}" data-act="an-sip" data-v="${k}" aria-pressed="${ip === k}" ${has ? "" : `title="Nessuna serie con un riferimento: servono esercizi con kg e ripetizioni (e RPE/RIR nelle sedute precedenti), sprint con il tempo o salti con l'altezza, già fatti nelle 12 settimane prima"`}>${l}</button>`; }).join("")}</div>
-      <div class="cdesc sm-pct">Una barra per ogni serie: quanto è vicina al <b>riferimento</b> dell'atleta, cioè il suo migliore delle 12 settimane prima di questa seduta, nello stesso esercizio. <b>Pesi</b>: kg ÷ e1RM stimato (≈ MTL, carico massimo di allenamento, ricavato da kg, rip e RPE/RIR delle serie con RPE ≥ 7 e max 10 rip). <b>Sprint</b>: miglior tempo ÷ tempo, alla stessa distanza. <b>Salti</b>: altezza ÷ miglior altezza. ★ = nuovo record (diventa il riferimento delle sedute dopo).</div>` : ""}
+      <div class="cdesc sm-pct">Una barra per ogni serie: quanto è vicina al <b>riferimento</b> dell'atleta, cioè il suo migliore delle 12 settimane prima di questa seduta, nello stesso esercizio. <b>Pesi</b>: kg ÷ e1RM stimato (≈ MTL, carico massimo di allenamento, ricavato da kg, rip e RPE/RIR delle serie con RPE ≥ 7 e max 10 rip). <b>Sprint</b>: miglior tempo ÷ tempo, alla stessa distanza (con il lanciato, stessa scrittura: 20+20 con 20+20). <b>Salti</b>: altezza ÷ miglior altezza. ★ = nuovo record (diventa il riferimento delle sedute dopo).</div>` : ""}
     ${sets.length ? (vk => `<div class="kfilt sm-vol" role="group" aria-label="Voce di volume"><span class="lbl">Volume</span>${SVOL_KEYS.map(q => { const nq = sets.filter(o => o.vol?.b === q).length;
       return `<button class="${vk === q ? "on" : ""} ${nq ? "" : "nodata"}" data-act="an-svk" data-v="${q}" aria-pressed="${vk === q}" ${nq ? `title="${nq} serie"` : `title="Nessuna serie di questo tipo nella seduta"`}>${SVOL_L[q]}</button>`; }).join("")}</div>
     <div class="cdesc sm-vol">Volume di ogni serie per la voce scelta (stesse regole del Volume in Analisi). Le barre piene seguono l'asse; quelle <b>tratteggiate</b> sono serie di un altro stimolo (con il loro valore e la loro unità, in proporzione tra loro): non seguono l'asse.</div>`)(sessVk(sets)) : ""}
@@ -5172,6 +5178,7 @@ function drawSessionChart(el, w, sh = null){
     if (EXM && o.exP) tip.append(line("tl", `Previsto: intent ${o.exP[0] === o.exP[1] ? o.exP[0] : o.exP.join("–")}`));
     if (EXM && o.act) tip.append(line("tl", `RPE ${nf(o.act.v)}`));
     if (PCT && o.int?.ref) tip.append(line("tl", `Riferimento: ${intRefTxt(o.int.ref)}`));
+    ((sec, dv, pp) => { if (sec && dv && o.int?.k === "spr") tip.append(line("tl", `Velocità: ${fmtN(dv / sec, 2)} m/s${pp ? ` sul lanciato (${pp[pp.length - 1]} m dopo ${pp.slice(0, -1).join("+")} m di accelerazione)` : ""}`)); })(secOf(o.r?.time), distRun(o.r?.dist || o.s?.dist), distParts(o.r?.dist || o.s?.dist));
     if (clArr(o)) tip.append(line("tl", `Cluster: ${clArr(o).map(v => v == null ? "–" : PCT ? Math.round(v) + "%" : "RPE " + nf(v)).join(" → ")}`));
     if (PCT && o.int?.rec && o.int.k === "kg") tip.append(line("tl", `Nuovo e1RM stimato: ${fmtN(e1rmOf(o.r), 1)} kg`));
     if (ex) [].concat(ex).reverse().forEach(e => { if (e.chips) { const d2 = document.createElement("div"); d2.className = "tchips";   // confronto: parametri cambiati, colorati
@@ -5748,7 +5755,7 @@ function firmaSeq(email, w){
       const rr = !isCl(st) && arRng(st.reps), reps = rr ? (rr[0] + rr[1]) / 2 : numv(src.reps);
       const pct = oneNum(st.pct) ?? oneNum(st.pbest) ?? (setInt(email, w, x, name, src, st)?.pct ?? null);
       const r = (w.results?.[x.id] || [])[j], did = !!r && !emptyRes(r), rpeA = did ? setRpe(r)?.v ?? null : null, rpeF = phaseRpe(w, x, j), pctA = did ? setInt(email, w, x, name, r, st)?.pct ?? null : null;
-      out.push({em: email, d: effDate(w), wid: w.id, pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, exA: (() => { try { return exResp(w, x, j, r) ?? null; } catch(e) { return null; } })(), exP: exRng(st.ex), exi: (q => q ? (q[0] + q[1]) / 2 : null)(exRng(st.ex)), ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: (l => !l ? "" : l.stim0 === "none" ? "none" : stim0Of(l) || "")(libByName(name)), dist: oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
+      out.push({em: email, d: effDate(w), wid: w.id, pos, gi, did, rpeA: rpeA ?? rpeF, rpeFa: rpeA == null && rpeF != null, pctA, exA: (() => { try { return exResp(w, x, j, r) ?? null; } catch(e) { return null; } })(), exP: exRng(st.ex), exi: (q => q ? (q[0] + q[1]) / 2 : null)(exRng(st.ex)), ikind: intKind(x, name), name, pat, key: pat ? "p:" + ck(pat) : "e:" + ck(name), x, j, st, cat: catOfName(name), s0: (l => !l ? "" : l.stim0 === "none" ? "none" : stim0Of(l) || "")(libByName(name)), dist: distParts(st.dist) ? distTot(st.dist) : oneNum(st.dist), tutS: tutSec(st.tut), rpe, pct, kg: numv(src.kg), reps, repsTxt: isCl(st) ? clStruct(st) : String(st.reps ?? "").trim(), type: st.type || "", rest: String(st.rest ?? "").trim(), tut: String(st.tut ?? "").trim(), cl: isCl(st)}); }); });
   return out; }
 const FIRMA_EPS = {pct: 1.5, rpe: 0.25, exi: 0.25};
 function firmaShape(v, m){ const L = v.filter(z => z != null); if (L.length < 2) return L.length ? "serie singola" : "";
@@ -6321,7 +6328,7 @@ function sessMetric(sets, cols){
   const done = sets.map(o => o.r); const best = (f, pick) => { const v = done.map(f).filter(x => x != null && x > 0); return v.length ? pick(...v) : null; };
   if (cols.includes("kg") && cols.includes("reps")) { const v = best(e1rm, Math.max); if (v) return {v, l: "Massimale stimato", u: "kg", up: 1}; }
   if (cols.includes("height")) { const v = best(r => numv(r.height), Math.max); if (v) return {v, l: "Altezza migliore", u: "cm", up: 1}; }
-  if (cols.includes("dist")) { const v = best(r => numv(r.dist), Math.max); if (v) return {v, l: "Distanza migliore", u: "m", up: 1}; }
+  if (cols.includes("dist")) { const v = best(r => distTot(r.dist), Math.max); if (v) return {v, l: "Distanza migliore", u: "m", up: 1}; }
   if (cols.includes("vel")) { const v = best(r => numv(r.vel), Math.max); if (v) return {v, l: "Velocità migliore", u: "m/s", up: 1}; }
   if (cols.includes("time") && !cols.includes("reps")) { const v = best(r => numv(r.time), Math.min); if (v) return {v, l: "Tempo migliore", u: "s", up: -1}; }
   if (cols.includes("kg")) { const v = best(r => numv(r.kg), Math.max); if (v) return {v, l: "Kg massimi", u: "kg", up: 1}; }
@@ -6670,10 +6677,11 @@ function psPrimary(x, sets){
   const cand = [...order.filter(c => c === "rpe" ? cols.includes("rpe") || cols.includes("rir") : cols.includes(c)), ...cols.filter(c => !order.includes(c) && !["side", "rest", "tut", "rpe", "rir"].includes(c))];
   return cand.find(c => (sets || []).some(st => psGet(c, x, st) != null)) || cand[0] || null;
 }
-const psGet = (m, x, st) => { if (!st) return null; if (m === "rpe") return setRpe(st)?.v ?? null; return numv(st[m]); };
+const psGet = (m, x, st) => { if (!st) return null; if (m === "rpe") return setRpe(st)?.v ?? null; if (m === "dist") return distTot(st.dist); return numv(st[m]); };
 const psHas = (m, x) => !!m && (m === "sets" || (m === "rpe" ? (x.cols || []).some(c => c === "rpe" || c === "rir") : (x.cols || []).includes(m)));
 function psSet(m, x, st, v){
   if (m === "rpe") { v = Math.min(10, Math.max(1, v)); if ((x.cols || []).includes("rpe")) st.rpe = numStr(v); else st.rir = numStr(Math.max(0, 10 - v)); }
+  else if (m === "dist" && distParts(st.dist)) { const p = distParts(st.dist), pre = p.slice(0, -1).reduce((a, b) => a + b, 0); p[p.length - 1] = Math.max(1, Math.round(v - pre)); st.dist = p.map(z => numStr(z)).join("+"); }   // "20+20": si allunga o accorcia il lanciato
   else st[m] = numStr(Math.max(m === "reps" || m === "steps" ? 1 : 0, v));
 }
 /* esercizi con un nome (un allenamento appena creato ha un esercizio vuoto: conta come seduta vuota) */

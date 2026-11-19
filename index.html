@@ -2402,7 +2402,7 @@ function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; co
     if ((c === "tut" || c === "dist" || L.some(z => z.includes("→"))) && g.length > 1 && g.length < L.length) {   // come nella vista atleta: tempo esec. (e kg dei cluster) raggruppati per serie
       out.push({l: u ? "" : COLS[c].l, grp: g.map(t => ({v: t.v ? wu(t.v) : "–", r: `set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}`}))}); return; }
     out.push(u ? {v: wu(v)} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
-  if (!anyCl && !plioView(x) && !(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
+  if (!anyCl && !plioView(x) && !(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l && !out[1].grp) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga
   return out; }
 function calSumHtml(x){ const val = v => v.split("/").map(t => /^\S*[-→]\S*$/.test(t) ? `<span class="nw">${esc(t)}</span>` : esc(t)).join("/<wbr>");   // "3-1-3-1" non si spezza al trattino: va a capo solo dopo le "/"
   return sumParts(x).map(p => `<span class="sl ${p.grp && !p.l ? "nol" : ""}">${p.l ? esc(p.l) + " " : ""}${p.grp ? CAL_GRP(p.grp, val) : val(p.v)}</span>`).join(""); }

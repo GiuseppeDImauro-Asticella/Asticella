@@ -2044,7 +2044,9 @@ function summarize(x){
     : cols.includes("reps") && vals("reps") ? `${sets.length}×${vals("reps")}` : `${sets.length}×`) + (sd?.both ? " per lato" : "")];
   if (sd && !sd.both) out.push(sd.txt);
   cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
-    const u = COLS[c].u; out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
+    const u = COLS[c].u, L = sets.map(s => setDisp(x, s, c, "→")), g = []; L.forEach((z, j) => { const t = g[g.length - 1]; if (t && t.v === z) t.b = j; else g.push({v: z, a: j, b: j}); });
+    if (c === "dist" && g.length > 1 && g.length < L.length) { out.push(g.map(t => `${t.v || "–"} ${u} (set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""})`).join(", ")); return; }   // distanza a blocchi: "20+20 m (set 1–4), 30+30 m (set 5–7)"
+    out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
   return out.join(" · ");
 }
 const unitTag = c => { const u = COLS[c].u; return u && u !== "%" && u.toLowerCase() !== COLS[c].l.toLowerCase() ? ` <span class="faint" style="text-transform:none">${u}</span>` : ""; };
@@ -2350,7 +2352,7 @@ function schemeGridHtml(x){
     rows.push(["Lato", g.length === 1 ? esc(L[0])   // tutte uguali: Dx + Sx
       : g.length === L.length ? L.map(esc).join("/<wbr>")   // cambia a ogni serie (es. alternate): Dx/Sx/Dx/Sx, come l'RPE
       : g.map(t => `<span class="sgr">${esc(t.v)} <span class="sgs">set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}</span></span>`).join("")]); }   // a blocchi: come il tempo esec.
-  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || anyCl ? grouped(c) : seq(c)]); });
+  cols.filter(c => c !== "reps" && c !== "side" && c !== "rest" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { if (has(c)) rows.push([COLS[c]?.l || c, c === "tut" || c === "dist" || anyCl ? grouped(c) : seq(c)]); });   // distanza come il lato: uguali = una, a blocchi = "20+20 m set 1–4", tutte diverse = in sequenza
   if (cols.includes("rest") && has("rest")) rows.push(["Recupero", grouped("rest")]);
   return `<div class="scg">${rows.map(([l, v]) => `<span class="scl">${esc(l)}</span><span class="scv">${v}</span>`).join("")}</div>`;
 }
@@ -2379,7 +2381,9 @@ function schemeText(x){
     : [`${n} ${n === 1 ? "set" : "set"}${cols.includes("reps") && vals("reps") ? ` × ${vals("reps")} reps` : ""}${sd?.both ? " per lato" : ""}`];
   if (sd && !sd.both) out.push(sd.txt);
   cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return;
-    const u = COLS[c].u; out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
+    const u = COLS[c].u, L = sets.map(s => setDisp(x, s, c, "→")), g = []; L.forEach((z, j) => { const t = g[g.length - 1]; if (t && t.v === z) t.b = j; else g.push({v: z, a: j, b: j}); });
+    if (c === "dist" && g.length > 1 && g.length < L.length) { out.push(g.map(t => `${t.v || "–"} ${u} (set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""})`).join(", ")); return; }   // distanza a blocchi: "20+20 m (set 1–4), 30+30 m (set 5–7)"
+    out.push(u ? (u === "%" ? `${v}%` : `${v} ${u}`) : `${COLS[c].l} ${v}`); });
   if (cols.includes("rest")) { const v = vals("rest"); if (v.replace(/[–/]/g,"")) out.push(`rec. ${v}`); }
   return out.join(" · ");
 }
@@ -2395,7 +2399,7 @@ function sumParts(x){ const sets = x.sets || []; if (!sets.length) return []; co
   cols.filter(c => c !== "reps" && c !== "rest" && c !== "side" && c !== "pi" && c !== rowShownOf(x)).forEach(c => { const v = vals(c); if (!v.replace(/[–/]/g,"")) return; const u = COLS[c].u;
     const wu = z => u ? (u === "%" ? `${z}%` : `${z}\u00a0${u}`) : z, L = sets.map(s => dv(s)(c)), g = [];
     L.forEach((z, j) => { const t = g[g.length - 1]; if (t && t.v === z) t.b = j; else g.push({v: z, a: j, b: j}); });
-    if ((c === "tut" || L.some(z => z.includes("→"))) && g.length > 1 && g.length < L.length) {   // come nella vista atleta: tempo esec. (e kg dei cluster) raggruppati per serie
+    if ((c === "tut" || c === "dist" || L.some(z => z.includes("→"))) && g.length > 1 && g.length < L.length) {   // come nella vista atleta: tempo esec. (e kg dei cluster) raggruppati per serie
       out.push({l: u ? "" : COLS[c].l, grp: g.map(t => ({v: t.v ? wu(t.v) : "–", r: `set ${t.a + 1}${t.b > t.a ? "–" + (t.b + 1) : ""}`}))}); return; }
     out.push(u ? {v: wu(v)} : {l: COLS[c].l, v}); });   // l'unità non va mai a capo da sola
   if (!anyCl && !plioView(x) && !(cols.includes("reps") && vals("reps")) && out[1] && !out[1].side && !out[1].l) { out[0].v += " × " + out[1].v; out.splice(1, 1); }   // senza reps: "8 set × 10/10/30 m" sulla stessa riga

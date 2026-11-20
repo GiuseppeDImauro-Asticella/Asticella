@@ -908,7 +908,7 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .spk{position:relative;display:inline-block;min-width:0;max-width:100%;vertical-align:middle}
 .spk>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;width:auto;max-width:420px;padding:5px 10px}.spk>summary::-webkit-details-marker{display:none}
 .spk>summary .spcv{color:var(--faint);font-size:12px;margin-left:auto}.spk[open]>summary{border-color:var(--accent)}.spph{color:var(--muted)}
-.spkl{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:max-content;min-width:100%;max-width:min(520px,calc(100vw - 16px));max-height:min(60vh,460px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px}
+.spkl{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:max-content;min-width:100%;max-width:min(520px,calc(100vw - 16px));max-height:min(60vh,460px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px}.pmk .spkl{min-width:380px}.pmk .spi{grid-template-columns:minmax(0,1fr)}.pmk .spcur .spn b{color:var(--ink)}.pmk .spcur .spn small{color:var(--muted);font-weight:400}.pmr .spn{display:flex;flex-direction:column;gap:1px;text-align:left}.pmr .pmrl{font-size:12px;color:var(--ink);font-weight:400}.pmr .pmrl b{font-weight:700}.pmr small{margin-bottom:3px}
 .spkl.up{top:auto;bottom:calc(100% + 4px)}
 .spkg{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 8px 4px}.spkg~.spkg{border-top:1px solid var(--line);margin-top:4px;padding-top:10px}
 .spi{display:grid;grid-template-columns:6.4em minmax(0,1fr) auto;align-items:baseline;gap:4px 10px;text-align:left;min-width:0}
@@ -6838,7 +6838,8 @@ function drawProgSess(G, a){
         return `<button class="pgsess ${x.id === G.wid ? "on" : ""}" data-act="ps-pick" data-id="${x.id}"><span class="dot st-${st}"></span><span><b>${esc(DAYS[dayIdx(x.date)])} ${parse(x.date).getDate()}/${parse(x.date).getMonth()+1}</b> · ${esc(x.title || "Allenamento")}<small>${esc(KINDS[kindOf(x)].l)} · ${esc(STATUS_TXT[st])}</small></span></button>`; }).join("") || `<div class="faint" style="padding:12px;font-size:13px">Nessun allenamento nel periodo.</div>`}</aside>
       <section class="pgmain">${w ? `
         <div class="pgtitle"><b>${esc(w.title || "Allenamento")}</b> <span class="faint">· ${esc(fmtLong(w.date))} · ${inProg && editable ? "in corso: le serie già fatte restano, le altre si possono ancora cambiare" : editable && w.date < TODAY() ? "non registrata: trascina i punti per cambiare i valori" : editable ? "da fare: trascina i punti per cambiare i valori" : done ? "già fatta: sola lettura" : "passata: sola lettura"}${G.edit ? ` · <b style="color:var(--accent)">dall'allenamento aperto</b>` : ""}</span></div>
-        <div class="kfilt"><span class="lbl">Confronta con</span>${[["kind", `Seduta più recente (stesso tipo · ${kindLbl(w)})`], ["stim", "Stesso movimento e stimolo"], ["pat", "Seduta più recente (stesso pattern)"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => `<button class="${(G.psRef || "stim") === k ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${(G.psRef || "stim") === k}">${esc(l)}</button>`).join("")}</div>
+        ${(MV => `<div class="kfilt"><span class="lbl">Confronta con</span>${[["kind", `Seduta più recente (stesso tipo · ${kindLbl(w)})`], ["mov", "Stesso movimento"], ["ex", "Stesso esercizio (ultima volta)"]].map(([k, l]) => { const on = k === "mov" ? MV : (G.psRef || "stim") === k; return `<button class="${on ? "on" : ""}" data-act="ps-ref" data-v="${k}" aria-pressed="${on}">${esc(l)}</button>`; }).join("")}</div>
+        ${MV && namedEx(w).length ? psMovRefHtml(G, w) : ""}`)(["stim", "pat"].includes(G.psRef || "stim"))}
         ${G.psRef === "kind" ? (({KS, OS, RS}) => RS || OS.length ? `<div class="kfilt psk"><span class="lbl">Riferimento</span>${spick("ps-kref", [{l: `Stesso tipo (${KINDS[kindOf(w)].l})`, items: KS}, {l: "Altre sedute", items: OS}], RS, "— scegli una seduta —", q => q === KS[0] ? "più recente" : "")}
           ${RS ? `<button type="button" class="btn sm ghost pssv" data-act="ps-sessview" data-id="${RS.id}" title="Vedi l'andamento di questa seduta (intensità e volume serie per serie) senza uscire da qui">${ICON.data} Andamento</button>` : `<span class="faint" style="font-size:12px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)}: scegline un'altra.</span>`}
           </div>${RS && namedEx(w).length ? `<div class="kfilt psk"><span class="lbl">Confronta</span>${[["ex", "per esercizio"], ["arch", "architettura"]].map(([k, l]) => `<button class="${(G.psArch || "ex") === k ? "on" : ""}" data-act="ps-arch" data-v="${k}" aria-pressed="${(G.psArch || "ex") === k}">${l}</button>`).join("")}
@@ -7340,6 +7341,19 @@ function psDragSets(e, G, w, k, seq){
     drawProg(); };
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
 }
+/* "Stesso movimento": riferimento con lo stesso stimolo (ultima volta per questo obiettivo) o il più recente (qualunque stimolo); per ogni esercizio la seduta che prende */
+function psMovRefHtml(G, w){ const cur = G.psRef || "stim", ex = namedEx(w);
+  const L = ex.map(x => { const eid = exMainStim(w, x), s = eid ? stimHistory(G.email, x, w, eid, 1).list[0] : null, p = patternHistory(G.email, x, w, 1)?.list?.[0];
+    return {x, eid, s, p}; });
+  const line = (q, k) => { const h = k === "stim" ? q.s : q.p, nm = h ? h.items.map(it => it.name).filter((v, i, A) => A.indexOf(v) === i).join(" + ") : "";
+    return k === "stim" && !q.eid ? `${esc(q.x.name)}: <span class="faint">senza stimolo → la più recente</span>` : !h ? `${esc(q.x.name)}: <span class="faint">${k === "stim" ? "mai con questo stimolo → la più recente" : "nessuna seduta prima"}</span>`
+      : `${esc(q.x.name)}: <b>${esc(fmtD(h.date))}</b> · ${esc(k === "stim" ? exprLbl(q.eid) : kindLbl(h.w))}${sameName(nm, q.x.name) ? "" : ` <span class="faint">(${esc(nm)})</span>`}`; };
+  const opt = (k, t, d) => { const rows = L.slice(0, 4).map(q => `<span class="pmrl">${line(q, k)}</span>`).join("") + (L.length > 4 ? `<span class="pmrl faint">+ altri ${L.length - 4}</span>` : "");
+    return `<button type="button" role="option" aria-selected="${cur === k}" class="spi pmr${cur === k ? " on" : ""}" data-act="ps-ref" data-v="${k}"><span class="spn"><b>${t}</b><small>${d}</small>${rows}</span></button>`; };
+  const same = L.every(q => (q.s?.date || null) === (q.p?.date || null));
+  return `<div class="kfilt psk"><span class="lbl">Riferimento</span><details class="spk pmk"><summary class="in spks"><span class="spi spcur"><span class="spn"><b>${cur === "stim" ? "Stesso stimolo" : "Il più recente"}</b><small>${cur === "stim" ? "l'ultima volta con lo stesso obiettivo" : "l'ultima volta su questo movimento, qualunque stimolo"}</small></span></span><span class="spcv" aria-hidden="true">▾</span></summary>
+    <div class="spkl" role="listbox">${opt("stim", "Stesso stimolo", "l'ultima volta che hai allenato il movimento con lo stesso stimolo (solo quelle serie)")}${opt("pat", "Il più recente", "l'ultima volta sul movimento, qualunque stimolo (tutte le serie, anche la rampa)")}</div></details>
+    <span class="faint" style="font-size:12px">${same ? "qui coincidono: stessa seduta" : L.length === 1 ? (q => q.s && q.p ? `stesso stimolo ${fmtD(q.s.date)} · il più recente ${fmtD(q.p.date)}` : "")(L[0]) : ""}</span></div>`; }
 function psRefreshSide(G, w){ clearTimeout(G.psT); G.psT = setTimeout(() => { if (S.prog === G) drawProg(); }, 700); }
 async function psApply(){
   const G = S.prog, w = progW(G, G.wid); if (!w || !psDirty(G, w)) return;
@@ -8431,7 +8445,7 @@ const ACT = {
   "exp-go"(t, e){ e?.stopPropagation?.(); const inp = document.querySelector(`.ex-head input.nm[data-i="${S.expI}"]`); exPickClose(); if (!inp) return;
     inp.value = t.dataset.n; inp.dispatchEvent(new Event("input", {bubbles: true})); inp.dispatchEvent(new Event("change", {bubbles: true})); markDirty(); },
   "ps-met"(t){ S.prog.sm = t.dataset.v; S.prog.psPop = null; drawProg(); },
-  "ps-ref"(t){ S.prog.psRef = t.dataset.v; drawProg(); },
+  "ps-ref"(t){ const G = S.prog, v = t.dataset.v; G.psRef = v === "mov" ? (G.movRef || "stim") : v; if (v === "stim" || v === "pat") G.movRef = v; drawProg(); },
   "ps-arch"(t){ S.prog.psArch = t.dataset.v; S.prog.arPop = null; drawProg(); },
   "ps-am"(t){ S.prog.am = t.dataset.v; S.prog.arPop = null; S.prog.arIns = null; drawProg(); },
   "ar-th"(t){ const G = S.prog, T = arTh(G, arMode(G)), d = +t.dataset.d; if (T.k === "ex" || T.k === "all") return;

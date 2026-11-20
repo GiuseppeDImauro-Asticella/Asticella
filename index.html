@@ -6848,12 +6848,8 @@ function drawProgSess(G, a){
           : `<div class="faint" style="font-size:12px;margin-top:6px">Nessuna seduta precedente di tipo ${esc(KINDS[kindOf(w)].l)} con dati registrati.</div>`)(kindRefOf(G, w)) : ""}
         ${!namedEx(w).length ? (({RS}) => `<div class="psempty"><b>Questa seduta è ancora vuota.</b> ${RS && G.psRef === "kind" ? `Nel grafico vedi cosa è stato fatto ${esc(DAYS[dayIdx(effDate(RS))].toLowerCase())} ${esc(fmtD(effDate(RS)))} · ${esc(RS.title || "")}: puoi partire da lì${editable ? `, cambiando se vuoi gli esercizi (in cima quelli dello stesso pattern), e poi i numeri.
             <div class="pscopy">${(RS.exercises || []).map((y, k) => { const L = exLabels(RS.exercises), pat = pcOf(y.name), ch = (G.psSwap || {})[y.id] || y.name;
-              const same = S.exercises.filter(e => pat && pcOf(e.name) === pat && !sameName(e.name, y.name)).sort((a, b) => a.name.localeCompare(b.name)), rest = S.exercises.filter(e => !sameName(e.name, y.name) && !same.includes(e)).sort((a, b) => (a.pattern || "~").localeCompare(b.pattern || "~") || a.name.localeCompare(b.name));
               return `<label><span class="l" style="color:${blockColor(L[k])}">${esc(L[k])}</span><select class="in" data-change="ps-swap" data-y="${y.id}" aria-label="Esercizio al posto di ${esc(y.name)}">
-                <option value="${esc(y.name)}">${esc(y.name)} (come allora)</option>
-                ${same.length ? `<optgroup label="Stesso pattern · ${esc(pat)}">${same.map(e => `<option ${sameName(e.name, ch) ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</optgroup>` : ""}
-                ${Object.entries(rest.reduce((m, e) => ((m[e.pattern || "Senza pattern"] ??= []).push(e), m), {})).map(([pt, es]) => `<optgroup label="${esc(pt)}">${es.map(e => `<option ${sameName(e.name, ch) ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</optgroup>`).join("")}
-              </select></label>`; }).join("")}</div>
+                ${exSwapOpts(y.name, ch)}</select></label>`; }).join("")}</div>
             <button class="btn sm pri" data-act="ps-copyref" data-id="${RS.id}">Usa come punto di partenza</button>` : "."}` : `Scegli "Seduta più recente (stesso tipo)" per vedere da dove partire.`}</div>`)(kindRefOf(G, w)) : ""}
         ${ARCH ? (T => `<div class="kfilt psparams"><span class="lbl">Parametro nel grafico</span>${AR_M.map(([k, l, t]) => `<button class="${arMode(G) === k ? "on" : ""}" data-act="ps-am" data-v="${k}" aria-pressed="${arMode(G) === k}" title="${esc(t)}">${l}</button>`).join("")}</div>
         <div class="kfilt arthr"><span class="lbl">Soglia</span>${T.k === "ex" || T.k === "all" ? `<b>${esc(T.l)}</b>
@@ -7344,11 +7340,18 @@ function psDragSets(e, G, w, k, seq){
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
 }
 /* "Stesso movimento": riferimento con lo stesso stimolo (ultima volta per questo obiettivo) o il più recente (qualunque stimolo); per ogni esercizio la seduta che prende */
+/* menu "cambia esercizio" (Usa come punto di partenza, Riprendi): in cima lo stesso movimento (abilità, se no schema principale ★),
+   poi gli altri raggruppati per abilità / pattern in ordine alfabetico, "Senza pattern" (né abilità né schemi) in fondo */
+function exSwapOpts(n, ch){ const pat = movKeyLbl(n), sel = e => sameName(e.name, ch || "") ? "selected" : "";
+  const same = S.exercises.filter(e => pat && movKeyLbl(e.name) === pat && !sameName(e.name, n)).sort((a, b) => a.name.localeCompare(b.name));
+  const by = {}; S.exercises.filter(e => !sameName(e.name, n) && !same.includes(e)).forEach(e => (by[movKeyLbl(e.name) || "Senza pattern"] ??= []).push(e));
+  const G = Object.entries(by).sort((a, b) => (a[0] === "Senza pattern") - (b[0] === "Senza pattern") || a[0].localeCompare(b[0], "it"));
+  return `<option value="${esc(n)}">${esc(n)} (come allora)</option>${same.length ? `<optgroup label="Stesso movimento · ${esc(pat)}">${same.map(e => `<option ${sel(e)}>${esc(e.name)}</option>`).join("")}</optgroup>` : ""}`
+    + G.map(([g, es]) => `<optgroup label="${esc(g)}">${es.sort((a, b) => a.name.localeCompare(b.name)).map(e => `<option ${sel(e)}>${esc(e.name)}</option>`).join("")}</optgroup>`).join(""); }
 /* serie del riferimento non riprese (stesso tipo): per ogni esercizio "Riprendi" lo aggiunge in fondo alla seduta con quelle serie (si può cambiare il mezzo) */
 const psTakeGroups = seq => { const G = []; seq.filter(o => o.ghost && o.gq).forEach(o => { let g = G.find(q => sameName(q.name, o.name)); if (!g) G.push(g = {name: o.name, qs: []}); g.qs.push(o.gq); }); return G; };
 function psTakeHtml(G, w, seq){ if (!namedEx(w).length) return ""; const T = psTakeGroups(seq); if (!T.length) return "";
-  const optsFor = n => { const pat = patKey(n), same = S.exercises.filter(e => pat && patKey(e.name) === pat && !sameName(e.name, n)).sort((a, b) => a.name.localeCompare(b.name));
-    return `<option value="${esc(n)}">${esc(n)} (come allora)</option>${same.length ? `<optgroup label="Stesso movimento · ${esc(pat)}">${same.map(e => `<option>${esc(e.name)}</option>`).join("")}</optgroup>` : ""}<optgroup label="Altri esercizi">${S.exercises.filter(e => !sameName(e.name, n) && !same.includes(e)).sort((a, b) => a.name.localeCompare(b.name)).map(e => `<option>${esc(e.name)}</option>`).join("")}</optgroup>`; };
+  const optsFor = n => exSwapOpts(n);
   return `<div class="pstake"><div class="pstkh"><b>Non riprese</b> <span class="faint">· esercizi del riferimento che in questa seduta non ci sono: riprendili da qui, si aggiungono in fondo con le stesse serie (poi cambi i numeri)</span></div>
     ${T.map(t => `<div class="pstkr"><span class="pstkn"><b>${esc(t.name)}</b> <span class="faint">${t.qs.length} serie${t.qs.some(q => q.s?.type) ? " · " + t.qs.map(q => q.s?.type || "–").join(" ") : ""}</span></span>
       <select class="in" data-take="${esc(t.name)}" aria-label="Esercizio al posto di ${esc(t.name)}">${optsFor(t.name)}</select><button type="button" class="btn sm" data-act="ps-take" data-n="${esc(t.name)}">+ Riprendi</button></div>`).join("")}</div>`; }

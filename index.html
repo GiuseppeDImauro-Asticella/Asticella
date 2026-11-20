@@ -908,7 +908,8 @@ table.tt tr.onm td{white-space:normal;max-width:300px;padding:0 0 3px 10px;font-
 .spk{position:relative;display:inline-block;min-width:0;max-width:100%;vertical-align:middle}
 .spk>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;width:auto;max-width:420px;padding:5px 10px}.spk>summary::-webkit-details-marker{display:none}
 .spk>summary .spcv{color:var(--faint);font-size:12px;margin-left:auto}.spk[open]>summary{border-color:var(--accent)}.spph{color:var(--muted)}
-.spkl{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:max-content;min-width:100%;max-width:min(520px,calc(100vw - 16px));max-height:min(60vh,460px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px}.pmk .spkl{min-width:380px}.pmk .spi{grid-template-columns:minmax(0,1fr)}.pmk .spcur .spn b{color:var(--ink)}.pmk .spcur .spn small{color:var(--muted);font-weight:400}.pmr .spn{display:flex;flex-direction:column;gap:1px;text-align:left}.pmr .pmrl{font-size:12px;color:var(--ink);font-weight:400}.pmr .pmrl b{font-weight:700}.pmr small{margin-bottom:3px}
+.spkl{position:absolute;z-index:60;top:calc(100% + 4px);left:0;width:max-content;min-width:100%;max-width:min(520px,calc(100vw - 16px));max-height:min(60vh,460px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:6px}.pstake{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin:10px 0;background:var(--surface2)}.pstkh{font-size:13px;margin-bottom:6px}.pstkr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)}.pstkn{flex:1;min-width:160px;font-size:13px}.pstkr select{max-width:240px;height:32px;font-size:13px}
+.pmk .spkl{min-width:380px}.pmk .spi{grid-template-columns:minmax(0,1fr)}.pmk .spcur .spn b{color:var(--ink)}.pmk .spcur .spn small{color:var(--muted);font-weight:400}.pmr .spn{display:flex;flex-direction:column;gap:1px;text-align:left}.pmr .pmrl{font-size:12px;color:var(--ink);font-weight:400}.pmr .pmrl b{font-weight:700}.pmr small{margin-bottom:3px}
 .spkl.up{top:auto;bottom:calc(100% + 4px)}
 .spkg{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 8px 4px}.spkg~.spkg{border-top:1px solid var(--line);margin-top:4px;padding-top:10px}
 .spi{display:grid;grid-template-columns:6.4em minmax(0,1fr) auto;align-items:baseline;gap:4px 10px;text-align:left;min-width:0}
@@ -6772,7 +6773,7 @@ function psSeq(G, w){
       const info = refInfoOf(r.R0, q);
       if (ghost) {   // serie del riferimento non coperta: resta "sua" (nome, parametro e scala dell'esercizio di allora), in una banda a parte
         const qx = {cols: q.cols || []}, gp = psHas(G.sm, qx) ? G.sm : null;
-        out.push({x, j, lab: L[i], band: "rif:" + q.name, name: q.name, st: null, ghost, gtype: q.s?.type || "", p: gp, dk: "all",
+        out.push({x, j, lab: L[i], band: "rif:" + q.name, name: q.name, st: null, ghost, gq: q, gtype: q.s?.type || "", p: gp, dk: "all",
           ref: q.r, rtype: q.s?.type || "", refInfo: info, refOk: true, cmpX: qx, exec: null}); return; }
       const name = exName(w, x); if (!order.includes(name)) order.push(name);
       const altQ = r.alt ? (r.alt.kind === "ex" ? pickRef(r.alt.sets, st, j) : null) : null;
@@ -6791,7 +6792,7 @@ function psSeq(G, w){
 function psVolHtml(G, w){
   const D = G.sess?.wid === w.id ? G.sess : null, rows = {};
   if (G.psRef === "kind") { const {RS} = kindRefOf(G, w); if (!RS) return "";   // seduta intera contro seduta intera: serie per pattern e totale, differenze in evidenza
-    const cur = {}, ref = {}, patOf = n => pcOf(n) || "Senza pattern";
+    const cur = {}, ref = {}, patOf = n => patKey(n) || "Senza pattern";   // senza abilità: lo schema principale ★ (come i riferimenti)
     namedEx(w).forEach(x => { const pt = patOf(x.name); cur[pt] = (cur[pt] || 0) + (D ? D.sets[x.id] : x.sets || []).length; });
     sessPool(RS).forEach(it => { const pt = it.pat || "Senza pattern"; ref[pt] = (ref[pt] || 0) + it.sets.length; });
     const pats = [...new Set([...Object.keys(cur), ...Object.keys(ref)])].sort((a, b) => Math.abs((cur[b] || 0) - (ref[b] || 0)) - Math.abs((cur[a] || 0) - (ref[a] || 0)));
@@ -6879,6 +6880,7 @@ function drawProgSess(G, a){
           <span>sotto: tipo di serie, ora / rif. (<b style="color:var(--warn)">arancione</b> = cambiato)</span>
           <button class="pshelp" data-act="ps-help" aria-expanded="${!!G.psHelp}">${G.psHelp ? "Chiudi" : "ⓘ Come si legge"}</button>
         </div>`}
+        ${!ARCH && editable && G.psRef === "kind" ? psTakeHtml(G, w, seq) : ""}
         ${!ARCH && G.psHelp ? `<div class="pshelpbox">
           <div><b>Parametro</b> — scegli in alto cosa guardare (carico, ripetizioni, RPE, altezza…): il grafico mostra solo quello, con una sola scala (i numeri a sinistra). Accanto a ogni parametro c'è quanti esercizi della seduta lo usano.</div>
           <div><b>Serie</b> — le serie di ogni esercizio sono puntini in fila (il numero sopra è quello della serie); i puntini vuoti sono quelle del riferimento${editable ? `. Il "+" in fondo alla fila aggiunge una serie (copia dell'ultima); tocca un puntino per tipo di serie, duplica o elimina` : ""}.</div>
@@ -7342,6 +7344,14 @@ function psDragSets(e, G, w, k, seq){
   window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
 }
 /* "Stesso movimento": riferimento con lo stesso stimolo (ultima volta per questo obiettivo) o il più recente (qualunque stimolo); per ogni esercizio la seduta che prende */
+/* serie del riferimento non riprese (stesso tipo): per ogni esercizio "Riprendi" lo aggiunge in fondo alla seduta con quelle serie (si può cambiare il mezzo) */
+const psTakeGroups = seq => { const G = []; seq.filter(o => o.ghost && o.gq).forEach(o => { let g = G.find(q => sameName(q.name, o.name)); if (!g) G.push(g = {name: o.name, qs: []}); g.qs.push(o.gq); }); return G; };
+function psTakeHtml(G, w, seq){ if (!namedEx(w).length) return ""; const T = psTakeGroups(seq); if (!T.length) return "";
+  const optsFor = n => { const pat = patKey(n), same = S.exercises.filter(e => pat && patKey(e.name) === pat && !sameName(e.name, n)).sort((a, b) => a.name.localeCompare(b.name));
+    return `<option value="${esc(n)}">${esc(n)} (come allora)</option>${same.length ? `<optgroup label="Stesso movimento · ${esc(pat)}">${same.map(e => `<option>${esc(e.name)}</option>`).join("")}</optgroup>` : ""}<optgroup label="Altri esercizi">${S.exercises.filter(e => !sameName(e.name, n) && !same.includes(e)).sort((a, b) => a.name.localeCompare(b.name)).map(e => `<option>${esc(e.name)}</option>`).join("")}</optgroup>`; };
+  return `<div class="pstake"><div class="pstkh"><b>Non riprese</b> <span class="faint">· esercizi del riferimento che in questa seduta non ci sono: riprendili da qui, si aggiungono in fondo con le stesse serie (poi cambi i numeri)</span></div>
+    ${T.map(t => `<div class="pstkr"><span class="pstkn"><b>${esc(t.name)}</b> <span class="faint">${t.qs.length} serie${t.qs.some(q => q.s?.type) ? " · " + t.qs.map(q => q.s?.type || "–").join(" ") : ""}</span></span>
+      <select class="in" data-take="${esc(t.name)}" aria-label="Esercizio al posto di ${esc(t.name)}">${optsFor(t.name)}</select><button type="button" class="btn sm" data-act="ps-take" data-n="${esc(t.name)}">+ Riprendi</button></div>`).join("")}</div>`; }
 function psMovRefHtml(G, w){ const cur = G.psRef || "stim", ex = namedEx(w);
   const L = ex.map(x => { const eid = exMainStim(w, x), s = eid ? stimHistory(G.email, x, w, eid, 1).list[0] : null, p = patternHistory(G.email, x, w, 1)?.list?.[0];
     return {x, eid, s, p}; });
@@ -8432,6 +8442,17 @@ const ACT = {
   async "pg-mode"(t){ const G = S.prog; if (G.mode === "sess" && G.sess && psDirty(G, progW(G, G.sess.wid) || {}) && !(await confirmBox("Lasciare la seduta senza applicare le modifiche?", "Lascia", false))) return; G.sess = null; G.mode = t.dataset.v; drawProg(); },
   async "ps-pick"(t){ const G = S.prog; if (G.sess && G.sess.wid !== t.dataset.id && psDirty(G, progW(G, G.sess.wid) || {}) && !(await confirmBox("Cambiare seduta senza applicare le modifiche a questa?", "Cambia", false))) return;
     G.sess = null; G.psPop = null; G.psSwap = null; G.wid = t.dataset.id; drawProg(); },
+  async "ps-take"(t){ const G = S.prog, w = progW(G, G.wid), RS = w && kindRefOf(G, w).RS, n = t.dataset.n; if (!w || !RS) return;
+    const T = psTakeGroups(psSeq(G, w).seq).find(q => sameName(q.name, n)); if (!T) return;
+    const y = (RS.exercises || []).find(q => sameName(exName(RS, q), n)) || {}, nn = [...document.querySelectorAll("select[data-take]")].find(e => sameName(e.dataset.take, n))?.value || n;
+    const lib = sameName(nn, n) ? null : libByName(nn), cols0 = y.cols || T.qs[0].cols || [], cols = lib ? (c => lib.lat === "uni" && !c.includes("side") ? [...c, "side"] : c)(lib.cols?.length ? [...lib.cols] : cols0) : cols0;
+    const setOf = q => { const src = q.s && Object.keys(q.s).length ? q.s : Object.fromEntries(cols0.filter(c => q.r?.[c] != null && q.r[c] !== "").map(c => [c, q.r[c]]));   // serie extra fatta dall'atleta: i suoi valori
+      return Object.fromEntries([...cols.map(c => [c, clone(src[c] ?? "")]), ...(src.type ? [["type", src.type]] : []), ...(isCl(src) ? [["cl", clone(src.cl)]] : [])]); };
+    const {id, ss, sets, alts, ...rest} = clone(y), x = {...rest, id: uid(), name: lib?.name || nn, block: nextBlock(w.exercises || []), cols, sets: T.qs.map(setOf), ...(lib ? {} : alts ? {alts} : {})};
+    if (G.edit && w === S.editor?.w) { w.exercises.push(x); S.editor.dirty = true; if (G.sess?.wid === w.id) G.sess.sets[x.id] = clone(x.sets); toast(`${x.name} aggiunto in fondo: cambia i numeri e poi salva l'allenamento`); return drawProg(); }
+    const nw = clone(w); nw.exercises = [...(nw.exercises || []), x]; nw.updatedAt = new Date().toISOString();
+    await DB.saveWorkout(G.email, nw); S.cache[G.email][w.id] = {...w, exercises: nw.exercises, updatedAt: nw.updatedAt};
+    if (G.sess?.wid === w.id) G.sess.sets[x.id] = clone(x.sets); toast(`${x.name} aggiunto in fondo alla seduta`); drawProg(); },
   async "ps-copyref"(t){ const G = S.prog, w = progW(G, G.wid), RS = S.cache[G.email]?.[t.dataset.id]; if (!w || !RS || namedEx(w).length) return;
     const sw = G.psSwap || {}, exs = freshCopy(RS, "").exercises.map((x, k) => { const y = RS.exercises[k], nn = sw[y.id]; if (!nn || sameName(nn, y.name)) return x;
       const lib = libByName(nn), cols = (c => lib?.lat === "uni" && !c.includes("side") ? [...c, "side"] : c)(lib?.cols?.length ? [...lib.cols] : x.cols);   // esercizio cambiato: stesse serie, con i parametri del nuovo esercizio (i valori in comune restano)

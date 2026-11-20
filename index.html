@@ -7713,7 +7713,7 @@ async function workoutPdf(sig){
   await deliverFile(blob, name, w.title || "Allenamento");
 }
 /* libreria esercizi divisa per pattern (o categoria): si apre dal pulsante ☰ accanto al nome dell'esercizio */
-function exPickOpen(btn){ S.expI = +btn.dataset.i; S.expQ = ""; S.expMode ??= "pattern"; let el = $("#exp");
+function exPickOpen(btn){ S.expI = +btn.dataset.i; S.expQ = ""; S.expMode ??= "pattern"; if (S.expMode === "cat") S.expMode = "stim"; let el = $("#exp");
   if (!el) { el = document.createElement("div"); el.id = "exp"; el.className = "exp"; document.body.appendChild(el);
     document.addEventListener("pointerdown", ev => { const p = $("#exp"); if (p && !p.hidden && !p.contains(ev.target) && !ev.target.closest(".expick")) exPickClose(); });
     document.addEventListener("keydown", ev => { if (ev.key === "Escape" && !$("#exp")?.hidden) { ev.stopPropagation(); exPickClose(); } }, true); }
@@ -7723,14 +7723,19 @@ function exPickOpen(btn){ S.expI = +btn.dataset.i; S.expQ = ""; S.expMode ??= "p
   el.style.top = (r.bottom + 6 + h > innerHeight ? Math.max(12, r.top - h - 6) : r.bottom + 6) + "px"; el.style.maxHeight = h + "px";
   setTimeout(() => el.querySelector("input")?.focus(), 20); }
 function exPickClose(){ const el = $("#exp"); if (el) el.hidden = true; }
-function exPickDraw(){ const el = $("#exp"); if (!el) return; const q = (S.expQ || "").trim().toLowerCase(), key = S.expMode === "cat" ? "category" : "pattern";
+function exPickDraw(){ const el = $("#exp"); if (!el) return; const q = (S.expQ || "").trim().toLowerCase(), key = S.expMode === "stim" ? "stim" : "pattern";
   const cur = S.editor?.w?.exercises?.[S.expI]?.name || "";
-  const list = S.exercises.filter(e => !q || e.name.toLowerCase().includes(q) || (e.pattern || "").toLowerCase().includes(q) || (e.category || "").toLowerCase().includes(q));
-  const groups = Object.entries(list.reduce((m, e) => ((m[e[key] || (key === "pattern" ? "Senza pattern" : "Senza categoria")] ??= []).push(e), m), {})).sort((a, b) => a[0].startsWith("Senza") - b[0].startsWith("Senza") || a[0].localeCompare(b[0]));
-  const body = groups.map(([g, es]) => `<div class="expg"><div class="exph">${esc(g)} <span>${es.length}</span></div>${es.sort((a, b) => a.name.localeCompare(b.name)).map(e => `<button type="button" class="expi ${sameName(e.name, cur) ? "on" : ""}" data-act="exp-go" data-n="${esc(e.name)}">${esc(e.name)}<span>${esc(key === "pattern" ? e.category || "" : e.pattern || "")}</span></button>`).join("")}</div>`).join("");
+  /* per pattern: l'abilità; senza abilità lo schema/pattern principale ★ (come nella Progressione); "Senza pattern" = né abilità né schemi */
+  /* per stimolo: lo stimolo proposto della scheda (come lo mostra la scheda), nell'ordine della Struttura degli stimoli; in fondo "Senza stimolo proposto" */
+  const patOf = e => e.pattern || movKeyLbl(e.name) || "", stOf = e => exprLbl(stim0Of(e)) || "";
+  const EO = stimData().caps.flatMap(c => c.expr.map(x => `${c.name} · ${x.name}`)), ord = g => g.startsWith("Senza") ? 1e4 : key === "stim" ? (EO.indexOf(g) + 1 || 1e3) : 0;
+  const grpOf = e => key === "stim" ? stOf(e) || "Senza stimolo proposto" : patOf(e) || "Senza pattern";
+  const list = S.exercises.filter(e => !q || e.name.toLowerCase().includes(q) || patOf(e).toLowerCase().includes(q) || stOf(e).toLowerCase().includes(q));
+  const groups = Object.entries(list.reduce((m, e) => ((m[grpOf(e)] ??= []).push(e), m), {})).sort((a, b) => ord(a[0]) - ord(b[0]) || a[0].localeCompare(b[0]));
+  const body = groups.map(([g, es]) => `<div class="expg"><div class="exph">${esc(g)} <span>${es.length}</span></div>${es.sort((a, b) => a.name.localeCompare(b.name)).map(e => `<button type="button" class="expi ${sameName(e.name, cur) ? "on" : ""}" data-act="exp-go" data-n="${esc(e.name)}">${esc(e.name)}<span>${esc(key === "pattern" ? stOf(e) : patOf(e))}</span></button>`).join("")}</div>`).join("");
   const keepQ = el.querySelector("input")?.matches(":focus");
-  el.innerHTML = `<div class="exptop"><input class="in" placeholder="Cerca esercizio, pattern o categoria" value="${esc(S.expQ || "")}" aria-label="Cerca esercizio">
-    <div class="kfilt">${[["pattern", "Per pattern"], ["cat", "Per categoria"]].map(([k, l]) => `<button type="button" class="${(S.expMode || "pattern") === k ? "on" : ""}" data-act="exp-mode" data-v="${k}">${l}</button>`).join("")}</div></div>
+  el.innerHTML = `<div class="exptop"><input class="in" placeholder="Cerca esercizio, abilità, pattern o stimolo" value="${esc(S.expQ || "")}" aria-label="Cerca esercizio">
+    <div class="kfilt">${[["pattern", "Per abilità / pattern"], ["stim", "Per stimolo"]].map(([k, l]) => `<button type="button" class="${(S.expMode || "pattern") === k ? "on" : ""}" data-act="exp-mode" data-v="${k}">${l}</button>`).join("")}</div></div>
     <div class="explist">${body || `<div class="faint" style="padding:12px">Nessun esercizio trovato.</div>`}</div>`;
   const inp = el.querySelector("input"); inp.addEventListener("input", () => { S.expQ = inp.value; const pos = inp.selectionStart; exPickDraw(); const n = $("#exp input"); n.focus(); n.setSelectionRange(pos, pos); });
   inp.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); el.querySelector(".expi")?.click(); } });
